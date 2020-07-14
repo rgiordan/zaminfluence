@@ -1,0 +1,6 @@
+#numpy
+#autograd >= 1.3
+#ipykernel
+git+https://github.com/rgiordan/vittles.git@master
+git+https://github.com/rgiordan/paragami.git@master
+matplotlib

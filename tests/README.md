@@ -1,0 +1,1 @@
+To run tests, execute the script `testthat.R` in this directory.
