@@ -1,5 +1,5 @@
 This directory contains the R interface for the adversarial influence library.
-The name comes from ``Z-estimator approximate maximal influence''.
+The name comes from "Z-estimator approximate maximal influence".
 
 To update and install, run (in `R`):
 
