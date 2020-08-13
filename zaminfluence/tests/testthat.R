@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
 library(testthat)
-library(rminfluence)
+library(zaminfluence)
 
-test_check("rminfluence")
+test_check("zaminfluence")

@@ -52,8 +52,7 @@ pip3 install git+https://github.com/rgiordan/paragami.git@master
 pip3 install -e $REPO/regression_sensitivity
 ```
 
-You can now run the python tests to make sure everything is working.
-
+1. You can now run the python tests to make sure everything is working.
 ```
 cd $REPO/regression_sensitivity
 python3 -m pytest
@@ -78,7 +77,14 @@ This will tell R to use your virtual environment's python, where you've
 installed the necessary python libraries.  You can then
 use the `zaminfluence` functions.
 
+1. You can now run the R tests to make sure everything is working.
+```
+cd $REPO/zaminfluence/tests
+./testthat.R
+```
+
 ## Done, hopefully!
 
-See the files in the examples directory for example useage.  Please
-submit an issue or email us if you have any questions or comments!
+You should now be able to run the script in `examples/simple_examples.R`.
+
+Please submit an issue or email us if you have any questions or comments!

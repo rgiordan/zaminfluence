@@ -1,0 +1,17 @@
+Package: zaminfluence
+Title: Z-estimator approximate maximal influence.
+Version: 0.0.0.9000
+Authors@R:
+    person(given = "Ryan",
+           family = "Giordano",
+           role = c("aut", "cre"),
+           email = "rgiordan@mit.edu",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Compute an analyze the influence function for Z-estimators.
+Depends: R (>= 3.2.3), reticulate, dplyr, ggplot2, latex2exp, stringr, broom
+License: Apache 2.0
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.0.2
+Suggests:
+    testthat, gridExtra

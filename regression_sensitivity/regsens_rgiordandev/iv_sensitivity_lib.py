@@ -1,4 +1,4 @@
-# Note that these are tested in the R package rminfluence to make sure they
+# Note that these are tested in the R package zaminfluence to make sure they
 # match the output of `ivreg`.
 
 import autograd

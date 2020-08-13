@@ -228,7 +228,7 @@ base_vals <- attr(grad_df, "base_vals")
 target_index <- attr(grad_df, "target_index")
 cat(
     sprintf("vcovCL:\t\t%f", sqrt(se_cov[target_index, target_index])), "\n",
-    sprintf("rminfluence:\t%f", base_vals["se"]), "\n", sep="")
+    sprintf("zaminfluence:\t%f", base_vals["se"]), "\n", sep="")
 
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
 if (FALSE) {

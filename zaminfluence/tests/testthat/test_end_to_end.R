@@ -1,26 +1,27 @@
 #!/usr/bin/env Rscript
 
 library(AER)
-library(rminfluence)
+library(zaminfluence)
 library(sandwich)
 library(testthat)
 library(tidyverse)
 
-context("rminfluence")
-# For debugging
-if (FALSE) {
-  setwd("/home/rgiordan/Documents/git_repos/AdversarialInfluenceWorkbench/rminfluence/tests/testthat")
-}
+context("zaminfluence")
 source("utils.R")
 
+# This requires the venv to have been set up precisely as described in the
+# README.md.
 venv_bin <- "../../../venv/bin/python3"
 
 test_that("python runs", {
     if (!file.exists(venv_bin)) {
-        print(paste0("Virtual environment for testing is missing.  ",
-                     "Run initialize_python.sh."))
+        print(paste0("Virtual environment for testing is missing (",
+                     venv_bin,
+                     "). ",
+                     "Please follow the installation directions in the ",
+                     "README.md file."))
     }
-    rminfluence::InitializePython(venv_bin)
+    zaminfluence::InitializePython(venv_bin)
 })
 
 
