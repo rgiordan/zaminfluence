@@ -43,7 +43,8 @@ Note that you need to activate the virtual environment in every new shell.
 
 1. Install the package in your virtual environment.  Ideally, all dependencies
 will be handled automatically, though we'll manually install the latest master
-branches of `paragami` and `vittles`.
+branches of `paragami` and `vittles`.  (Eventually I will release `pypi`
+versions of these.)
 ```
 pip3 install --upgrade pip
 pip3 install git+https://github.com/rgiordan/vittles.git@master
@@ -54,7 +55,7 @@ pip3 install -e $REPO/regression_sensitivity
 You can now run the python tests to make sure everything is working.
 
 ```
-cd $REPO/inst/regression_sensitivity
+cd $REPO/regression_sensitivity
 python3 -m pytest
 ```
 
@@ -73,13 +74,11 @@ library(zaminfluence)
 repo_loc <- Sys.getenv("REPO") # Or just set to the correct directory path
 InitializePython(file.path(repo_loc, "venv/bin/python"))
 ```
-This will tell R to use your virtual environment's python.
+This will tell R to use your virtual environment's python, where you've
+installed the necessary python libraries.  You can then
+use the `zaminfluence` functions.
 
-## Done, possibly!
+## Done, hopefully!
 
-You should now be able to use the functions on your own regressions. You can
-look at the `examples/regression_intuition/intuition.ipynb` notebook and
-associated library, `intuition_2_lib.R`, for examples. Some paltry documentation
-can be found in the function comments. You'll want to first run your regression,
-then call `GetInfluence` first, then `AnalyzeInfluence`, and then the other
-functions as necessary.
+See the files in the examples directory for example useage.  Please
+submit an issue or email us if you have any questions or comments!
