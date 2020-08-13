@@ -29,7 +29,7 @@ export REPO=$(pwd)
 For the rest of these instructions I'll use `$REPO` to refer to the path
 to the directory with the git repository.
 
-## Python part
+## Python part (`regression_sensitivity`)
 
 Everything assumes you're using an updated version of Python 3.
 
@@ -58,7 +58,7 @@ cd $REPO/inst/regression_sensitivity
 python3 -m pytest
 ```
 
-## R part
+## R part (`zaminfluence`)
 
 1. Install the R library from the ``zaminfluence`` directory.
 ```
