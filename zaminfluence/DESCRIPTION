@@ -1,5 +1,5 @@
-Package: rminfluence
-Title: Analyze the influence function for M-estimators.
+Package: zaminfluence
+Title: Z-estimator approximate maximal influence.
 Version: 0.0.0.9000
 Authors@R:
     person(given = "Ryan",

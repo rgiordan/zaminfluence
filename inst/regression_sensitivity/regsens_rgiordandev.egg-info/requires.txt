@@ -1,5 +1,0 @@
-autograd>=1.3
-ipykernel
-numpy
-paragami>=0.34
-vittles>=0.16
