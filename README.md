@@ -41,7 +41,7 @@ source venv/bin/activate    # Activate the virtual environment.
 ```
 Note that you need to activate the virtual environment in every new shell.
 
-1. Install the package in your virtual environment.  Ideally, all dependencies
+2. Install the package in your virtual environment.  Ideally, all dependencies
 will be handled automatically, though we'll manually install the latest master
 branches of `paragami` and `vittles`.  (Eventually I will release `pypi`
 versions of these.)
@@ -52,7 +52,7 @@ pip3 install git+https://github.com/rgiordan/paragami.git@master
 pip3 install -e $REPO/regression_sensitivity
 ```
 
-1. You can now run the python tests to make sure everything is working.
+3. You can now run the python tests to make sure everything is working.
 ```
 cd $REPO/regression_sensitivity
 python3 -m pytest
@@ -67,7 +67,7 @@ repo_loc <- Sys.getenv("REPO") # Or just set to the correct directory path
 devtools::install_local(file.path(repo_loc, "zaminfluence"), force=TRUE)
 ```
 
-1. In R, during each session where you want to use python, you must first run
+2. In R, during each session where you want to use python, you must first run
 ```
 library(zaminfluence)
 repo_loc <- Sys.getenv("REPO") # Or just set to the correct directory path
@@ -77,7 +77,7 @@ This will tell R to use your virtual environment's python, where you've
 installed the necessary python libraries.  You can then
 use the `zaminfluence` functions.
 
-1. You can now run the R tests to make sure everything is working.
+3. You can now run the R tests to make sure everything is working.
 ```
 cd $REPO/zaminfluence/tests
 ./testthat.R
