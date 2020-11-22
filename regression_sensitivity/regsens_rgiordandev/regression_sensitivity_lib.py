@@ -107,7 +107,7 @@ def get_standard_error_matrix(betahat, y, x, w, se_group=None):
         # parameterize the empirical distribution.
         num_obs = len(y)
         xtx_bar = np.einsum('ni,nj,n->ij', x, x, w) / num_obs
-        sigma2hat = np.sum(w * (resid ** 2)) / (num_obs - len(betahat))
+        sigma2hat = np.sum((w * resid) ** 2) / (num_obs - len(betahat))
         xtx_inv = np.linalg.inv(xtx_bar)
         se2 = sigma2hat * xtx_inv / num_obs
         return se2

@@ -65,7 +65,7 @@ def get_iv_standard_error_matrix(betahat, y, x, z, w, se_group=None):
         num_obs = len(y)
         ztz_bar = np.einsum('ni,nj,n->ij', z, z, w) / num_obs
         ztx_bar = np.einsum('ni,nj,n->ij', z, x, w) / num_obs
-        sigma2hat = np.sum(w * (resid ** 2)) / (num_obs - len(betahat))
+        sigma2hat = np.sum((w * resid) ** 2) / (num_obs - len(betahat))
         ztx_inv = np.linalg.inv(ztx_bar)
         se2 = sigma2hat * np.linalg.solve(ztx_bar, ztz_bar) @ ztx_inv.T / num_obs
         return se2
