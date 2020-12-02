@@ -65,7 +65,16 @@ def get_iv_standard_error_matrix(betahat, y, x, z, w, se_group=None):
         num_obs = len(y)
         ztz_bar = np.einsum('ni,nj,n->ij', z, z, w) / num_obs
         ztx_bar = np.einsum('ni,nj,n->ij', z, x, w) / num_obs
-        sigma2hat = np.sum((w * resid) ** 2) / (num_obs - len(betahat))
+
+        # TODO:
+        # If w perturbs the objective function, then we should normalize
+        # by num_obs and weight the score by w**2.  However, it appears that
+        # this is not what lm does.  For the time being we will match lm
+        # when not grouping.  Note that sandwich::vcovCL seems to do the
+        # right thing, so we'll us the w**2 weighting when se_group is None.
+
+        #sigma2hat = np.sum((w * resid) ** 2) / (num_obs - len(betahat))
+        sigma2hat = np.sum(w * (resid ** 2)) / (num_obs - len(betahat))
         ztx_inv = np.linalg.inv(ztx_bar)
         se2 = sigma2hat * np.linalg.solve(ztx_bar, ztz_bar) @ ztx_inv.T / num_obs
         return se2

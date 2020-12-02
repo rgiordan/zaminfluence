@@ -107,7 +107,16 @@ def get_standard_error_matrix(betahat, y, x, w, se_group=None):
         # parameterize the empirical distribution.
         num_obs = len(y)
         xtx_bar = np.einsum('ni,nj,n->ij', x, x, w) / num_obs
-        sigma2hat = np.sum((w * resid) ** 2) / (num_obs - len(betahat))
+
+        # TODO:
+        # If w perturbs the objective function, then we should normalize
+        # by num_obs and weight the score by w**2.  However, it appears that
+        # this is not what lm does.  For the time being we will match lm
+        # when not grouping.  Note that sandwich::vcovCL seems to do the
+        # right thing, so we'll us the w**2 weighting when se_group is None.
+
+        #sigma2hat = np.sum((w * resid) ** 2) / (num_obs - len(betahat))
+        sigma2hat = np.sum(w * (resid ** 2)) / (num_obs - len(betahat))
         xtx_inv = np.linalg.inv(xtx_bar)
         se2 = sigma2hat * xtx_inv / num_obs
         return se2
