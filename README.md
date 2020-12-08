@@ -42,15 +42,7 @@ source venv/bin/activate    # Activate the virtual environment.
 Note that you need to activate the virtual environment in every new shell.
 
 2. Install the package in your virtual environment.  Ideally, all dependencies
-will be handled automatically, though we'll manually install the latest master
-branches of `paragami` and `vittles`.  (Eventually I will release `pypi`
-versions of these.)
-```
-pip3 install --upgrade pip
-pip3 install git+https://github.com/rgiordan/vittles.git@master
-pip3 install git+https://github.com/rgiordan/paragami.git@master
-pip3 install -e $REPO/regression_sensitivity
-```
+will be handled automatically.
 
 3. You can now run the python tests to make sure everything is working.
 ```

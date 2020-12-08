@@ -1,6 +1,3 @@
-#numpy
-#autograd >= 1.3
-#ipykernel
-git+https://github.com/rgiordan/vittles.git@master
-git+https://github.com/rgiordan/paragami.git@master
+vittles>=0.173
+paragami>=0.42
 matplotlib
