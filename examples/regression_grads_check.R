@@ -94,13 +94,28 @@ GetIVSEMat <- function(x, z, y, beta, w0) {
     zwx_inv_zwz <- solve(zwx, zwz)
     sand_mat <- solve(zwx, t(zwx_inv_zwz))
     se_mat <- sig2_hat * sand_mat 
-    
+
+    ##############################    
     # Derivatives
     dsig2_hat_dw <- eps^2 / (num_obs - length(beta))
     
-    return(list(se_mat=se_mat, sig2_hat=sig2_hat,
+    # Derivative of the diagonal of the sandwich matrix.
+    # See notes for the definition of these terms and the
+    # derivation of this derivative.
+    AR_x <- zwx_inv_zwz %*% solve(t(zwx), t(x))
+    R_z <- solve(zwx, t(z))
+    dsand_mat_diag_dw <- R_z * R_z - 2 * AR_x * R_z
+    
+    dse_mat_diag_dw <-
+        dsand_mat_diag_dw * sig2_hat +
+        outer(diag(sand_mat), dsig2_hat_dw)
+    
+    return(list(se_mat=se_mat,
+                sig2_hat=sig2_hat,
+                sand_mat=sand_mat,
                 dsig2_hat_dw=dsig2_hat_dw,
-                sand_mat=sand_mat))
+                dsand_mat_diag_dw=dsand_mat_diag_dw,
+                dse_mat_diag_dw=dse_mat_diag_dw))
 }
 
 
@@ -138,18 +153,18 @@ se_mat <- sig2_hat * sand_mat
 #### copied ^
 
 
-# See notes for the definition of these terms
-
-AR_x <- zwx_inv_zwz %*% solve(t(zwx), t(x))
-R_z <- solve(zwx, t(z))
-
-dsand_mat_dw_num <-
+dsand_mat_diag_dw_num <-
     numDeriv::jacobian(function(w) {
         GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$sand_mat %>% diag() }, w0)
 
-dsand_mat_dw <- R_z * R_z - 2 * AR_x * R_z
+AssertNearlyZero(iv_se_list$dsand_mat_diag_dw - dsand_mat_diag_dw_num, tol=1e-8)
 
-dsand_mat_dw - dsand_mat_dw_num
+
+dse_mat_diag_dw_num <-
+    numDeriv::jacobian(function(w) {
+        GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$se_mat %>% diag() }, w0)
+
+AssertNearlyZero(iv_se_list$dse_mat_diag_dw - dse_mat_diag_dw_num, tol=1e-8)
 
 
 ######################
