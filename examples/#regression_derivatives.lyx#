@@ -144,12 +144,7 @@ For the standard errors, in the case to match the output of lm, we have
 
 \end_inset
 
-For OLS, 
-\begin_inset Formula $d\hat{\sigma}^{2}/d\theta=0$
-\end_inset
-
-.
- Additionally, 
+Additionally, 
 \begin_inset Formula $\hat{\sigma}$
 \end_inset
 
@@ -181,8 +176,7 @@ Finally, the full standard error matrix is given by
 Recall the matrix inverse derivative formula.
 \begin_inset Formula 
 \begin{align*}
-\frac{d}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\\
-\frac{d}{dw_{n}}\left(X^{T}Z_{w}\right)^{-1} & =-\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}
+\frac{d}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}.
 \end{align*}
 
 \end_inset
@@ -190,55 +184,17 @@ Recall the matrix inverse derivative formula.
 The chain rule gives
 \begin_inset Formula 
 \begin{align*}
-\frac{d}{dw_{n}}\hat{\Sigma} & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}+\\
- & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}-\\
- & \quad\hat{\sigma}^{2}\left[\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right]\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}-\\
- & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left[\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}\right].
+\frac{d}{dw_{n}}\hat{\Sigma} & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}-\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}-\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}+\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}\\
+ & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\hat{\Sigma}\hat{\sigma}^{-2}+\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}-\\
+ & \quad\left(\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\hat{\Sigma}+\hat{\Sigma}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right).
 \end{align*}
 
 \end_inset
 
-Note that if
-\begin_inset Formula 
-\begin{align*}
-A & =\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\\
-r_{x,n} & =\left(X^{T}Z_{w}\right)^{-1}x_{n}\\
-r_{z,n} & =\left(Z_{w}^{T}X\right)^{-1}z_{n}
-\end{align*}
-
-\end_inset
-
-then
-\begin_inset Formula 
-\begin{align*}
-\left[\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right]\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1} & =r_{z,n}r_{x,n}^{T}A^{T}\\
-\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left[\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}\right] & =Ar_{x,n}r_{z,n}^{T}\\
-\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1} & =r_{z,n}r_{z,n}^{T}.
-\end{align*}
-
-\end_inset
-
-We typically only care about the diagonal, which is more convenient for
- matrix-valued expressions.
- By writing
-\begin_inset Formula 
-\begin{align*}
-R_{x} & :=\left(X^{T}Z_{w}\right)^{-1}X\\
-R_{z} & :=\left(Z_{w}^{T}X\right)^{-1}Z,
-\end{align*}
-
-\end_inset
-
-I think we can express the derivative
-\begin_inset Formula 
-\begin{align*}
-\frac{d}{dw^{T}}\mathrm{diag}\left(\hat{\Sigma}\right) & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}\right)+\\
- & \quad\hat{\sigma}^{2}\left(R_{z}\odot R_{z}\right)-2\hat{\sigma}^{2}\left(\left(AR_{x}\right)\odot R_{z}\right).
-\end{align*}
-
-\end_inset
-
-
+Let
 \end_layout
 
 \end_body

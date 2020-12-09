@@ -81,8 +81,9 @@ In order to avoid Python and autograd dependence for the common cases of
  It suffices to do the derivations for IV, of which OLS is a special case.
 \begin_inset Formula 
 \begin{align*}
-G\left(\theta,w\right) & =\sum_{n}w_{n}z_{n}\left(y_{n}-x_{n}^{T}\theta\right)\Rightarrow\\
-\frac{\partial G\left(\theta,w\right)}{\partial w_{n}} & =w_{n}z_{n}\left(y_{n}-x_{n}^{T}\theta\right)\\
+\epsilon_{n} & :=y_{n}-x_{n}^{T}\theta\\
+G\left(\theta,w\right) & =\sum_{n}w_{n}\epsilon_{n}z_{n}\Rightarrow\\
+\frac{\partial G\left(\theta,w\right)}{\partial w_{n}} & =w_{n}z_{n}\epsilon_{n}\\
 \frac{\partial G\left(\theta,w\right)}{\partial\theta^{T}} & =-\sum_{n}w_{n}z_{n}x_{n}^{T}.
 \end{align*}
 
@@ -122,7 +123,7 @@ th row is
 \end_inset
 
 th row is 
-\begin_inset Formula $w_{n}z_{n}\left(y_{n}-x_{n}^{T}\hat{\theta}\right)$
+\begin_inset Formula $w_{n}\left(y_{n}-x_{n}^{T}\hat{\theta}\right)z_{n}$
 \end_inset
 
 .
@@ -137,25 +138,34 @@ th row is
 For the standard errors, in the case to match the output of lm, we have
 \begin_inset Formula 
 \begin{align*}
-\hat{\sigma}^{2} & =\frac{1}{N-D}\sum_{n=1}^{N}w_{n}\left(y_{n}-x_{n}^{T}\hat{\theta}\right)^{2}\Rightarrow\\
-\frac{\partial\hat{\sigma}^{2}}{\partial\theta} & =\frac{-2}{N-D}\sum_{n=1}^{N}w_{n}\left(y_{n}-x_{n}^{T}\hat{\theta}\right)x_{n}=0.
+\hat{\sigma}^{2} & =\frac{1}{N-D}\sum_{n=1}^{N}w_{n}\epsilon_{n}^{2}\Rightarrow\\
+\frac{\partial\hat{\sigma}^{2}}{\partial\theta} & =\frac{-2}{N-D}\sum_{n=1}^{N}w_{n}\epsilon_{n}x_{n}.
 \end{align*}
 
 \end_inset
 
-So we only need to worry about the explicit dependence on 
-\begin_inset Formula $w$
-\end_inset
-
- for 
-\begin_inset Formula $\hat{\sigma}$
+For OLS, 
+\begin_inset Formula $d\hat{\sigma}^{2}/d\theta=0$
 \end_inset
 
 .
- We see that
+ Additionally, 
+\begin_inset Formula $\hat{\sigma}$
+\end_inset
+
+ has explicit weight dependence:
 \begin_inset Formula 
 \begin{align*}
-\frac{\partial\hat{\sigma}^{2}}{\partial w_{n}} & =\frac{1}{N-D}\left(y_{n}-x_{n}^{T}\hat{\theta}\right)^{2}.
+\frac{\partial\hat{\sigma}^{2}}{\partial w_{n}} & =\frac{\epsilon_{n}^{2}}{N-D}.
+\end{align*}
+
+\end_inset
+
+Alternatively, if we use
+\begin_inset Formula 
+\begin{align*}
+\hat{\sigma}^{2} & =\frac{1}{\sum_{n}w_{n}-D}\sum_{n=1}^{N}w_{n}\epsilon_{n}^{2}\Rightarrow\\
+\frac{\partial\hat{\sigma}^{2}}{\partial w_{n}} & =\frac{\hat{\sigma}^{2}}{\sum_{n}w_{0n}-D}\left(\epsilon_{n}^{2}-\hat{\sigma}^{2}\right).
 \end{align*}
 
 \end_inset
@@ -163,7 +173,67 @@ So we only need to worry about the explicit dependence on
 Finally, the full standard error matrix is given by
 \begin_inset Formula 
 \begin{align*}
-\hat{\Sigma} & =\hat{\sigma}^{2}\left(\right)\\
+\hat{\Sigma} & =\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+Recall the matrix inverse derivative formula.
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\\
+\frac{d}{dw_{n}}\left(X^{T}Z_{w}\right)^{-1} & =-\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}
+\end{align*}
+
+\end_inset
+
+The chain rule gives
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw_{n}}\hat{\Sigma} & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}+\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}-\\
+ & \quad\hat{\sigma}^{2}\left[\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right]\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}-\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left[\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}\right].
+\end{align*}
+
+\end_inset
+
+Note that if
+\begin_inset Formula 
+\begin{align*}
+A & =\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\\
+r_{x,n} & =\left(X^{T}Z_{w}\right)^{-1}x_{n}\\
+r_{z,n} & =\left(Z_{w}^{T}X\right)^{-1}z_{n}
+\end{align*}
+
+\end_inset
+
+then
+\begin_inset Formula 
+\begin{align*}
+\left[\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right]\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1} & =r_{z,n}r_{x,n}^{T}A^{T}\\
+\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left[\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}\right] & =Ar_{x,n}r_{z,n}^{T}\\
+\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1} & =r_{z,n}r_{z,n}^{T}.
+\end{align*}
+
+\end_inset
+
+We typically only care about the diagonal, which is more convenient for
+ matrix-valued expressions.
+ By writing
+\begin_inset Formula 
+\begin{align*}
+R_{x} & :=\left(X^{T}Z_{w}\right)^{-1}X\\
+R_{z} & :=\left(Z_{w}^{T}X\right)^{-1}Z,
+\end{align*}
+
+\end_inset
+
+I think we can express the derivative
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw^{T}}\mathrm{diag}\left(\hat{\Sigma}\right) & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}\right)+\\
+ & \quad\hat{\sigma}^{2}\left(R_{z}\odot R_{z}\right)-2\hat{\sigma}^{2}\left(\left(AR_{x}\right)\odot R_{z}\right)
 \end{align*}
 
 \end_inset
