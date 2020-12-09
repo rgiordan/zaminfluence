@@ -91,10 +91,16 @@ GetIVSEMat <- function(x, z, y, beta, w0) {
     eps <- as.numeric(y - x %*% beta)
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
     
-    prod1 <- solve(zwx, zwz)
-    prod2 <- solve(zwx, t(prod1))
-    se_mat <- sig2_hat * prod2 
-    return(list(se_mat=se_mat, sig2_hat=sig2_hat))
+    zwx_inv_zwz <- solve(zwx, zwz)
+    sand_mat <- solve(zwx, t(zwx_inv_zwz))
+    se_mat <- sig2_hat * sand_mat 
+    
+    # Derivatives
+    dsig2_hat_dw <- eps^2 / (num_obs - length(beta))
+    
+    return(list(se_mat=se_mat, sig2_hat=sig2_hat,
+                dsig2_hat_dw=dsig2_hat_dw,
+                sand_mat=sand_mat))
 }
 
 
@@ -103,10 +109,51 @@ iv_se_list <- GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w0)
 AssertNearlyZero(iv_se_list$sig2_hat - iv_res$sigma^2)
 AssertNearlyZero(iv_se_list$se_mat - vcov(iv_res), tol=1e-14)
 
+########################
+# Test the derivatives
+
+library(numDeriv)
+
+dsig2_hat_dw_num <-
+    numDeriv::jacobian(function(w) { GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$sig2_hat }, w0) %>%
+    as.numeric()
+
+AssertNearlyZero(dsig2_hat_dw_num - iv_se_list$dsig2_hat_dw, tol=1e-8)
+
+#### copied...
+
+z_w <- z * w0
+zwz <- t(z_w) %*% z
+zwx <- t(z_w) %*% x
+
+beta <- as.numeric(iv_res$coefficients)
+
+eps <- as.numeric(y - x %*% beta)
+sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
+
+zwx_inv_zwz <- solve(zwx, zwz)
+sand_mat <- solve(zwx, t(zwx_inv_zwz))
+se_mat <- sig2_hat * sand_mat 
+
+#### copied ^
+
+
+# See notes for the definition of these terms
+
+AR_x <- zwx_inv_zwz %*% solve(t(zwx), t(x))
+R_z <- solve(zwx, t(z))
+
+dsand_mat_dw_num <-
+    numDeriv::jacobian(function(w) {
+        GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$sand_mat %>% diag() }, w0)
+
+dsand_mat_dw <- R_z * R_z - 2 * AR_x * R_z
+
+dsand_mat_dw - dsand_mat_dw_num
 
 
 ######################
-# New code
+# New code for regression
 
 lm_res <- reg_fit
 
