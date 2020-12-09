@@ -70,6 +70,7 @@ x <- iv_res$x$regressors
 num_obs <- nrow(x)
 z <- iv_res$x$instruments
 y <- as.numeric(iv_res$y)
+beta <- as.numeric(iv_res$coefficients)
 if (is.null(iv_res$weights)) {
     w0 <- rep(1.0, num_obs)
 } else {
@@ -86,8 +87,6 @@ GetIVSEMat <- function(x, z, y, beta, w0) {
     zwz <- t(z_w) %*% z
     zwx <- t(z_w) %*% x
     
-    beta <- as.numeric(iv_res$coefficients)
-    
     eps <- as.numeric(y - x %*% beta)
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
     
@@ -98,6 +97,7 @@ GetIVSEMat <- function(x, z, y, beta, w0) {
     ##############################    
     # Derivatives
     dsig2_hat_dw <- eps^2 / (num_obs - length(beta))
+    dsig2_hat_dbeta <- -2 * colSums(w0 * eps * x) / (num_obs - length(beta))
     
     # Derivative of the diagonal of the sandwich matrix.
     # See notes for the definition of these terms and the
@@ -113,6 +113,7 @@ GetIVSEMat <- function(x, z, y, beta, w0) {
     return(list(se_mat=se_mat,
                 sig2_hat=sig2_hat,
                 sand_mat=sand_mat,
+                dsig2_hat_dbeta=dsig2_hat_dbeta,
                 dsig2_hat_dw=dsig2_hat_dw,
                 dsand_mat_diag_dw=dsand_mat_diag_dw,
                 dse_mat_diag_dw=dse_mat_diag_dw))
@@ -132,39 +133,25 @@ library(numDeriv)
 dsig2_hat_dw_num <-
     numDeriv::jacobian(function(w) { GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$sig2_hat }, w0) %>%
     as.numeric()
-
 AssertNearlyZero(dsig2_hat_dw_num - iv_se_list$dsig2_hat_dw, tol=1e-8)
-
-#### copied...
-
-z_w <- z * w0
-zwz <- t(z_w) %*% z
-zwx <- t(z_w) %*% x
-
-beta <- as.numeric(iv_res$coefficients)
-
-eps <- as.numeric(y - x %*% beta)
-sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
-
-zwx_inv_zwz <- solve(zwx, zwz)
-sand_mat <- solve(zwx, t(zwx_inv_zwz))
-se_mat <- sig2_hat * sand_mat 
-
-#### copied ^
-
 
 dsand_mat_diag_dw_num <-
     numDeriv::jacobian(function(w) {
         GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$sand_mat %>% diag() }, w0)
-
 AssertNearlyZero(iv_se_list$dsand_mat_diag_dw - dsand_mat_diag_dw_num, tol=1e-8)
 
 
 dse_mat_diag_dw_num <-
     numDeriv::jacobian(function(w) {
         GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w)$se_mat %>% diag() }, w0)
-
 AssertNearlyZero(iv_se_list$dse_mat_diag_dw - dse_mat_diag_dw_num, tol=1e-8)
+
+dsig2_hat_dbeta_num <-
+    numDeriv::jacobian(function(beta) {
+        GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w0)$sig2_hat }, beta)
+AssertNearlyZero(iv_se_list$dsig2_hat_dbeta - dsig2_hat_dbeta_num, tol=1e-8)
+
+
 
 
 ######################
