@@ -31,6 +31,80 @@ reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
 reg_fit <- lm(data = df, formula = reg_form, x=TRUE, y=TRUE)
 
 
+#######################
+# Let's do some checks
+
+# Generate data.
+x_dim <- 3
+beta_true <- runif(x_dim)
+df <- GenerateIVRegressionData(10, beta_true, num_groups=NULL)
+
+# Fit an IV model.
+x_names <- sprintf("x%d", 1:x_dim)
+z_names <- sprintf("z%d", 1:x_dim)
+iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
+                           paste(x_names, collapse=" + "),
+                           paste(z_names, collapse=" + ")))
+df$weights <- runif(nrow(df)) + 1
+iv_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+
+# Get influence.
+iv_infl <- ComputeModelInfluence(iv_fit)
+grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
+influence_dfs <- SortAndAccumulate(grad_df)
+
+
+iv_res <- iv_fit
+
+
+
+##################
+# New code
+
+AssertNearlyZero <- function(x, tol=1e-15) {
+    stopifnot(max(abs(x)) < tol)
+}
+
+
+x <- iv_res$x$regressors
+num_obs <- nrow(x)
+z <- iv_res$x$instruments
+y <- as.numeric(iv_res$y)
+if (is.null(iv_res$weights)) {
+    w0 <- rep(1.0, num_obs)
+} else {
+    w0 <- iv_res$weights
+}
+AssertNearlyZero(w0 - df$weights)
+
+
+
+
+
+GetIVSEMat <- function(x, z, y, beta, w0) {
+    z_w <- z * w0
+    zwz <- t(z_w) %*% z
+    zwx <- t(z_w) %*% x
+    
+    beta <- as.numeric(iv_res$coefficients)
+    
+    eps <- as.numeric(y - x %*% beta)
+    sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
+    
+    prod1 <- solve(zwx, zwz)
+    prod2 <- solve(zwx, t(prod1))
+    se_mat <- sig2_hat * prod2 
+    return(list(se_mat=se_mat, sig2_hat=sig2_hat))
+}
+
+
+iv_se_list <- GetIVSEMat(x=x, z=z, y=y, beta=beta, w0=w0)
+
+AssertNearlyZero(iv_se_list$sig2_hat - iv_res$sigma^2)
+AssertNearlyZero(iv_se_list$se_mat - vcov(iv_res), tol=1e-14)
+
+
+
 ######################
 # New code
 
