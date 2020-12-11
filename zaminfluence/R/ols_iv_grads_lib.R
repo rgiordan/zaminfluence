@@ -1,4 +1,18 @@
 
+
+
+GetLMWeights <- function(lm_res) {
+  n_obs <- nrow(lm_res$x)
+  if (is.null(lm_res$weights)) {
+    weights <- rep(1.0, n_obs)
+  } else {
+    weights <- lm_res$weights
+  }
+  return(weights)
+}
+
+
+
 GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     if (!is.null(se_group)) {
         stop("Not implemented.")
@@ -68,36 +82,160 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 }
 
 
+GetIVVariables <- function(iv_res) {
+  if (!(("x" %in% names(iv_res)) &
+        ("y" %in% names(iv_res)))) {
+      stop("You must run ivreg with the arguments x=TRUE and y=TRUE.")
+  }
+
+  x <- iv_res$x$regressors
+  num_obs <- nrow(x)
+  z <- iv_res$x$instruments
+  y <- as.numeric(iv_res$y)
+  betahat <- as.numeric(iv_res$coefficients)
+  if (is.null(iv_res$weights)) {
+      w0 <- rep(1.0, num_obs)
+  } else {
+      w0 <- iv_res$weights
+  }
+  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0, betahat=betahat))
+}
 
 
-ComputeIVRegressionInfluenceR <- function(iv_res, se_group=NULL) {
-    x <- iv_res$x$regressors
-    num_obs <- nrow(x)
-    z <- iv_res$x$instruments
-    y <- as.numeric(iv_res$y)
-    betahat <- as.numeric(iv_res$coefficients)
-    if (is.null(iv_res$weights)) {
-        w0 <- rep(1.0, num_obs)
-    } else {
-        w0 <- iv_res$weights
-    }
-
-
-    iv_se_list <- GetIVSEDerivs(
-      x=x, z=z, y=y, beta=betahat, w0=w0, se_group=se_group)
-
+#' Compute all influence scores for an IV regression.
+#' @param iv_res The output of an IV regression computed with AER::ivreg.
+#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @return A list containing the regression and influence result.
+#' @export
+ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
+    iv_vars <- GetIVVariables(iv_res)
+    iv_grad_list <- GetIVSEDerivs(
+      x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+      beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
 
     # Note that the standard errors may not match iv_res when using se_group.
     return(list(model_fit=iv_res,
-                n_obs=length(iv_res$y),
+                n_obs=iv_vars$n_obs,
                 regressor_names=colnames(iv_res$x$regressors),
-                grad_fun="hand_coded_derivatives",
+                grad_fun="GetIVSEDerivs",
 
-                betahat=betahat,
-                se=iv_se_list$se_mat,
-                weights=py_main$w0,
+                betahat=iv_vars$betahat,
+                se=iv_grad_list$se,
+                weights=iv_vars$w0,
 
-                beta_grad=py_main$betahat_grad,
-                se_grad=py_main$se_grad)
+                beta_grad=iv_grad_list$dbetahat_dw,
+                se_grad=iv_grad_list$dse_dw)
     )
+}
+
+
+#' Compute all influence scores for an IV regression.
+#' @param iv_res The output of an IV regression computed with AER::ivreg.
+#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @return The standard error matrix.
+#' @export
+ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
+  iv_vars <- GetIVVariables(iv_res)
+  iv_grad_list <- GetIVSEDerivs(
+    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+    beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+  return(iv_grad_list$se_mat / iv_vars$num_obs)
+}
+
+
+
+####################################################################
+# The remaining functions are common to ordinary and IV regression.
+
+#' Compute the influence functions for all regressors given a model fit.
+#' @param model_fit A model fit (currently from lm or AER::iv_reg).
+#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @return A list containing the regression and influence result.
+#' @export
+ComputeModelInfluence <- function(model_fit, se_group=NULL) {
+  valid_classes <- c("lm", "ivreg")
+  model_class <- class(model_fit)
+  if (!(model_class %in% valid_classes)) {
+    stop(sprintf("The class of `model_fit` must be one of %s",
+                 paste(valid_classes, collapse=", ")))
+  }
+  if (model_class == "lm") {
+    return(ComputeRegressionInfluence(model_fit, se_group))
+  } else if (model_class == "ivreg") {
+    return(ComputeIVRegressionInfluence(model_fit, se_group))
+  } else {
+    # Redundant, so sue me.
+    stop(sprint("Unknown model class %s", model_class))
+  }
+}
+
+
+#' @export
+AppendIntervalColumns <- function(grad_df, sig_num_ses) {
+  grad_df[["beta_pzse_grad"]] <-
+    grad_df[["beta_grad"]] + sig_num_ses * grad_df[["se_grad"]]
+  grad_df[["beta_mzse_grad"]] <-
+    grad_df[["beta_grad"]] - sig_num_ses * grad_df[["se_grad"]]
+  base_vals <- attr(grad_df, "base_vals")
+  base_vals_names <- names(base_vals)
+  base_vals <- c(base_vals,
+                 base_vals["beta"] + sig_num_ses * base_vals["se"],
+                 base_vals["beta"] - sig_num_ses * base_vals["se"])
+  names(base_vals) <- c(base_vals_names,
+                        "beta_pzse",
+                        "beta_mzse")
+  attr(grad_df, "base_vals") <- base_vals
+  attr(grad_df, "sig_num_ses") <- sig_num_ses
+  return(grad_df)
+}
+
+
+#' @export
+GetTargetRegressorGrads <- function(reg_infl, target_regressor,
+                                    sig_num_ses=qnorm(0.975)) {
+    target_index <- which(reg_infl$regressor_names == target_regressor)
+    if (length(target_index) != 1) {
+        stop("Error finding target regressor in the regression.")
+    }
+
+    # The reg_infl$*_grad columns are derivatives with respect to each
+    # observation at `weights`.  They are converted to derivatives with respect
+    # to a weight scaled to be one at inclusion and zero at exclusion by the
+    # chain rule.
+    grad_df <-
+      data.frame(
+        row=1:reg_infl$n_obs,
+        weights=reg_infl$weights,
+        se_grad=reg_infl$weights * reg_infl$se_grad[target_index,],
+        beta_grad=reg_infl$weights * reg_infl$beta_grad[target_index, ],
+        obs_per_row=1)
+
+    attr(grad_df, "n_obs") <- reg_infl$n_obs
+    attr(grad_df, "n_grad_rows") <- reg_infl$n_obs
+    attr(grad_df, "obs_per_row_col") <- "obs_per_row"
+    base_vals <- c(
+        reg_infl$betahat[target_index],
+        reg_infl$se[target_index])
+    names(base_vals) <- c("beta", "se")
+    attr(grad_df, "base_vals") <- base_vals
+    attr(grad_df, "target_regressor") <- target_regressor
+    attr(grad_df, "target_index") <- target_index
+    attr(grad_df, "data_row_cols") <- "row"
+
+    grad_df <- AppendIntervalColumns(grad_df, sig_num_ses=sig_num_ses)
+
+    return(grad_df)
+}
+
+
+#' @export
+CopyGradAttributes <- function(
+    new_df, grad_df,
+    attrs=c("n_obs", "obs_per_row_col", "base_vals",
+            "target_regressor", "target_index",
+            "sig_num_ses", "data_row_cols", "n_grad_rows")) {
+    for (a in attrs) {
+        attr(new_df, a) <- attr(grad_df, a)
+    }
+    return(new_df)
 }
