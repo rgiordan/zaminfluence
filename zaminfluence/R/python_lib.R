@@ -80,7 +80,7 @@ SetPythonRegressionVariables <- function(lm_res, se_group=NULL) {
 #' @param se_group Optional, a vector of integers defining a standard error grouping.
 #' @return A list containing the regression and influence result.
 #' @export
-ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
+ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
   py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
   reg <- broom::tidy(lm_result)
   reticulate::py_run_string("
