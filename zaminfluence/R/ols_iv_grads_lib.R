@@ -12,11 +12,12 @@ GetLMWeights <- function(lm_res) {
 }
 
 
-
 GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     if (!is.null(se_group)) {
         stop("Not implemented.")
     }
+
+    num_obs <- length(y)
 
     z_w <- z * w0
     zwz <- t(z_w) %*% z
@@ -115,7 +116,7 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
 
     # Note that the standard errors may not match iv_res when using se_group.
     return(list(model_fit=iv_res,
-                n_obs=iv_vars$n_obs,
+                n_obs=iv_vars$num_obs,
                 regressor_names=colnames(iv_res$x$regressors),
                 grad_fun="GetIVSEDerivs",
 

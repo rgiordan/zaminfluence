@@ -2,7 +2,9 @@
 
 export(AppendIntervalColumns)
 export(ComputeIVRegressionErrorCovariance)
+export(ComputeIVRegressionErrorCovariancePython)
 export(ComputeIVRegressionInfluence)
+export(ComputeIVRegressionInfluencePython)
 export(ComputeModelInfluence)
 export(ComputeRegressionInfluence)
 export(ComputeRegressionMomentSensitivity)

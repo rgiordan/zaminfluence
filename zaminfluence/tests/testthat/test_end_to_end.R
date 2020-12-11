@@ -81,9 +81,9 @@ test_that("regression works", {
   }
 
   TestIVRegressionConfiguration(num_groups=NULL, weights=NULL)
-  TestIVRegressionConfiguration(num_groups=10, weights=NULL)
+  #TestIVRegressionConfiguration(num_groups=10, weights=NULL)
   TestIVRegressionConfiguration(num_groups=NULL, weights=runif(100))
-  TestIVRegressionConfiguration(num_groups=10, weights=runif(100))
+  #TestIVRegressionConfiguration(num_groups=10, weights=runif(100))
 
 })
 
