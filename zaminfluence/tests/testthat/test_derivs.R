@@ -22,6 +22,7 @@ test_that("derivs_correct", {
   x_dim <- 3
   beta_true <- runif(x_dim)
   df <- GenerateIVRegressionData(10, beta_true, num_groups=NULL)
+  df$weights <- runif(nrow(df)) + 1
 
   # Fit an IV model.
   x_names <- sprintf("x%d", 1:x_dim)
@@ -29,8 +30,7 @@ test_that("derivs_correct", {
   iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                              paste(x_names, collapse=" + "),
                              paste(z_names, collapse=" + ")))
-  df$weights <- runif(nrow(df)) + 1
-  iv_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+  iv_fit <- ivreg(data=df, formula=iv_form, x=TRUE, y=TRUE, weights=weights)
 
   # Get influence.
   iv_infl <- ComputeModelInfluence(iv_fit)
@@ -84,9 +84,8 @@ test_that("derivs_correct", {
         }, beta)
   AssertNearlyZero(dsig2_hat_dbeta_num - iv_se_list$dsig2_hat_dbeta, tol=1e-8)
 
-
+  #############################
   # Test the full derivatives
-
   GetIVTestResults <- function(w) {
       df_test <- df
       df_test$weights <- w
@@ -100,10 +99,6 @@ test_that("derivs_correct", {
                se_mat_diag=diag(iv_se_test_list$se_mat))
       )
   }
-
-
-  GetIVTestResults(df$weights)
-  GetIVTestResults(df$weights + runif(nrow(df)))
 
   dbetahat_dw_num <-
       numDeriv::jacobian(function(w) { GetIVTestResults(w)$beta }, w0)
