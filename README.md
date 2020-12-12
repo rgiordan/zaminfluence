@@ -46,16 +46,14 @@ will be handled automatically.
 ```
 python3 -m pip install -e regression_sensitivity
 ```
-
-(Depending on your envioronment, it may be necessary to upgrade ``pip``
-and install ``wheel`` in the virtual environment before installing:
-
+Note: depending on your envioronment, it may be necessary to upgrade ``pip``
+and install ``wheel`` in the virtual environment before installing
+``regression_sensitivity``,
+as follows:
 ```
 python3 -m pip install --upgrade pip
 python3 -m pip install wheel
 ```
-)
-
 
 3. You can now run the python tests to make sure everything is working.
 ```
