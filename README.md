@@ -43,6 +43,19 @@ Note that you need to activate the virtual environment in every new shell.
 
 2. Install the package in your virtual environment.  Ideally, all dependencies
 will be handled automatically.
+```
+python3 -m pip install -e regression_sensitivity
+```
+
+(Depending on your envioronment, it may be necessary to upgrade ``pip``
+and install ``wheel`` in the virtual environment before installing:
+
+```
+python3 -m pip install --upgrade pip
+python3 -m pip install wheel
+```
+)
+
 
 3. You can now run the python tests to make sure everything is working.
 ```
