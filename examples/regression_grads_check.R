@@ -1,6 +1,7 @@
 #base_dir <- Sys.getenv("REPO")
 base_dir  <- "/home/rgiordan/Documents/git_repos/zaminfluence"
 setwd(base_dir)
+source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
 
 library(ggplot2)
 library(dplyr)
@@ -33,9 +34,28 @@ reg_fit <- lm(data = df, formula = reg_form, x=TRUE, y=TRUE)
 
 #######################
 # Let's do some checks
+# 
+# # Generate data.
+# x_dim <- 3
+# beta_true <- runif(x_dim)
+# df <- GenerateIVRegressionData(10, beta_true, num_groups=NULL)
+# 
+# # Fit an IV model.
+# x_names <- sprintf("x%d", 1:x_dim)
+# z_names <- sprintf("z%d", 1:x_dim)
+# iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
+#                            paste(x_names, collapse=" + "),
+#                            paste(z_names, collapse=" + ")))
+# df$weights <- runif(nrow(df)) + 1
+# iv_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+# 
+# # Get influence.
+# iv_infl <- ComputeModelInfluence(iv_fit)
+# grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
+# influence_dfs <- SortAndAccumulate(grad_df)
+# 
 
-# Generate data.
-x_dim <- 3
+
 beta_true <- runif(x_dim)
 df <- GenerateIVRegressionData(10, beta_true, num_groups=NULL)
 
@@ -53,8 +73,12 @@ iv_infl <- ComputeModelInfluence(iv_fit)
 grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
 influence_dfs <- SortAndAccumulate(grad_df)
 
-
-iv_res <- iv_fit
+iv_se_list <- GetIVSEDerivs(
+    x=df[, x_names] %>% as.matrix(),
+    z=df[, z_names] %>% as.matrix(),
+    y=df$y,
+    beta=iv_fit$coefficients,
+    w0=df$weights, testing=TRUE)
 
 
 
@@ -65,32 +89,37 @@ AssertNearlyZero <- function(x, tol=1e-15) {
     stopifnot(max(abs(x)) < tol)
 }
 
-
-x <- iv_res$x$regressors
-num_obs <- nrow(x)
-z <- iv_res$x$instruments
-y <- as.numeric(iv_res$y)
-beta <- as.numeric(iv_res$coefficients)
-if (is.null(iv_res$weights)) {
-    w0 <- rep(1.0, num_obs)
-} else {
-    w0 <- iv_res$weights
-}
-AssertNearlyZero(w0 - df$weights)
+# 
+# x <- iv_fit$x$regressors
+# num_obs <- nrow(x)
+# z <- iv_fit$x$instruments
+# y <- as.numeric(iv_fit$y)
+# beta <- as.numeric(iv_fit$coefficients)
+# if (is.null(iv_fit$weights)) {
+#     w0 <- rep(1.0, num_obs)
+# } else {
+#     w0 <- iv_fit$weights
+# }
+# AssertNearlyZero(w0 - df$weights)
 
 
 ###########################
 # Load and test
 
-source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
+#source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
 
-iv_se_list <- GetIVSEDerivs(x=x, z=z, y=y, beta=beta, w0=w0, testing=TRUE)
+iv_se_list <- GetIVSEDerivs(
+    x=df[, x_names] %>% as.matrix(),
+    z=df[, z_names] %>% as.matrix(),
+    y=df$y,
+    beta=iv_fit$coefficients,
+    w0=df$weights, testing=TRUE)
 
-AssertNearlyZero(iv_se_list$betahat - iv_res$coefficients, tol=1e-11)
-AssertNearlyZero(iv_se_list$sig2_hat - iv_res$sigma^2)
-AssertNearlyZero(iv_se_list$se - iv_res$sigma^2)
-AssertNearlyZero(iv_se_list$se_mat - vcov(iv_res), tol=1e-11)
-AssertNearlyZero(iv_se_list$se - vcov(iv_res) %>% diag() %>% sqrt(), tol=1e-11)
+
+AssertNearlyZero(iv_se_list$betahat - iv_fit$coefficients, tol=1e-11)
+AssertNearlyZero(iv_se_list$sig2_hat - iv_fit$sigma^2)
+AssertNearlyZero(iv_se_list$se_mat - vcov(iv_fit), tol=1e-11)
+AssertNearlyZero(iv_se_list$se - vcov(iv_fit) %>% diag() %>% sqrt(), tol=1e-11)
 
 ########################
 # Test the derivatives
