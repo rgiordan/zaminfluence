@@ -59,7 +59,7 @@ python3 -m pytest
 ```
 library(devtools)
 repo_loc <- Sys.getenv("REPO") # Or just set to the correct directory path
-devtools::install_local(file.path(repo_loc, "zaminfluence"), force=TRUE)
+devtools::install_local(file.path(repo_loc, "zaminfluence"), force=TRUE, dependencies=TRUE)
 ```
 
 2. In R, during each session where you want to use python, you must first run
