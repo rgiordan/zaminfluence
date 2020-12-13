@@ -36,7 +36,7 @@ Everything assumes you're using an updated version of Python 3.
 1. Let's begin by creating a virtual environment.  In `$REPO`, run the following
 commands:
 ```
-python -m venv venv         # Create a virtual environment
+python3 -m venv venv         # Create a virtual environment
 source venv/bin/activate    # Activate the virtual environment.
 ```
 Note that you need to activate the virtual environment in every new shell.
@@ -45,14 +45,6 @@ Note that you need to activate the virtual environment in every new shell.
 will be handled automatically.
 ```
 python3 -m pip install -e regression_sensitivity
-```
-Note: depending on your envioronment, it may be necessary to upgrade ``pip``
-and install ``wheel`` in the virtual environment before installing
-``regression_sensitivity``,
-as follows:
-```
-python3 -m pip install --upgrade pip
-python3 -m pip install wheel
 ```
 
 3. You can now run the python tests to make sure everything is working.
@@ -91,3 +83,29 @@ cd $REPO/zaminfluence/tests
 You should now be able to run the script in `examples/simple_examples.R`.
 
 Please submit an issue or email us if you have any questions or comments!
+
+
+## Troubleshooting Installation
+
+### Python
+
+Depending on your envioronment, it may be necessary to upgrade ``pip``
+and install ``wheel`` in the virtual environment before installing
+``regression_sensitivity`` in **Python Part Step 2**, as follows:
+```
+python3 -m pip install --upgrade pip
+python3 -m pip install wheel
+python3 -m pip install -e regression_sensitivity
+```
+
+### R
+
+If you get a ```could not find function "InitializePython"``` error (or
+something similar), you might be able to fix it by running
+```devtools::document``` prior to ```devtools::install_local``` in **R part Step
+1**, as follows:
+
+```
+devtools::document(file.path(repo_loc, "zaminfluence"))
+devtools::install_local(file.path(repo_loc, "zaminfluence"), force=TRUE)
+```
