@@ -200,7 +200,6 @@ se_cov = regsens_rgiordandev.get_standard_error_matrix(
 # IV regression
 
 #' Set python variables corresponding to the output of AER::ivreg.
-#' @export
 SetPythonIVRegressionVariables <- function(iv_res, se_group=NULL) {
     if (!(("x" %in% names(iv_res)) &
           ("y" %in% names(iv_res)))) {
