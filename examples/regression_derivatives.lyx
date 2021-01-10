@@ -341,7 +341,7 @@ The dependence on
 \end_inset
 
 where the non-zero entry is in the group 
-\begin_inset Formula $g:g\left(n\right)=g$
+\begin_inset Formula $g\left(n\right)$
 \end_inset
 
  to which observation 
@@ -352,7 +352,7 @@ where the non-zero entry is in the group
  So
 \begin_inset Formula 
 \begin{align*}
-\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}} & =\frac{G-1}{G^{2}}S_{g}z_{n}^{T}\epsilon_{n}.
+\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}} & =\frac{G-1}{G^{2}}S_{g\left(n\right)}z_{n}^{T}\epsilon_{n}.
 \end{align*}
 
 \end_inset
@@ -381,20 +381,12 @@ The first term is thus given by
 The diagonal is given by
 \begin_inset Formula 
 \begin{align*}
-\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\right)\epsilon_{n},
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
 \end{align*}
 
 \end_inset
 
-which an analogous expression for the second term with 
-\begin_inset Formula $\left(X^{T}Z_{w}\right)^{-1}$
-\end_inset
-
- replacing 
-\begin_inset Formula $\left(Z_{w}^{T}X\right)^{-1}$
-\end_inset
-
-.
+By symmetry, the second term is the same.
 \end_layout
 
 \end_body

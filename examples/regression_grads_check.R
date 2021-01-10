@@ -70,10 +70,39 @@ if (do_iv) {
 ####################
 # Sanity checks
 
-colSums(reg_fit$x$instruments * reg_fit$residuals * reg_fit$weights)
+y <- reg_fit$y
+x <- reg_fit$x$regressors
+z <- reg_fit$x$instruments
 
 
+num_obs <- length(y)
 
+eps <- as.numeric(y - x %*% beta)
+
+z_w <- z * w0
+z_eps <- z * eps
+z_w_eps <- z * eps * w0
+
+zwz <- t(z_w) %*% z
+zwx <- t(z_w) %*% x
+
+
+# grouped aggregation
+z <- reg_fit$x$instruments
+group_rows <- split(1:nrow(z), df$se_group)
+s_mat <- lapply(group_rows,
+       function(rows) { colSums(z_w[rows, , drop=FALSE] * eps[rows])}) %>%
+    do.call(rbind, .)
+s_mat <- s_mat - colMeans(s_mat)
+# Check for well-formedness of the groups.
+all(as.numeric(row.names(s_mat))  == unique(df$se_group) %>% sort())
+all(as.numeric(row.names(s_mat))  == (min(df$se_group):max(df$se_group)))
+v_mat <- t(s_mat) %*% s_mat / nrow(s_mat)
+
+s_mat_expanded <- matrix(NA, dim(z)[1], dim(z)[2])
+for (row in names(group_rows)) {
+    s_mat_expanded[group_rows[[row]], ] <- s_mat[as.numeric(row) + 1]
+}
 
 ##################
 # New code
@@ -91,7 +120,9 @@ if (do_iv) {
         z=df[, z_names] %>% as.matrix(),
         y=df$y,
         beta=reg_fit$coefficients,
-        w0=df$weights, testing=TRUE)
+        w0=df$weights,
+        se_group=df$se_group,
+        testing=TRUE)
 } else {
     reg_se_list <- GetRegressionSEDerivs(
         x=df[, x_names] %>% as.matrix(),
@@ -100,26 +131,80 @@ if (do_iv) {
         w0=df$weights, testing=TRUE)
 }
 
+reg_se_list
+df$se_group
+
+###################################
+
+LocalGetRegressionSEDerivs <- function(w=df$weights, beta=reg_fit$coefficients) {
+    if (do_iv) {
+        return(GetIVSEDerivs(
+            x=df[, x_names] %>% as.matrix(),
+            z=df[, z_names] %>% as.matrix(),
+            y=df$y,
+            beta=beta,
+            w0=w,
+            se_group=df$se_group,
+            testing=TRUE))
+    } else {
+        return(GetRegressionSEDerivs(
+            x=df[, x_names] %>% as.matrix(),
+            y=df$y,
+            beta=beta,
+            w0=w,
+            se_group=df$se_group,
+            testing=TRUE))
+    }
+}
 
 
+
+w0 <- df$weights
+beta <- reg_fit$coefficients
+
+AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
+AssertNearlyZero(colMeans(reg_se_list$s_mat), tol=1e-11)
+num_groups <- max(df$se_group) + 1
+AssertNearlyZero(cov(reg_se_list$s_mat) * (num_groups - 1) / num_groups -
+                 reg_se_list$v_mat, tol=1e-12)
+
+
+######
+
+weps <- w0
+weps[1] <- weps[1] + 1e-3
+(LocalGetRegressionSEDerivs(w=weps)$v_mat - reg_se_list$v_mat) / 1e-3
+reg_se_list$v_mat
+
+ddiag_vmat_dw_partial <-
+    2 * solve(zwx, t(s_mat_expanded)) * solve(zwx, t(z_eps)) *
+    (num_groups - 1) / (num_groups^2)
+
+ddiag_vmat_dw_partial_num <-
+    numDeriv::jacobian(function(w) {
+        LocalGetRegressionSEDerivs(w=w)$v_mat %>% diag()
+    }, w0)
+    
+reg_se_list$ddiag_vmat_dw_partial
+ddiag_vmat_dw_partial_num
+
+#AssertNearlyZero(ddiag_vmat_dw_partial_num - reg_se_list$ddiag_vmat_dw_partial, tol=1e-8)
+plot(ddiag_vmat_dw_partial_num, reg_se_list$ddiag_vmat_dw_partial); abline(0, 1)
+
+
+
+
+
+
+
+######### old:
 
 ###########################
 # Load and test
 
-AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
 AssertNearlyZero(reg_se_list$sig2_hat - sigma(reg_fit)^2)
 AssertNearlyZero(reg_se_list$se_mat - vcov(reg_fit), tol=1e-11)
 AssertNearlyZero(reg_se_list$se - vcov(reg_fit) %>% diag() %>% sqrt(), tol=1e-11)
-
-
-LocalGetRegressionSEDerivs <- function(w=df$weights, beta=reg_fit$coefficients) {
-    GetRegressionSEDerivs(
-        x=df[, x_names] %>% as.matrix(),
-        y=df$y,
-        beta=beta,
-        w0=w,
-        testing=TRUE)
-}
 
 
 # Test the partial derivatives
