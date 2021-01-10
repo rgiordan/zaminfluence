@@ -9,17 +9,19 @@
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
 GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) {
-    # TODO: you can make this faster by factorizing xwx.
-    if (!is.null(se_group)) {
-        stop("Not implemented.")
-    }
+  num_obs <- length(y)
 
-    num_obs <- length(y)
+  x_w <- x * w0
+  xwx <- t(x_w) %*% x
 
-    x_w <- x * w0
-    xwx <- t(x_w) %*% x
+  eps <- as.numeric(y - x %*% beta)
 
-    eps <- as.numeric(y - x %*% beta)
+  # TODO: you can make this faster by factorizing xwx.
+  if (!is.null(se_group)) {
+    # Grouped ("robust") standard errors
+    stop("Not implemented.")
+  } else {
+    # Un-grouped ("non-robust") standard errors
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
     sand_mat <- solve(xwx)
@@ -74,6 +76,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
     }
 
     return(ret_list)
+  }
 }
 
 

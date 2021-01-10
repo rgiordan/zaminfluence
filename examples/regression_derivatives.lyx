@@ -127,7 +127,10 @@ th row is
 \end_inset
 
 .
- It follows that
+\end_layout
+
+\begin_layout Standard
+It follows that
 \begin_inset Formula 
 \begin{align*}
 \frac{d\hat{\theta}}{dw^{T}} & =\left(Z_{w}^{T}X\right)^{-1}Z_{\epsilon}^{T}.
@@ -135,6 +138,44 @@ th row is
 
 \end_inset
 
+It is the standard errors that require some tedious algebra.
+ 
+\end_layout
+
+\begin_layout Subsection*
+Matrix inverses
+\end_layout
+
+\begin_layout Standard
+Recall the matrix inverse derivative formula.
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\\
+\frac{d}{dw_{n}}\left(X^{T}Z_{w}\right)^{-1} & =-\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Ungrouped SEs
+\end_layout
+
+\begin_layout Standard
+In the ungrouped case, the full standard error matrix is given by
+\begin_inset Formula 
+\begin{align*}
+\hat{\Sigma} & =\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 For the standard errors, in the case to match the output of lm, we have
 \begin_inset Formula 
 \begin{align*}
@@ -170,24 +211,11 @@ Alternatively, if we use
 
 \end_inset
 
-Finally, the full standard error matrix is given by
-\begin_inset Formula 
-\begin{align*}
-\hat{\Sigma} & =\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}.
-\end{align*}
 
-\end_inset
+\end_layout
 
-Recall the matrix inverse derivative formula.
-\begin_inset Formula 
-\begin{align*}
-\frac{d}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\\
-\frac{d}{dw_{n}}\left(X^{T}Z_{w}\right)^{-1} & =-\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}
-\end{align*}
-
-\end_inset
-
-The chain rule gives
+\begin_layout Standard
+The chain rule and the above matrix inverse formula gives
 \begin_inset Formula 
 \begin{align*}
 \frac{d}{dw_{n}}\hat{\Sigma} & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}+\\
@@ -229,7 +257,12 @@ R_{z} & :=\left(Z_{w}^{T}X\right)^{-1}Z,
 
 \end_inset
 
-I think we can express the derivative
+we can express the derivative using the element-wise (Hadamard) product
+ 
+\begin_inset Formula $\odot$
+\end_inset
+
+ as
 \begin_inset Formula 
 \begin{align*}
 \frac{d}{dw^{T}}\mathrm{diag}\left(\hat{\Sigma}\right) & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}\right)+\\
@@ -239,6 +272,129 @@ I think we can express the derivative
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection*
+Grouped SEs
+\end_layout
+
+\begin_layout Standard
+In the grouped case, the full standard error matrix is given by the grouped
+ score function.
+ Let 
+\begin_inset Formula $g\left(n\right)$
+\end_inset
+
+ denote the group to which observation 
+\begin_inset Formula $n$
+\end_inset
+
+ belongs, which is in 
+\begin_inset Formula $1\ldots G$
+\end_inset
+
+, and let
+\begin_inset Formula 
+\begin{align*}
+\gamma_{g} & :=\sum_{n:g\left(n\right)=g}\epsilon_{n}w_{n}z_{n}\\
+S_{g} & :=\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\gamma_{g}\\
+S & :=\left(\begin{array}{c}
+S_{1}^{T}\\
+\vdots\\
+S_{G}^{T}
+\end{array}\right)\\
+\hat{V} & :=\frac{1}{G}S^{T}S\\
+\hat{\Sigma} & =\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+The dependence on 
+\begin_inset Formula $\left(Z_{w}^{T}X\right)^{-1}$
+\end_inset
+
+ is the same as in the un-grouped case.
+ Let us consider derivatives of 
+\begin_inset Formula $\hat{V}$
+\end_inset
+
+.
+ First,
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial w_{n}}\hat{V} & =\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}+\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\\
+\frac{\partial S}{\partial w_{n}} & =\left(\begin{array}{c}
+0\\
+\vdots\\
+\frac{\partial}{\partial w_{n}}\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}\\
+\vdots\\
+0
+\end{array}\right)=\left(\begin{array}{c}
+0\\
+\vdots\\
+\frac{G-1}{G}\epsilon_{n}z_{n}^{T}\\
+\vdots\\
+0
+\end{array}\right),
+\end{align*}
+
+\end_inset
+
+where the non-zero entry is in the group 
+\begin_inset Formula $g:g\left(n\right)=g$
+\end_inset
+
+ to which observation 
+\begin_inset Formula $n$
+\end_inset
+
+ belongs.
+ So
+\begin_inset Formula 
+\begin{align*}
+\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}} & =\frac{G-1}{G^{2}}S_{g}z_{n}^{T}\epsilon_{n}.
+\end{align*}
+
+\end_inset
+
+Note that
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1} & =\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}+\\
+ & \quad\left(Z_{w}^{T}X\right)^{-1}\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\left(X^{T}Z_{w}\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+The first term is thus given by
+\begin_inset Formula 
+\begin{align*}
+\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1} & =\frac{G-1}{G^{2}}\left(Z_{w}^{T}X\right)^{-1}S_{g}z_{n}^{T}\left(X^{T}Z_{w}\right)^{-1}\epsilon_{n}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The diagonal is given by
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\right)\epsilon_{n},
+\end{align*}
+
+\end_inset
+
+which an analogous expression for the second term with 
+\begin_inset Formula $\left(X^{T}Z_{w}\right)^{-1}$
+\end_inset
+
+ replacing 
+\begin_inset Formula $\left(Z_{w}^{T}X\right)^{-1}$
+\end_inset
+
+.
 \end_layout
 
 \end_body

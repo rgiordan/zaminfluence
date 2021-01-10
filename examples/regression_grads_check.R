@@ -34,33 +34,45 @@ AssertNearlyZero <- function(x, tol=1e-15) {
 #######################
 # Let's do some checks
 
+do_iv <- TRUE
 
 x_dim <- 3
 beta_true <- runif(x_dim)
-#df <- GenerateIVRegressionData(10, beta_true, num_groups=NULL)
-df <- GenerateRegressionData(10, beta_true, num_groups=NULL)
+
+if (do_iv) {
+    df <- GenerateIVRegressionData(20, beta_true, num_groups=5)
+} else {
+    df <- GenerateRegressionData(20, beta_true, num_groups=5)
+}
 df$weights <- runif(nrow(df)) + 1
 
 # Fit a model.
 
-# IV:
-# x_names <- sprintf("x%d", 1:x_dim)
-# z_names <- sprintf("z%d", 1:x_dim)
-# iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
-#                            paste(x_names, collapse=" + "),
-#                            paste(z_names, collapse=" + ")))
-# reg_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+if (do_iv) {
+    # IV:
+    x_names <- sprintf("x%d", 1:x_dim)
+    z_names <- sprintf("z%d", 1:x_dim)
+    iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
+                               paste(x_names, collapse=" + "),
+                               paste(z_names, collapse=" + ")))
+    reg_fit <- ivreg(data=df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+    reg_cov <- sandwich::vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
+} else {
+    # Regression:
+    x_names <- sprintf("x%d", 1:x_dim)
+    reg_form <- formula(sprintf("y ~ %s - 1",
+                                paste(x_names, collapse=" + ")))
+    reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE, weights=weights)
+    reg_cov <- sandwich::vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
+}
 
-# Regression:
-x_names <- sprintf("x%d", 1:x_dim)
-reg_form <- formula(sprintf("y ~ %s - 1",
-                           paste(x_names, collapse=" + ")))
-reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE, weights=weights)
 
-# Get influence.
-# iv_infl <- ComputeModelInfluence(reg_fit)
-# grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
-# influence_dfs <- SortAndAccumulate(grad_df)
+####################
+# Sanity checks
+
+colSums(reg_fit$x$instruments * reg_fit$residuals * reg_fit$weights)
+
+
 
 
 ##################
@@ -68,11 +80,26 @@ reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE, weights=weights)
 
 source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
 
-reg_se_list <- GetRegressionSEDerivs(
-    x=df[, x_names] %>% as.matrix(),
-    y=df$y,
-    beta=reg_fit$coefficients,
-    w0=df$weights, testing=TRUE)
+# Get influence.
+
+if (do_iv) {
+    # iv_infl <- ComputeModelInfluence(reg_fit)
+    # grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
+    # influence_dfs <- SortAndAccumulate(grad_df)
+    reg_se_list <- GetIVSEDerivs(
+        x=df[, x_names] %>% as.matrix(),
+        z=df[, z_names] %>% as.matrix(),
+        y=df$y,
+        beta=reg_fit$coefficients,
+        w0=df$weights, testing=TRUE)
+} else {
+    reg_se_list <- GetRegressionSEDerivs(
+        x=df[, x_names] %>% as.matrix(),
+        y=df$y,
+        beta=reg_fit$coefficients,
+        w0=df$weights, testing=TRUE)
+}
+
 
 
 
@@ -83,7 +110,6 @@ AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
 AssertNearlyZero(reg_se_list$sig2_hat - sigma(reg_fit)^2)
 AssertNearlyZero(reg_se_list$se_mat - vcov(reg_fit), tol=1e-11)
 AssertNearlyZero(reg_se_list$se - vcov(reg_fit) %>% diag() %>% sqrt(), tol=1e-11)
-
 
 
 LocalGetRegressionSEDerivs <- function(w=df$weights, beta=reg_fit$coefficients) {
@@ -136,19 +162,6 @@ AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw_partial, tol=
 
 #############################
 # Test the full derivatives
-# GetIVTestResults <- function(w) {
-#     df_test <- df
-#     df_test$weights <- w
-#     beta_test <- ivreg(data=df_test, formula=iv_form,
-#                        x=TRUE, y=TRUE, weights=weights)$coefficients
-#     iv_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
-#     return(
-#         list(beta=iv_se_test_list$betahat,
-#              se=iv_se_test_list$se,
-#              sig2_hat=iv_se_test_list$sig2_hat,
-#              se_mat_diag=diag(iv_se_test_list$se_mat))
-#     )
-# }
 
 GetRegTestResults <- function(w) {
     df_test <- df
@@ -163,6 +176,7 @@ GetRegTestResults <- function(w) {
              se_mat_diag=diag(reg_se_test_list$se_mat))
     )
 }
+
 
 dbetahat_dw_num <-
     numDeriv::jacobian(function(w) { GetRegTestResults(w)$beta }, w0)
