@@ -6,4 +6,4 @@ devtools::load_all()
 library(testthat)
 library(zaminfluence)
 
-#test_check("zaminfluence")
+test_check("zaminfluence")

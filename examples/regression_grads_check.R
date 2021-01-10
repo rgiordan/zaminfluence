@@ -27,6 +27,10 @@ source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
 set.seed(42)
 
 
+AssertNearlyZero <- function(x, tol=1e-15) {
+    stopifnot(max(abs(x)) < tol)
+}
+
 #######################
 # Let's do some checks
 
@@ -38,12 +42,16 @@ df <- GenerateRegressionData(10, beta_true, num_groups=NULL)
 df$weights <- runif(nrow(df)) + 1
 
 # Fit a model.
+
+# IV:
 # x_names <- sprintf("x%d", 1:x_dim)
 # z_names <- sprintf("z%d", 1:x_dim)
 # iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
 #                            paste(x_names, collapse=" + "),
 #                            paste(z_names, collapse=" + ")))
 # reg_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+
+# Regression:
 x_names <- sprintf("x%d", 1:x_dim)
 reg_form <- formula(sprintf("y ~ %s - 1",
                            paste(x_names, collapse=" + ")))
@@ -54,20 +62,18 @@ reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE, weights=weights)
 # grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
 # influence_dfs <- SortAndAccumulate(grad_df)
 
+
+##################
+# New code
+
+source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
+
 reg_se_list <- GetRegressionSEDerivs(
     x=df[, x_names] %>% as.matrix(),
     y=df$y,
     beta=reg_fit$coefficients,
     w0=df$weights, testing=TRUE)
 
-
-
-##################
-# New code
-
-AssertNearlyZero <- function(x, tol=1e-15) {
-    stopifnot(max(abs(x)) < tol)
-}
 
 
 ###########################
@@ -91,32 +97,42 @@ LocalGetRegressionSEDerivs <- function(w=df$weights, beta=reg_fit$coefficients) 
 
 
 # Test the partial derivatives
+
 w0 <- df$weights
 beta <- reg_fit$coefficients
+
+# Passes
 dsig2_hat_dw_num <-
     numDeriv::jacobian(function(w) {
         LocalGetRegressionSEDerivs(w=w)$sig2_hat
     }, w0) %>%
     as.numeric()
-AssertNearlyZero(dsig2_hat_dw_num - iv_se_list$dsig2_hat_dw_partial, tol=1e-8)
+AssertNearlyZero(dsig2_hat_dw_num - reg_se_list$dsig2_hat_dw_partial, tol=1e-8)
 
-dsand_mat_diag_dw_num <-
-    numDeriv::jacobian(function(w) {
-        LocalGetRegressionSEDerivs(w=w)$sand_mat %>% diag()
-    }, w0)
-AssertNearlyZero(dsand_mat_diag_dw_num - iv_se_list$dsand_mat_diag_dw_partial, tol=1e-6)
-
-dse_mat_diag_dw_num <-
-    numDeriv::jacobian(function(w) {
-        LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
-    }, w0)
-AssertNearlyZero(dse_mat_diag_dw_num - iv_se_list$dse_mat_diag_dw_partial, tol=5e-6)
-
+# Passes
 dsig2_hat_dbeta_num <-
     numDeriv::jacobian(function(beta) {
         LocalGetRegressionSEDerivs(beta=beta)$sig2_hat
     }, beta)
-AssertNearlyZero(dsig2_hat_dbeta_num - iv_se_list$dsig2_hat_dbeta, tol=1e-8)
+AssertNearlyZero(dsig2_hat_dbeta_num - reg_se_list$dsig2_hat_dbeta, tol=1e-8)
+
+# Passes
+dsand_mat_diag_dw_num <-
+    numDeriv::jacobian(function(w) {
+        LocalGetRegressionSEDerivs(w=w)$sand_mat %>% diag()
+    }, w0)
+AssertNearlyZero(dsand_mat_diag_dw_num - reg_se_list$dsand_mat_diag_dw_partial, tol=1e-6)
+
+# Passes
+dse_mat_diag_dw_num <-
+    numDeriv::jacobian(function(w) {
+        LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
+    }, w0)
+AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw_partial, tol=5e-6)
+
+
+
+
 
 #############################
 # Test the full derivatives

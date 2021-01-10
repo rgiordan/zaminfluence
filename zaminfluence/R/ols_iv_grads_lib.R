@@ -38,7 +38,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
     # depend on beta.
     # See notes for the definition of these terms and the derivation.
     R_x <- solve(xwx, t(x))
-    dsand_mat_diag_dw_partial <- R_x * R_x
+    dsand_mat_diag_dw_partial <- -1 * R_x * R_x
 
     dse_mat_diag_dw_partial <-
         dsand_mat_diag_dw_partial * sig2_hat +
@@ -67,10 +67,10 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
         # For testing and debugging, it's useful to get the intermediate results.
         ret_list$betahat <- solve(xwx, t(x_w) %*% y) %>% as.numeric()
         ret_list$sand_mat <- sand_mat
-        ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta # tested
-        ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial # tested
-        ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial # tested
-        ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial # tested
+        ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta
+        ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial
+        ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial
+        ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial
     }
 
     return(ret_list)
