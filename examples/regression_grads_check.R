@@ -136,41 +136,55 @@ AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw_partial, tol=
 
 #############################
 # Test the full derivatives
-GetIVTestResults <- function(w) {
+# GetIVTestResults <- function(w) {
+#     df_test <- df
+#     df_test$weights <- w
+#     beta_test <- ivreg(data=df_test, formula=iv_form,
+#                        x=TRUE, y=TRUE, weights=weights)$coefficients
+#     iv_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
+#     return(
+#         list(beta=iv_se_test_list$betahat,
+#              se=iv_se_test_list$se,
+#              sig2_hat=iv_se_test_list$sig2_hat,
+#              se_mat_diag=diag(iv_se_test_list$se_mat))
+#     )
+# }
+
+GetRegTestResults <- function(w) {
     df_test <- df
     df_test$weights <- w
-    beta_test <- ivreg(data=df_test, formula=iv_form,
+    beta_test <- lm(data=df_test, formula=reg_form,
                        x=TRUE, y=TRUE, weights=weights)$coefficients
-    iv_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
+    reg_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
     return(
-        list(beta=iv_se_test_list$betahat,
-             se=iv_se_test_list$se,
-             sig2_hat=iv_se_test_list$sig2_hat,
-             se_mat_diag=diag(iv_se_test_list$se_mat))
+        list(beta=reg_se_test_list$betahat,
+             se=reg_se_test_list$se,
+             sig2_hat=reg_se_test_list$sig2_hat,
+             se_mat_diag=diag(reg_se_test_list$se_mat))
     )
 }
 
 dbetahat_dw_num <-
-    numDeriv::jacobian(function(w) { GetIVTestResults(w)$beta }, w0)
-AssertNearlyZero(dbetahat_dw_num - iv_se_list$dbetahat_dw, tol=1e-8)
+    numDeriv::jacobian(function(w) { GetRegTestResults(w)$beta }, w0)
+AssertNearlyZero(dbetahat_dw_num - reg_se_list$dbetahat_dw, tol=1e-8)
 #plot(dbetahat_dw_num, iv_se_list$dbetahat_dw); abline(0, 1)
 
 dsig2_hat_num <-
-    numDeriv::jacobian(function(w) { GetIVTestResults(w)$sig2_hat }, w0)
+    numDeriv::jacobian(function(w) { GetRegTestResults(w)$sig2_hat }, w0)
 #plot(dsig2_hat_num, iv_se_list$dsig2_hat_dw); abline(0, 1)
-AssertNearlyZero(dsig2_hat_num - iv_se_list$dsig2_hat_dw, tol=1e-6)
+AssertNearlyZero(dsig2_hat_num - reg_se_list$dsig2_hat_dw, tol=1e-6)
 
 
 dse_mat_diag_dw_num <-
-    numDeriv::jacobian(function(w) { GetIVTestResults(w)$se_mat_diag }, w0)
+    numDeriv::jacobian(function(w) { GetRegTestResults(w)$se_mat_diag }, w0)
 #plot(dse_mat_diag_dw_num, iv_se_list$dse_mat_diag_dw); abline(0, 1)
 
 # Check the relative error for this one
-AssertNearlyZero((dse_mat_diag_dw_num - iv_se_list$dse_mat_diag_dw) /
-                     (iv_se_list$dse_mat_diag_dw + 1e-3), tol=1e-6)
+AssertNearlyZero((dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw) /
+                     (reg_se_list$dse_mat_diag_dw + 1e-3), tol=1e-6)
 
-dse_dw_num <- numDeriv::jacobian(function(w) { GetIVTestResults(w)$se }, w0)
+dse_dw_num <- numDeriv::jacobian(function(w) { GetRegTestResults(w)$se }, w0)
 #plot(dse_dw_num, iv_se_list$dse_dw); abline(0, 1)
 # Check the relative error for this one
-AssertNearlyZero((dse_dw_num - iv_se_list$dse_dw) / (iv_se_list$dse_dw + 1e-3), tol=1e-6)
+AssertNearlyZero((dse_dw_num - reg_se_list$dse_dw) / (reg_se_list$dse_dw + 1e-3), tol=1e-6)
 
