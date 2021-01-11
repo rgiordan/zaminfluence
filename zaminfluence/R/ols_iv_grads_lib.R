@@ -155,7 +155,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         do.call(rbind, .)
     # colMeans(s_mat) is zero at the weights used for regression, but include
     # it so we can test partial derivatives.
-    s_mat <- s_mat - colMeans(s_mat)
+    s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
 
     # Check for well-formedness of the groups.
     all(as.numeric(row.names(s_mat)) ==

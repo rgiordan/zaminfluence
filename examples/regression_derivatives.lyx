@@ -316,6 +316,7 @@ In the grouped case, the full standard error matrix is given by the grouped
 \begin{align*}
 \gamma_{g} & :=\sum_{n:g\left(n\right)=g}\epsilon_{n}w_{n}z_{n}\\
 S_{g} & :=\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\gamma_{g}\\
+ & =\sum_{n:g\left(n\right)=g}\epsilon_{n}w_{n}z_{n}-\frac{1}{G}\sum_{n=1}^{N}\epsilon_{n}w_{n}z_{n}\\
 S & :=\left(\begin{array}{c}
 S_{1}^{T}\\
 \vdots\\
@@ -341,7 +342,7 @@ The dependence on
 \begin_inset Formula 
 \begin{align*}
 \frac{\partial}{\partial w_{n}}\hat{V} & =\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}+\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\\
-\frac{\partial}{\partial w_{n}}\gamma_{g} & =\epsilon_{n}z_{n}\\
+\frac{\partial}{\partial w_{n}}\gamma_{g\left(n\right)} & =\epsilon_{n}z_{n},\quad0\textrm{ otherwise}\\
 \frac{\partial S}{\partial w_{n}} & =\left(\begin{array}{c}
 -\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}\\
 \vdots\\

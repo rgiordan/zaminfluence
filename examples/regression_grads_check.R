@@ -172,7 +172,35 @@ vcov_se_cov <- vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
 AssertNearlyZero(vcov_se_cov / num_groups - reg_se_list$se_mat, tol=1e-12)
 AssertNearlyZero(sqrt(diag(vcov_se_cov)/ num_groups) - reg_se_list$se, tol=1e-12)
 
+#######
+# Check that aggregation is doing the right thing
 
+# Passes
+for (n in 1:length(df$se_group)) {
+    gn <- df$se_group[n] + 1
+    AssertNearlyZero(reg_se_list$s_mat_expanded[n, ] - reg_se_list$s_mat[gn, ], tol=1e-11)
+}
+
+# Passes
+for (g in 1:num_groups) {
+    rows <- which(df$se_group == (g - 1))
+    AssertNearlyZero(reg_se_list$s_mat[g, 2] - sum(z[rows, 2] * eps[rows] * w0[rows]), tol=1e-11)
+    AssertNearlyZero(reg_se_list$s_mat[g, ] - colSums((z * eps * w0)[rows, ]), tol=1e-11)
+}
+
+######
+
+df$se_group
+
+g <- 1
+n <- (1:nrow(z))[which(df$se_group == (g - 1))][1]
+d_dw_num <-
+    numDeriv::jacobian(function(w) {
+        LocalGetRegressionSEDerivs(w=w)$s_mat[g, , drop=FALSE]
+    }, w0)
+
+d_dw_num[, n]
+z[n, ] * eps[n] * (1 - 1 / num_groups)
 
 ######
 
@@ -182,7 +210,11 @@ ddiag_vmat_dw_num <-
         LocalGetRegressionSEDerivs(w=w)$v_mat %>% diag()
     }, w0)
 
-plot(reg_se_list$ddiag_vmat_dw, ddiag_vmat_dw_num)
+reg_se_list$ddiag_vmat_dw
+ddiag_vmat_dw_num
+
+#plot(reg_se_list$ddiag_vmat_dw, ddiag_vmat_dw_num); abline(0, 1)
+
 
 
 #######
