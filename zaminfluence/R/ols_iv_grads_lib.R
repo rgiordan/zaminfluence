@@ -171,7 +171,10 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     zwx_inv_smat <- solve(zwx, v_mat)
     se_mat <- solve(zwx, t(zwx_inv_smat))
 
-    # Covariance matrix derivatives
+    # Covariance matrix derivatives.
+
+    # First the partials wrt the weights.
+
     # s_mat_expanded is s_mat with rows repeated to match the shape of z.
     # TODO: do this more efficiently
     s_mat_expanded <- matrix(NA, dim(z)[1], dim(z)[2])
@@ -181,16 +184,24 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
       }
     }
 
+    zwx_inv_s_mat_expanded <- solve(zwx, t(s_mat_expanded))
     ddiag_semat_dw_partial <-
-      2 * solve(zwx, t(s_mat_expanded)) * solve(zwx, t(z_eps)) / num_groups -
+      2 * zwx_inv_s_mat_expanded * solve(zwx, t(z_eps)) / num_groups -
       2 * (solve(zwx, t(z))) * (se_mat %*% t(x))
+
+    # Second the partials through the beta dependence.
+    xi_vec <- colSums(t(x) * dbetahat_dw)
+    ddiag_semat_dbetaw <-
+      -2 * zwx_inv_s_mat_expanded *
+      solve(zwx, t(z_w * xi_vec)) / num_groups
+
 
     # Specify return values
     ret_list <- list(
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),
         dbetahat_dw=dbetahat_dw,
-        dse_mat_diag_dw=NA
+        dse_mat_diag_dw=ddiag_semat_dbetaw + ddiag_semat_dw_partial
       )
 
     if (testing) {
@@ -198,18 +209,13 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         ret_list$betahat <- solve(zwx, t(z_w) %*% y) %>% as.numeric()
         ret_list$v_mat <- v_mat
         ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
+        ret_list$ddiag_semat_dbetaw <- ddiag_semat_dbetaw
         ret_list$s_mat <- s_mat
         ret_list$s_mat_expanded <- s_mat_expanded
 
         # For debugging
-        ret_list$ddiag_vmat_dw <-
-          (2 / num_groups) * t(s_mat_expanded) * t(z_eps)
-
-        #ret_list$sand_mat <- sand_mat
-        #ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta # tested
-        #ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial # tested
-        #ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial # tested
-        #ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial # tested
+        # ret_list$ddiag_vmat_dw <-
+        #   (2 / num_groups) * t(s_mat_expanded) * t(z_eps)
     }
     return(ret_list)
 

@@ -450,12 +450,137 @@ Again recognizing the diagonal,
 
 \end_inset
 
-Putting everything together,
+Putting everything together, and letting 
+\begin_inset Formula $\tilde{S}$
+\end_inset
+
+ be an 
+\begin_inset Formula $N\times D$
+\end_inset
+
+ matrix which is an expanded versin of 
+\begin_inset Formula $S$
+\end_inset
+
+ so that row 
+\begin_inset Formula $n$
+\end_inset
+
+ of 
+\begin_inset Formula $\tilde{S}$
+\end_inset
+
+ contains row 
+\begin_inset Formula $g\left(n\right)$
+\end_inset
+
+ of 
+\begin_inset Formula $S$
+\end_inset
+
+, 
 \begin_inset Formula 
 \begin{align*}
 \frac{\partial}{\partial w_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right) & =\\
 -2\left(\left(Z_{w}^{T}X\right)^{-1}Z^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}X^{T}\right)+\\
-2\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z\odot\epsilon\right)^{T}\right) & .
+2\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}\tilde{S}^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z\odot\epsilon\right)^{T}\right) & .
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now, we consider the 
+\begin_inset Formula $\hat{\theta}$
+\end_inset
+
+ dependence.
+ Only 
+\begin_inset Formula $\hat{V}$
+\end_inset
+
+ depends on 
+\begin_inset Formula $\hat{\theta}$
+\end_inset
+
+ in this case, and, as above
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial\hat{\theta}_{d}}\hat{V} & =\frac{1}{G}S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}}+\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}}\right)^{T}\\
+\frac{\partial\epsilon_{n}}{\partial\hat{\theta}} & =-x_{n}\\
+\frac{d\epsilon_{n}}{dw_{n}} & =-x_{n}^{T}\frac{d\hat{\theta}}{dw_{n}}
+\end{align*}
+
+\end_inset
+
+Now, keeping the explicit weights 
+\begin_inset Formula $w=\omega$
+\end_inset
+
+ fixed so what we only differentiate with respect to 
+\begin_inset Formula $w$
+\end_inset
+
+ through 
+\begin_inset Formula $\hat{\theta}$
+\end_inset
+
+,
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw_{n}}\gamma_{g\left(n\right)} & =\omega_{n}z_{n}\frac{\partial\epsilon_{n}}{\partial\hat{\theta}_{d}^{T}}\frac{d\hat{\theta}}{dw_{n}}=-\omega_{n}z_{n}x_{n}^{T}\frac{d\hat{\theta}}{dw_{n}},\quad0\textrm{ otherwise}\\
+\frac{dS}{dw_{n}} & =\left(\begin{array}{c}
+-\frac{1}{G}\sum_{g=1}^{N}\frac{d}{dw_{n}}\gamma_{g}\\
+\vdots\\
+\frac{d}{dw_{n}}\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\frac{d}{dw_{n}}\gamma_{g}\\
+\vdots\\
+-\frac{1}{G}\sum_{g=1}^{N}\frac{d}{dw_{n}}\gamma_{g}
+\end{array}\right)=-\left(\begin{array}{c}
+-\frac{1}{G}\\
+\vdots\\
+1-\frac{1}{G}\\
+\vdots\\
+-\frac{1}{G}
+\end{array}\right)\omega_{n}z_{n}x_{n}^{T}\frac{d\hat{\theta}}{dw_{n}}\\
+\frac{1}{G}S^{T}\frac{dS}{dw_{n}} & =-\frac{1}{G}S_{g\left(n\right)}\omega_{n}z_{n}x_{n}^{T}\frac{d\hat{\theta}}{dw_{n}}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $\Xi$
+\end_inset
+
+ be the 
+\begin_inset Formula $N\times1$
+\end_inset
+
+ vector with entries
+\begin_inset Formula 
+\begin{align*}
+\Xi_{n} & =x_{n}^{T}\frac{d\hat{\theta}}{dw_{n}}.
+\end{align*}
+
+\end_inset
+
+Then, reasoning as above,
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw^{T}}\mathrm{diag}\left(\hat{V}\right) & =-\frac{2}{G}\tilde{S}^{T}\odot\left(\left(Z\odot\omega\odot\Xi\right)^{T}\right),
+\end{align*}
+
+\end_inset
+
+so
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw^{T}}\mathrm{diag}\left(\hat{\Sigma}\right) & =-\frac{2}{G}\left(\left(Z_{w}^{T}X\right)^{-1}\tilde{S}^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z\odot w\odot\Xi\right)^{T}\right).
 \end{align*}
 
 \end_inset
