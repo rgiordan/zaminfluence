@@ -144,6 +144,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
   zwz <- t(z_w) %*% z
   zwx <- t(z_w) %*% x
 
+  # This derivative is the same for both SE methods.
+  dbetahat_dw <- solve(zwx, t(z * eps))
 
   if (!is.null(se_group)) {
     # grouped aggregation
@@ -155,6 +157,21 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     # it so we can test partial derivatives.
     s_mat <- s_mat - colMeans(s_mat)
 
+    # Check for well-formedness of the groups.
+    all(as.numeric(row.names(s_mat)) ==
+        unique(df$se_group) %>% sort()) %>%
+      stopifnot()
+    all(as.numeric(row.names(s_mat)) ==
+        (min(df$se_group):max(df$se_group))) %>%
+      stopifnot()
+    num_groups <- nrow(s_mat)
+    v_mat <- t(s_mat) %*% s_mat / num_groups
+
+    # Covariance matrix
+    zwx_inv_smat <- solve(zwx, v_mat)
+    se_mat <- solve(zwx, t(zwx_inv_smat))
+
+    # Covariance matrix derivatives
     # s_mat_expanded is s_mat with rows repeated to match the shape of z.
     # TODO: do this more efficiently
     s_mat_expanded <- matrix(NA, dim(z)[1], dim(z)[2])
@@ -164,37 +181,24 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
       }
     }
 
-    # Check for well-formedness of the groups.
-    all(as.numeric(row.names(s_mat))  == unique(df$se_group) %>% sort()) %>%
-      stopifnot()
-    all(as.numeric(row.names(s_mat))  == (min(df$se_group):max(df$se_group))) %>%
-      stopifnot()
-    num_groups <- nrow(s_mat)
-    v_mat <- t(s_mat) %*% s_mat / num_groups
-
-    # Umm --- this is not the derivative of v_mat, but one term in the
-    # derivative of the full covaraince matrics.
-    stop()
-    ddiag_vmat_dw_partial <-
+    ddiag_semat_dw_partial <-
       2 * solve(zwx, t(s_mat_expanded)) * solve(zwx, t(z_eps)) *
-        (num_groups - 1) / (num_groups^2)
+        (num_groups - 1) / (num_groups^2) -
+      2 * (solve(zwx, t(z))) *(se_mat %*% t(x))
 
     # Specify return values
     ret_list <- list(
-        #se_mat=se_mat,
-        #se=sqrt(diag(se_mat)),
-        #sig2_hat=sig2_hat,
-        #dbetahat_dw=dbetahat_dw,
-        #dsig2_hat_dw=dsig2_hat_dw,
-        #dse_mat_diag_dw=dse_mat_diag_dw,
-        #dse_dw=dse_dw
+        se_mat=se_mat,
+        se=sqrt(diag(se_mat)),
+        dbetahat_dw=dbetahat_dw,
+        dse_mat_diag_dw=NA
       )
 
     if (testing) {
         # For testing and debugging, it's useful to get the intermediate results.
         ret_list$betahat <- solve(zwx, t(z_w) %*% y) %>% as.numeric()
         ret_list$v_mat <- v_mat
-        ret_list$ddiag_vmat_dw_partial <- ddiag_vmat_dw_partial
+        ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
         ret_list$s_mat <- s_mat
         ret_list$s_mat_expanded <- s_mat_expanded
 
@@ -217,8 +221,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 
     ##############################
     # Derivatives
-
-    dbetahat_dw <- solve(zwx, t(z * eps))
 
     # standard error partial derivatives
     dsig2_hat_dw_partial <- eps^2 / (num_obs - length(beta))
@@ -245,6 +247,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     dse_dw <- 0.5 * dse_mat_diag_dw / sqrt(diag(se_mat))
 
     # Specify return values
+    # TODO: should we return the se_mat scaled by 1 / N or not?
+    # Also make sure this is done consistently everywhere.
     ret_list <- list(
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),

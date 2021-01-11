@@ -168,28 +168,24 @@ num_groups <- max(df$se_group) + 1
 AssertNearlyZero(cov(reg_se_list$s_mat) * (num_groups - 1) / num_groups -
                  reg_se_list$v_mat, tol=1e-12)
 
+vcov_se_cov <- vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
+AssertNearlyZero(vcov_se_cov / num_groups - reg_se_list$se_mat, tol=1e-12)
+AssertNearlyZero(sqrt(diag(vcov_se_cov)/ num_groups) - reg_se_list$se, tol=1e-12)
+
+
 
 ######
 
-weps <- w0
-weps[1] <- weps[1] + 1e-3
-(LocalGetRegressionSEDerivs(w=weps)$v_mat - reg_se_list$v_mat) / 1e-3
-reg_se_list$v_mat
-
-ddiag_vmat_dw_partial <-
-    2 * solve(zwx, t(s_mat_expanded)) * solve(zwx, t(z_eps)) *
-    (num_groups - 1) / (num_groups^2)
-
-ddiag_vmat_dw_partial_num <-
+ddiag_semat_dw_partial_num <-
     numDeriv::jacobian(function(w) {
-        LocalGetRegressionSEDerivs(w=w)$v_mat %>% diag()
+        LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
     }, w0)
     
-reg_se_list$ddiag_vmat_dw_partial
-ddiag_vmat_dw_partial_num
+reg_se_list$ddiag_semat_dw_partial
+ddiag_semat_dw_partial_num
 
-#AssertNearlyZero(ddiag_vmat_dw_partial_num - reg_se_list$ddiag_vmat_dw_partial, tol=1e-8)
-plot(ddiag_vmat_dw_partial_num, reg_se_list$ddiag_vmat_dw_partial); abline(0, 1)
+#AssertNearlyZero(ddiag_vmat_dw_partial_num - reg_se_list$ddiag_semat_dw_partial, tol=1e-8)
+plot(ddiag_semat_dw_partial_num, reg_se_list$ddiag_semat_dw_partial); abline(0, 1)
 
 
 
