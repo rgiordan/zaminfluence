@@ -360,7 +360,7 @@ where the non-zero entry is in the group
 Note that
 \begin_inset Formula 
 \begin{align*}
-\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1} & =\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}+\\
+\left(Z_{w}^{T}X\right)^{-1}\frac{\partial\hat{V}}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1} & =\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}+\\
  & \quad\left(Z_{w}^{T}X\right)^{-1}\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\left(X^{T}Z_{w}\right)^{-1}.
 \end{align*}
 
@@ -386,7 +386,44 @@ The diagonal is given by
 
 \end_inset
 
-By symmetry, the second term is the same.
+By symmetry, the second term is the same, giving
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{\partial\hat{V}}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =2\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
+\end{align*}
+
+\end_inset
+
+Recall from above that
+\begin_inset Formula 
+\begin{align*}
+\left(\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\right)\hat{V}\left(X^{T}Z_{w}\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}z_{n}x_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}\\
+\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(\frac{\partial}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =-\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}x_{n}z_{n}^{T}\left(X^{T}Z_{w}\right)^{-1}\\
+ & =\left(\left(\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\right)\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right)^{T}.
+\end{align*}
+
+\end_inset
+
+Again recognizing the diagonal,
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\left(\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\right)\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right) & =\\
+-\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}x_{n}\right) & .
+\end{align*}
+
+\end_inset
+
+Putting everything together,
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial w_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right) & =\\
+-2\left(\left(Z_{w}^{T}X\right)^{-1}Z^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}X^{T}\right)+\\
+2\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z\odot\epsilon\right)^{T}\right) & .
+\end{align*}
+
+\end_inset
+
+
 \end_layout
 
 \end_body
