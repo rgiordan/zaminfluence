@@ -182,9 +182,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     }
 
     ddiag_semat_dw_partial <-
-      2 * solve(zwx, t(s_mat_expanded)) * solve(zwx, t(z_eps)) *
-        (num_groups - 1) / (num_groups^2) -
-      2 * (solve(zwx, t(z))) *(se_mat %*% t(x))
+      2 * solve(zwx, t(s_mat_expanded)) * solve(zwx, t(z_eps)) / num_groups -
+      2 * (solve(zwx, t(z))) * (se_mat %*% t(x))
 
     # Specify return values
     ret_list <- list(
@@ -201,6 +200,10 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
         ret_list$s_mat <- s_mat
         ret_list$s_mat_expanded <- s_mat_expanded
+
+        # For debugging
+        ret_list$ddiag_vmat_dw <-
+          (2 / num_groups) * t(s_mat_expanded) * t(z_eps)
 
         #ret_list$sand_mat <- sand_mat
         #ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta # tested
@@ -248,7 +251,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 
     # Specify return values
     # TODO: should we return the se_mat scaled by 1 / N or not?
-    # Also make sure this is done consistently everywhere.
+    # Also make sure this decision is made consistently everywhere.
     ret_list <- list(
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),

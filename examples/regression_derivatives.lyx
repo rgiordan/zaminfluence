@@ -251,8 +251,8 @@ We typically only care about the diagonal, which is more convenient for
  By writing
 \begin_inset Formula 
 \begin{align*}
-R_{x} & :=\left(X^{T}Z_{w}\right)^{-1}X\\
-R_{z} & :=\left(Z_{w}^{T}X\right)^{-1}Z,
+R_{x} & :=\left(X^{T}Z_{w}\right)^{-1}X^{T}\\
+R_{z} & :=\left(Z_{w}^{T}X\right)^{-1}Z^{T},
 \end{align*}
 
 \end_inset
@@ -271,7 +271,25 @@ we can express the derivative using the element-wise (Hadamard) product
 
 \end_inset
 
+Incidentally,
+\begin_inset Formula 
+\begin{align*}
+AR_{x} & =\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}X^{T}\\
+ & =\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}\right)X^{T},
+\end{align*}
 
+\end_inset
+
+where the first term is just the 
+\begin_inset Quotes eld
+\end_inset
+
+sandwich matrix.
+\begin_inset Quotes erd
+\end_inset
+
+ Noticing this could save an inverse as well as connect the result to the
+ grouped standard errors.
 \end_layout
 
 \begin_layout Subsection*
@@ -323,24 +341,29 @@ The dependence on
 \begin_inset Formula 
 \begin{align*}
 \frac{\partial}{\partial w_{n}}\hat{V} & =\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}+\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\\
+\frac{\partial}{\partial w_{n}}\gamma_{g} & =\epsilon_{n}z_{n}\\
 \frac{\partial S}{\partial w_{n}} & =\left(\begin{array}{c}
-0\\
+-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}\\
 \vdots\\
 \frac{\partial}{\partial w_{n}}\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}\\
 \vdots\\
-0
+-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}
 \end{array}\right)=\left(\begin{array}{c}
-0\\
+-\frac{1}{G}\\
 \vdots\\
-\frac{G-1}{G}\epsilon_{n}z_{n}^{T}\\
+1-\frac{1}{G}\\
 \vdots\\
-0
-\end{array}\right),
+-\frac{1}{G}
+\end{array}\right)\epsilon_{n}z_{n}^{T},
 \end{align*}
 
 \end_inset
 
-where the non-zero entry is in the group 
+where the entry containing 
+\begin_inset Formula $\frac{\partial}{\partial w_{n}}\gamma_{g}$
+\end_inset
+
+ is in the group 
 \begin_inset Formula $g\left(n\right)$
 \end_inset
 
@@ -349,14 +372,27 @@ where the non-zero entry is in the group
 \end_inset
 
  belongs.
+ Note that 
+\begin_inset Formula $\left(\frac{1}{G},\ldots,\frac{1}{G}\right)S=0$
+\end_inset
+
+ since the entries of 
+\begin_inset Formula $S$
+\end_inset
+
+ are already de-meaned.
  So
 \begin_inset Formula 
 \begin{align*}
-\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}} & =\frac{G-1}{G^{2}}S_{g\left(n\right)}z_{n}^{T}\epsilon_{n}.
+\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}} & =\frac{1}{G}S_{g\left(n\right)}z_{n}^{T}\epsilon_{n}.
 \end{align*}
 
 \end_inset
 
+
+\end_layout
+
+\begin_layout Standard
 Note that
 \begin_inset Formula 
 \begin{align*}
@@ -369,7 +405,7 @@ Note that
 The first term is thus given by
 \begin_inset Formula 
 \begin{align*}
-\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1} & =\frac{G-1}{G^{2}}\left(Z_{w}^{T}X\right)^{-1}S_{g}z_{n}^{T}\left(X^{T}Z_{w}\right)^{-1}\epsilon_{n}.
+\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1} & =\frac{1}{G}\left(Z_{w}^{T}X\right)^{-1}S_{g}z_{n}^{T}\left(X^{T}Z_{w}\right)^{-1}\epsilon_{n}.
 \end{align*}
 
 \end_inset
@@ -381,7 +417,7 @@ The first term is thus given by
 The diagonal is given by
 \begin_inset Formula 
 \begin{align*}
-\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\frac{1}{G}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
 \end{align*}
 
 \end_inset
@@ -389,7 +425,7 @@ The diagonal is given by
 By symmetry, the second term is the same, giving
 \begin_inset Formula 
 \begin{align*}
-\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{\partial\hat{V}}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =2\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{\partial\hat{V}}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =2\frac{1}{G}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
 \end{align*}
 
 \end_inset

@@ -176,6 +176,17 @@ AssertNearlyZero(sqrt(diag(vcov_se_cov)/ num_groups) - reg_se_list$se, tol=1e-12
 
 ######
 
+
+ddiag_vmat_dw_num <-
+    numDeriv::jacobian(function(w) {
+        LocalGetRegressionSEDerivs(w=w)$v_mat %>% diag()
+    }, w0)
+
+plot(reg_se_list$ddiag_vmat_dw, ddiag_vmat_dw_num)
+
+
+#######
+
 ddiag_semat_dw_partial_num <-
     numDeriv::jacobian(function(w) {
         LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
