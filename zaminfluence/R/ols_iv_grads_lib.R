@@ -178,8 +178,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     v_mat <- t(s_mat) %*% s_mat / num_groups
 
     # Covariance matrix
-    zwx_inv_smat <- solve(zwx, v_mat)
-    se_mat <- solve(zwx, t(zwx_inv_smat))
+    zwx_inv_vmat <- solve(zwx, v_mat)
+    se_mat <- solve(zwx, t(zwx_inv_vmat))
 
     # Covariance matrix derivatives.
 
@@ -206,8 +206,10 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     ddiag_semat_dbeta_partial <- matrix(NA, nrow(se_mat), nrow(dbetahat_dw))
     for (d in 1:beta_dim) {
       xi_d <- GroupedSum(-1 * z_w * x[, d], df$se_group)
+      xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
       ddiag_semat_dbeta_partial[, d] <-
-        zwx_inv_smat %*% solve(zwx, t(xi_d)) %>% diag()
+        solve(zwx, t(s_mat)) %*% t(solve(zwx, t(xi_d))) %>% diag() *
+        2 / num_groups
     }
 
     ddiag_semat_dw <-

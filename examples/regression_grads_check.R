@@ -107,6 +107,10 @@ for (row in names(group_rows)) {
 ##################
 # New code
 
+##################
+##################
+##################
+
 source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
 
 # Get influence.
@@ -197,13 +201,28 @@ ddiag_semat_dw_partial_num <-
     }, w0)
 AssertNearlyZero(ddiag_semat_dw_partial_num - reg_se_list$ddiag_semat_dw_partial, tol=1e-10)
 
+
 ddiag_semat_dbeta_partial_num <-
     numDeriv::jacobian(function(beta) {
         LocalGetRegressionSEDerivs(beta=beta)$se_mat %>% diag()
     }, beta)
 ddiag_semat_dbeta_partial_num
 reg_se_list$ddiag_semat_dbeta_partial
+
 plot(ddiag_semat_dbeta_partial_num, reg_se_list$ddiag_semat_dbeta_partial); abline(0, 1)
+
+1 / (ddiag_semat_dbeta_partial_num / reg_se_list$ddiag_semat_dbeta_partial)
+
+######################
+######################
+######################
+
+
+
+plot(ddiag_semat_dbeta_partial_num, reg_se_list$ddiag_semat_dbeta_partial); abline(0, 1)
+plot(ddiag_semat_dbeta_partial_num[1, ], reg_se_list$ddiag_semat_dbeta_partial[1, ]); abline(0, 1)
+plot(ddiag_semat_dbeta_partial_num[2, ], reg_se_list$ddiag_semat_dbeta_partial[2, ]); abline(0, 1)
+plot(ddiag_semat_dbeta_partial_num[3, ], reg_se_list$ddiag_semat_dbeta_partial[3, ]); abline(0, 1)
 AssertNearlyZero(ddiag_semat_dbeta_partial_num - reg_se_list$ddiag_semat_dbeta_partial, tol=1e-10)
 
 

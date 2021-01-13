@@ -585,16 +585,21 @@ Now,
 
 \end_inset
 
-and
+Looking at it this way, I'm not sure how you would avoid either a for loop
+ over the entries of 
+\begin_inset Formula $\hat{\beta}$
+\end_inset
+
+ or construction of higher-dimensional arrays.
+ Putting things together,
 \begin_inset Formula 
 \begin{align*}
-\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\mathrm{rowSums}\left(\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\Xi_{d}^{T}\right)\right).
+\mathrm{diag}\left(\frac{\partial\hat{\Sigma}}{\partial\hat{\beta}_{d}}\right) & =\frac{2}{G}\mathrm{diag}\left(\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\right)\left(\left(Z_{w}^{T}X\right)^{-1}\Xi_{d}^{T}\right)^{T}\right)
 \end{align*}
 
 \end_inset
 
-Looking at it this way, I'm not sure how you would avoid either a for loop
- or construction of higher-dimensional arrays.
+
 \end_layout
 
 \end_body
