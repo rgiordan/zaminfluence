@@ -5,23 +5,128 @@
 ######################################################3
 # Ordinary least squares
 
+# Sum the rows of the matrix mat according to the 0-based integers group.
+GroupedSum <- function(mat, group) {
+  stopifnot(length(group) == nrow(mat))
+  group_rows <- split(1:length(group), group)
+  summed_mat <- lapply(group_rows,
+         function(rows) { colSums(mat[rows, , drop=FALSE])}) %>%
+      do.call(rbind, .)
+  return(summed_mat)
+}
+
+
+# Repeat grouped sum rows to match the shape of the original data.
+# s_mat might be the output of GroupedSum.
+# TODO: do this more efficiently?
+ExpandGroupedSum <- function(s_mat, group) {
+  group_rows <- split(1:length(group), group)
+  s_mat_expanded <- matrix(NA, length(group), ncol(s_mat))
+  for (g in names(group_rows)) {
+    for (row in group_rows[[g]]) {
+      s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
+    }
+  }
+  return(s_mat_expanded)
+}
+
 
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
 GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) {
   num_obs <- length(y)
 
+  eps <- as.numeric(y - x %*% beta)
   x_w <- x * w0
   # TODO: you can make this faster by factorizing xwx.
   xwx <- t(x_w) %*% x
 
-  eps <- as.numeric(y - x %*% beta)
+  # This derivative is common to both standard error methods.
+  dbetahat_dw <- solve(xwx, t(x * eps))
 
   if (!is.null(se_group)) {
-    # Grouped ("robust") standard errors
-    stop("Not implemented.")
+    ##############################################
+    # Derivatives for grouped standard errors:
+
+    s_mat <- GroupedSum(x * w0 * eps, se_group)
+
+    # colMeans(s_mat) is zero at the weights used for regression, but include
+    # it so we can test partial derivatives.
+    s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
+
+    # Check for well-formedness of the groups.
+    all(as.numeric(row.names(s_mat)) ==
+        unique(se_group) %>% sort()) %>%
+      stopifnot()
+    all(as.numeric(row.names(s_mat)) ==
+        (min(se_group):max(se_group))) %>%
+      stopifnot()
+    num_groups <- nrow(s_mat)
+    v_mat <- t(s_mat) %*% s_mat / num_groups
+
+    # Covariance matrix
+    xwx_inv_vmat <- solve(xwx, v_mat)
+    se_mat <- solve(xwx, t(xwx_inv_vmat))
+
+    # Covariance matrix derivatives.
+
+    # First the partials wrt the weights.
+
+    # s_mat_expanded is s_mat with rows repeated to match the shape of z.
+    s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
+    # # TODO: do this more efficiently
+    # s_mat_expanded <- matrix(NA, dim(x)[1], dim(x)[2])
+    # for (g in names(group_rows)) {
+    #   for (row in group_rows[[g]]) {
+    #     s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
+    #   }
+    # }
+
+    xwx_inv_s_mat_expanded <- solve(xwx, t(s_mat_expanded))
+    ddiag_semat_dw_partial <-
+      2 * xwx_inv_s_mat_expanded * solve(xwx, t(x * eps)) / num_groups -
+      2 * (solve(xwx, t(x))) * (se_mat %*% t(x))
+
+    # Second, the partials through the beta dependence.
+    beta_dim <- nrow(dbetahat_dw)
+    # ddiag_semat_dbeta_partial will be beta_dim x beta_dim; the columns
+    # correspond to the entries of betahat.
+    ddiag_semat_dbeta_partial <- matrix(NA, nrow(se_mat), nrow(dbetahat_dw))
+    for (d in 1:beta_dim) {
+      xi_d <- GroupedSum(-1 * x_w * x[, d], se_group)
+      xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
+      ddiag_semat_dbeta_partial[, d] <-
+        solve(xwx, t(s_mat)) %*% t(solve(xwx, t(xi_d))) %>% diag() *
+        2 / num_groups
+    }
+
+    ddiag_semat_dw <-
+      ddiag_semat_dw_partial + ddiag_semat_dbeta_partial %*% dbetahat_dw
+    dse_dw <- 0.5 * ddiag_semat_dw / sqrt(diag(se_mat))
+
+    # Specify return values
+    ret_list <- list(
+        se_mat=se_mat,
+        se=sqrt(diag(se_mat)),
+        dbetahat_dw=dbetahat_dw,
+        dse_mat_diag_dw=ddiag_semat_dw,
+        dse_dw=dse_dw
+      )
+
+    if (testing) {
+        # For testing and debugging, it's useful to get the intermediate results.
+        ret_list$betahat <- solve(xwx, t(x_w) %*% y) %>% as.numeric()
+        ret_list$v_mat <- v_mat
+        ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
+        ret_list$s_mat <- s_mat
+        ret_list$s_mat_expanded <- s_mat_expanded
+        ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
+    }
+    return(ret_list)
   } else {
-    # Un-grouped ("non-robust") standard errors
+    ##############################################
+    # Derivatives for un-grouped standard errors:
+
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
     sand_mat <- solve(xwx)
@@ -29,8 +134,6 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
 
     ##############################
     # Derivatives
-
-    dbetahat_dw <- solve(xwx, t(x * eps))
 
     # standard error partial derivatives
     dsig2_hat_dw_partial <- eps^2 / (num_obs - length(beta))
@@ -138,9 +241,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
   eps <- as.numeric(y - x %*% beta)
 
   z_w <- z * w0
-  z_eps <- z * eps
-  z_w_eps <- z * eps * w0
-
   zwz <- t(z_w) %*% z
   zwx <- t(z_w) %*% x
 
@@ -148,20 +248,9 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
   dbetahat_dw <- solve(zwx, t(z * eps))
 
   if (!is.null(se_group)) {
-    GroupedSum <- function(mat, group) {
-      # Sum the rows of the matrix mat according to the 0-based integers group.
-      group_rows <- split(1:nrow(mat), group)
-      summed_mat <- lapply(group_rows,
-             function(rows) { colSums(mat[rows, , drop=FALSE])}) %>%
-          do.call(rbind, .)
-      return(summed_mat)
-    }
-    # grouped aggregation
-    # group_rows <- split(1:nrow(z), df$se_group)
-    # s_mat <- lapply(group_rows,
-    #        function(rows) { colSums(z_w_eps[rows, , drop=FALSE])}) %>%
-    #     do.call(rbind, .)
-    s_mat <- GroupedSum(z_w_eps, df$se_group)
+    ##############################################
+    # Derivatives for grouped standard errors:
+    s_mat <- GroupedSum(z * eps * w0, se_group)
 
     # colMeans(s_mat) is zero at the weights used for regression, but include
     # it so we can test partial derivatives.
@@ -169,10 +258,10 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 
     # Check for well-formedness of the groups.
     all(as.numeric(row.names(s_mat)) ==
-        unique(df$se_group) %>% sort()) %>%
+        unique(se_group) %>% sort()) %>%
       stopifnot()
     all(as.numeric(row.names(s_mat)) ==
-        (min(df$se_group):max(df$se_group))) %>%
+        (min(se_group):max(se_group))) %>%
       stopifnot()
     num_groups <- nrow(s_mat)
     v_mat <- t(s_mat) %*% s_mat / num_groups
@@ -187,16 +276,18 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 
     # s_mat_expanded is s_mat with rows repeated to match the shape of z.
     # TODO: do this more efficiently
-    s_mat_expanded <- matrix(NA, dim(z)[1], dim(z)[2])
-    for (g in names(group_rows)) {
-      for (row in group_rows[[g]]) {
-        s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
-      }
-    }
+    s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
+
+    # s_mat_expanded <- matrix(NA, dim(z)[1], dim(z)[2])
+    # for (g in names(group_rows)) {
+    #   for (row in group_rows[[g]]) {
+    #     s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
+    #   }
+    # }
 
     zwx_inv_s_mat_expanded <- solve(zwx, t(s_mat_expanded))
     ddiag_semat_dw_partial <-
-      2 * zwx_inv_s_mat_expanded * solve(zwx, t(z_eps)) / num_groups -
+      2 * zwx_inv_s_mat_expanded * solve(zwx, t(z * eps)) / num_groups -
       2 * (solve(zwx, t(z))) * (se_mat %*% t(x))
 
     # Second, the partials through the beta dependence.
@@ -205,7 +296,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     # correspond to the entries of betahat.
     ddiag_semat_dbeta_partial <- matrix(NA, nrow(se_mat), nrow(dbetahat_dw))
     for (d in 1:beta_dim) {
-      xi_d <- GroupedSum(-1 * z_w * x[, d], df$se_group)
+      xi_d <- GroupedSum(-1 * z_w * x[, d], se_group)
       xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
       ddiag_semat_dbeta_partial[, d] <-
         solve(zwx, t(s_mat)) %*% t(solve(zwx, t(xi_d))) %>% diag() *
@@ -214,13 +305,15 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 
     ddiag_semat_dw <-
       ddiag_semat_dw_partial + ddiag_semat_dbeta_partial %*% dbetahat_dw
+    dse_dw <- 0.5 * ddiag_semat_dw / sqrt(diag(se_mat))
 
     # Specify return values
     ret_list <- list(
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),
         dbetahat_dw=dbetahat_dw,
-        dse_mat_diag_dw=ddiag_semat_dw
+        dse_mat_diag_dw=ddiag_semat_dw,
+        dse_dw=dse_dw
       )
 
     if (testing) {
@@ -231,13 +324,13 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         ret_list$s_mat <- s_mat
         ret_list$s_mat_expanded <- s_mat_expanded
         ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
-        # For debugging
-        # ret_list$ddiag_vmat_dw <-
-        #   (2 / num_groups) * t(s_mat_expanded) * t(z_eps)
     }
     return(ret_list)
 
   } else {
+    ##############################################
+    # Derivatives for un-grouped standard errors:
+
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
     # TODO: you can make this faster by factorizing zwx.
@@ -288,10 +381,10 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         # For testing and debugging, it's useful to get the intermediate results.
         ret_list$betahat <- solve(zwx, t(z_w) %*% y) %>% as.numeric()
         ret_list$sand_mat <- sand_mat
-        ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta # tested
-        ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial # tested
-        ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial # tested
-        ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial # tested
+        ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta
+        ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial
+        ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial
+        ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial
     }
     return(ret_list)
   }
