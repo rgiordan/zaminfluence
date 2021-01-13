@@ -131,8 +131,6 @@ if (do_iv) {
         w0=df$weights, testing=TRUE)
 }
 
-reg_se_list
-df$se_group
 
 ###################################
 
@@ -185,32 +183,35 @@ for (n in 1:length(df$se_group)) {
 for (g in 1:num_groups) {
     rows <- which(df$se_group == (g - 1))
     AssertNearlyZero(reg_se_list$s_mat[g, 2] - sum(z[rows, 2] * eps[rows] * w0[rows]), tol=1e-11)
-    AssertNearlyZero(reg_se_list$s_mat[g, ] - colSums((z * eps * w0)[rows, ]), tol=1e-11)
+    AssertNearlyZero(reg_se_list$s_mat[g, ] - colSums((z * eps * w0)[rows, , drop=FALSE]), tol=1e-11)
 }
 
 
 
 #######
 
+# Passes
 ddiag_semat_dw_partial_num <-
     numDeriv::jacobian(function(w) {
         LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
     }, w0)
-    
-reg_se_list$ddiag_semat_dw_partial
-ddiag_semat_dw_partial_num
-
 AssertNearlyZero(ddiag_semat_dw_partial_num - reg_se_list$ddiag_semat_dw_partial, tol=1e-10)
 
-#######
+ddiag_semat_dbeta_partial_num <-
+    numDeriv::jacobian(function(beta) {
+        LocalGetRegressionSEDerivs(beta=beta)$se_mat %>% diag()
+    }, beta)
+ddiag_semat_dbeta_partial_num
+reg_se_list$ddiag_semat_dbeta_partial
+plot(ddiag_semat_dbeta_partial_num, reg_se_list$ddiag_semat_dbeta_partial); abline(0, 1)
+AssertNearlyZero(ddiag_semat_dbeta_partial_num - reg_se_list$ddiag_semat_dbeta_partial, tol=1e-10)
 
 
 
 
-######### old:
 
 ###########################
-# Load and test
+# Old
 
 AssertNearlyZero(reg_se_list$sig2_hat - sigma(reg_fit)^2)
 AssertNearlyZero(reg_se_list$se_mat - vcov(reg_fit), tol=1e-11)

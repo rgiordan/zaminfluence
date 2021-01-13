@@ -595,6 +595,8 @@ and
 
 Looking at it this way, I'm not sure how you would avoid either a for loop
  or construction of higher-dimensional arrays.
+ Furthermore, there's no particular reason to write out the diagonalized
+ formulation.
 \end_layout
 
 \end_body

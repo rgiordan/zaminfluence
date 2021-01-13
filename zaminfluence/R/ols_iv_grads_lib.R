@@ -148,11 +148,21 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
   dbetahat_dw <- solve(zwx, t(z * eps))
 
   if (!is.null(se_group)) {
+    GroupedSum <- function(mat, group) {
+      # Sum the rows of the matrix mat according to the 0-based integers group.
+      group_rows <- split(1:nrow(mat), group)
+      summed_mat <- lapply(group_rows,
+             function(rows) { colSums(mat[rows, , drop=FALSE])}) %>%
+          do.call(rbind, .)
+      return(summed_mat)
+    }
     # grouped aggregation
-    group_rows <- split(1:nrow(z), df$se_group)
-    s_mat <- lapply(group_rows,
-           function(rows) { colSums(z_w_eps[rows, , drop=FALSE])}) %>%
-        do.call(rbind, .)
+    # group_rows <- split(1:nrow(z), df$se_group)
+    # s_mat <- lapply(group_rows,
+    #        function(rows) { colSums(z_w_eps[rows, , drop=FALSE])}) %>%
+    #     do.call(rbind, .)
+    s_mat <- GroupedSum(z_w_eps, df$se_group)
+
     # colMeans(s_mat) is zero at the weights used for regression, but include
     # it so we can test partial derivatives.
     s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
@@ -189,12 +199,19 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
       2 * zwx_inv_s_mat_expanded * solve(zwx, t(z_eps)) / num_groups -
       2 * (solve(zwx, t(z))) * (se_mat %*% t(x))
 
-    # Second the partials through the beta dependence.
-    xi_vec <- colSums(t(x) * dbetahat_dw)
-    ddiag_semat_dbetaw <-
-      -2 * zwx_inv_s_mat_expanded *
-      solve(zwx, t(z_w * xi_vec)) / num_groups
+    # Second, the partials through the beta dependence.
+    beta_dim <- nrow(dbetahat_dw)
+    # ddiag_semat_dbeta_partial will be beta_dim x beta_dim; the columns
+    # correspond to the entries of betahat.
+    ddiag_semat_dbeta_partial <- matrix(NA, nrow(se_mat), nrow(dbetahat_dw))
+    for (d in 1:beta_dim) {
+      xi_d <- GroupedSum(-1 * z_w * x[, d], df$se_group)
+      ddiag_semat_dbeta_partial[, d] <-
+        zwx_inv_smat %*% solve(zwx, t(xi_d)) %>% diag()
+    }
 
+    ddiag_semat_dw <-
+      ddiag_semat_dw_partial + ddiag_semat_dbeta_partial %*% dbetahat_dw
 
     # Specify return values
     ret_list <- list(
@@ -212,7 +229,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         ret_list$ddiag_semat_dbetaw <- ddiag_semat_dbetaw
         ret_list$s_mat <- s_mat
         ret_list$s_mat_expanded <- s_mat_expanded
-
+        ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
         # For debugging
         # ret_list$ddiag_vmat_dw <-
         #   (2 / num_groups) * t(s_mat_expanded) * t(z_eps)
@@ -220,7 +237,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     return(ret_list)
 
   } else {
-
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
     # TODO: you can make this faster by factorizing zwx.
