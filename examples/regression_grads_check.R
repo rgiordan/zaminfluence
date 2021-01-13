@@ -201,29 +201,50 @@ ddiag_semat_dw_partial_num <-
     }, w0)
 AssertNearlyZero(ddiag_semat_dw_partial_num - reg_se_list$ddiag_semat_dw_partial, tol=1e-10)
 
-
+# Passes
 ddiag_semat_dbeta_partial_num <-
     numDeriv::jacobian(function(beta) {
         LocalGetRegressionSEDerivs(beta=beta)$se_mat %>% diag()
     }, beta)
 ddiag_semat_dbeta_partial_num
 reg_se_list$ddiag_semat_dbeta_partial
-
-plot(ddiag_semat_dbeta_partial_num, reg_se_list$ddiag_semat_dbeta_partial); abline(0, 1)
-
-1 / (ddiag_semat_dbeta_partial_num / reg_se_list$ddiag_semat_dbeta_partial)
-
-######################
-######################
-######################
-
-
-
-plot(ddiag_semat_dbeta_partial_num, reg_se_list$ddiag_semat_dbeta_partial); abline(0, 1)
-plot(ddiag_semat_dbeta_partial_num[1, ], reg_se_list$ddiag_semat_dbeta_partial[1, ]); abline(0, 1)
-plot(ddiag_semat_dbeta_partial_num[2, ], reg_se_list$ddiag_semat_dbeta_partial[2, ]); abline(0, 1)
-plot(ddiag_semat_dbeta_partial_num[3, ], reg_se_list$ddiag_semat_dbeta_partial[3, ]); abline(0, 1)
 AssertNearlyZero(ddiag_semat_dbeta_partial_num - reg_se_list$ddiag_semat_dbeta_partial, tol=1e-10)
+
+#######################
+# Full derivatives
+
+GetRegTestResults <- function(w) {
+    df_test <- df
+    df_test$weights <- w
+    beta_test <- LocalGetRegressionSEDerivs(w=w)$betahat
+    reg_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
+    return(
+        list(beta=reg_se_test_list$betahat,
+             se=reg_se_test_list$se,
+             se_mat_diag=diag(reg_se_test_list$se_mat))
+    )
+}
+
+# Passes
+dbetahat_dw_num <-
+    numDeriv::jacobian(function(w) { GetRegTestResults(w)$beta }, w0)
+AssertNearlyZero(dbetahat_dw_num - reg_se_list$dbetahat_dw, tol=1e-10)
+
+# Passes
+dse_mat_diag_dw_num <-
+    numDeriv::jacobian(function(w) { GetRegTestResults(w)$se_mat_diag }, w0)
+AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw, tol=1e-10)
+
+
+
+
+
+
+
+
+######################
+######################
+######################
 
 
 

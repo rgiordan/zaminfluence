@@ -220,7 +220,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),
         dbetahat_dw=dbetahat_dw,
-        dse_mat_diag_dw=ddiag_semat_dbetaw + ddiag_semat_dw_partial
+        dse_mat_diag_dw=ddiag_semat_dw
       )
 
     if (testing) {
@@ -228,7 +228,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         ret_list$betahat <- solve(zwx, t(z_w) %*% y) %>% as.numeric()
         ret_list$v_mat <- v_mat
         ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
-        ret_list$ddiag_semat_dbetaw <- ddiag_semat_dbetaw
         ret_list$s_mat <- s_mat
         ret_list$s_mat_expanded <- s_mat_expanded
         ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
