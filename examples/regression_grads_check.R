@@ -34,7 +34,7 @@ AssertNearlyZero <- function(x, tol=1e-15) {
 #######################
 # Let's do some checks
 
-do_iv <- FALSE
+do_iv <- TRUE
 
 x_dim <- 3
 beta_true <- runif(x_dim)
@@ -66,34 +66,7 @@ if (do_iv) {
     reg_cov <- sandwich::vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
 }
 
-
-####################
-# Sanity checks
-
-# y <- reg_fit$y
-# x <- reg_fit$x$regressors
-# z <- reg_fit$x$instruments
-# 
-# num_obs <- length(y)
-# 
-# eps <- as.numeric(y - x %*% beta)
-# 
-# z_w <- z * w0
-# z_eps <- z * eps
-# z_w_eps <- z * eps * w0
-# 
-# zwz <- t(z_w) %*% z
-# zwx <- t(z_w) %*% x
-
-
-##################
-# New code
-
-##################
-##################
-##################
-
-source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
+#source(file.path(base_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
 
 # Get influence.
 
@@ -167,23 +140,6 @@ for (n in 1:length(df$se_group)) {
     gn <- df$se_group[n] + 1
     AssertNearlyZero(reg_se_list$s_mat_expanded[n, ] - reg_se_list$s_mat[gn, ], tol=1e-11)
 }
-
-
-# # This test requires x and z to be defined and I think it's redudant.
-# # Test that the s_mat was computed correctly.
-# for (g in 1:num_groups) {
-#     print(g)
-#     rows <- which(df$se_group == (g - 1))
-#     if (do_iv) {
-#         #AssertNearlyZero(reg_se_list$s_mat[g, 2] - sum(z[rows, 2] * eps[rows] * w0[rows]), togl=1e-11)
-#         AssertNearlyZero(reg_se_list$s_mat[g, ] - colSums((z * eps * w0)[rows, , drop=FALSE]), tol=1e-11)
-#     } else {
-#         #AssertNearlyZero(reg_se_list$s_mat[g, 2] - sum(x[rows, 2] * eps[rows] * w0[rows]), tol=1e-11)
-#         AssertNearlyZero(reg_se_list$s_mat[g, ] - colSums((x * eps * w0)[rows, , drop=FALSE]), tol=1e-11)
-#     }
-# }
-
-
 
 #######
 
