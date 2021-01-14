@@ -12,9 +12,11 @@ library(tidyverse)
 context("zaminfluence")
 source("utils.R")
 
+
 AssertNearlyZero <- function(x, tol=1e-15) {
   expect_true(max(abs(x)) < tol)
 }
+
 
 TestRegressionDerivatives <- function(do_iv) {
   # Generate data.
@@ -65,8 +67,13 @@ TestRegressionDerivatives <- function(do_iv) {
     reg_se_list <- LocalGetRegressionSEDerivs()
   }
 
+  if (do_iv) {
+    reg_sigma <- reg_fit$sigma
+  } else {
+    reg_sigma <- sigma(reg_fit)
+  }
   AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
-  AssertNearlyZero(reg_se_list$sig2_hat - reg_fit$sigma^2, tol=1e-11)
+  AssertNearlyZero(reg_se_list$sig2_hat - reg_sigma^2, tol=1e-11)
   AssertNearlyZero(reg_se_list$se_mat - vcov(reg_fit), tol=1e-11)
   AssertNearlyZero(reg_se_list$se -
                    vcov(reg_fit) %>% diag() %>% sqrt(), tol=1e-11)
@@ -103,7 +110,8 @@ TestRegressionDerivatives <- function(do_iv) {
       numDeriv::jacobian(function(beta) {
           LocalGetRegressionSEDerivs(beta=beta)$sig2_hat
         }, beta)
-  AssertNearlyZero(dsig2_hat_dbeta_num - reg_se_list$dsig2_hat_dbeta, tol=1e-7)
+  AssertNearlyZero(
+    dsig2_hat_dbeta_num - reg_se_list$dsig2_hat_dbeta, tol=1e-7)
 
   #############################
   # Test the full derivatives
@@ -153,18 +161,13 @@ TestRegressionDerivatives <- function(do_iv) {
   AssertNearlyZero((dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw) /
                        (reg_se_list$dse_mat_diag_dw + 1e-3), tol=1e-6)
 
-  dse_dw_num <- numDeriv::jacobian(function(w) { GetRegTestResults(w)$se }, w0)
+  dse_dw_num <- numDeriv::jacobian(function(w) {
+    GetRegTestResults(w)$se }, w0)
   # Check the relative error for this one
   AssertNearlyZero((dse_dw_num - reg_se_list$dse_dw) /
                    (reg_se_list$dse_dw + 1e-3), tol=1e-6)
 
 }
-
-test_that("ungrouped_derivs_correct", {
-  TestRegressionDerivatives(do_iv=TRUE)
-  TestRegressionDerivatives(do_iv=FALSE)
-})
-
 
 TestGroupedRegressionDerivatives <- function(do_iv) {
   x_dim <- 3
@@ -185,7 +188,8 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
       iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                                  paste(x_names, collapse=" + "),
                                  paste(z_names, collapse=" + ")))
-      reg_fit <- ivreg(data=df, formula = iv_form, x=TRUE, y=TRUE, weights=weights)
+      reg_fit <- ivreg(data=df, formula = iv_form,
+                       x=TRUE, y=TRUE, weights=weights)
       reg_cov <- sandwich::vcovCL(
         reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
   } else {
@@ -193,7 +197,8 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
       x_names <- sprintf("x%d", 1:x_dim)
       reg_form <- formula(sprintf("y ~ %s - 1",
                                   paste(x_names, collapse=" + ")))
-      reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE, weights=weights)
+      reg_fit <- lm(data=df, formula=reg_form,
+                    x=TRUE, y=TRUE, weights=weights)
       reg_cov <- sandwich::vcovCL(
         reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
   }
@@ -304,6 +309,13 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
       numDeriv::jacobian(function(w) { GetRegTestResults(w)$se }, w0)
   AssertNearlyZero(dse_dw_num - reg_se_list$dse_dw, tol=1e-10)
 }
+
+test_that("ungrouped_derivs_correct", {
+  TestRegressionDerivatives(do_iv=TRUE)
+  TestRegressionDerivatives(do_iv=FALSE)
+})
+
+
 
 test_that("grouped_derivs_correct", {
   TestGroupedRegressionDerivatives(do_iv=TRUE)

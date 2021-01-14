@@ -1,7 +1,3 @@
-
-
-
-
 ######################################################3
 # Ordinary least squares
 
@@ -33,7 +29,8 @@ ExpandGroupedSum <- function(s_mat, group) {
 
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
-GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) {
+GetRegressionSEDerivs <- function(x, y, beta, w0,
+                                  se_group=NULL, testing=FALSE) {
   num_obs <- length(y)
 
   eps <- as.numeric(y - x %*% beta)
@@ -74,13 +71,6 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
 
     # s_mat_expanded is s_mat with rows repeated to match the shape of z.
     s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
-    # # TODO: do this more efficiently
-    # s_mat_expanded <- matrix(NA, dim(x)[1], dim(x)[2])
-    # for (g in names(group_rows)) {
-    #   for (row in group_rows[[g]]) {
-    #     s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
-    #   }
-    # }
 
     xwx_inv_s_mat_expanded <- solve(xwx, t(s_mat_expanded))
     ddiag_semat_dw_partial <-
@@ -114,7 +104,8 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
       )
 
     if (testing) {
-        # For testing and debugging, it's useful to get the intermediate results.
+        # For testing and debugging, it's useful to get the
+        # intermediate results.
         ret_list$betahat <- solve(xwx, t(x_w) %*% y) %>% as.numeric()
         ret_list$v_mat <- v_mat
         ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
@@ -151,7 +142,8 @@ GetRegressionSEDerivs <- function(x, y, beta, w0, se_group=NULL, testing=FALSE) 
 
     # combine with the chain rule.
     # Note that dsig2_hat_dbeta gets broadcasted like a column vector.
-    dsig2_hat_dw <- colSums(dsig2_hat_dbeta * dbetahat_dw) + dsig2_hat_dw_partial
+    dsig2_hat_dw <- colSums(
+      dsig2_hat_dbeta * dbetahat_dw) + dsig2_hat_dw_partial
     dse_mat_diag_dw <-
         dse_mat_diag_dw_partial +
         outer(diag(sand_mat), colSums(dsig2_hat_dbeta * dbetahat_dw))
@@ -275,15 +267,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
     # First the partials wrt the weights.
 
     # s_mat_expanded is s_mat with rows repeated to match the shape of z.
-    # TODO: do this more efficiently
     s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
-
-    # s_mat_expanded <- matrix(NA, dim(z)[1], dim(z)[2])
-    # for (g in names(group_rows)) {
-    #   for (row in group_rows[[g]]) {
-    #     s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
-    #   }
-    # }
 
     zwx_inv_s_mat_expanded <- solve(zwx, t(s_mat_expanded))
     ddiag_semat_dw_partial <-

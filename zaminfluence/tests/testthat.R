@@ -6,4 +6,4 @@ devtools::load_all()
 library(testthat)
 library(zaminfluence)
 
-test_check("zaminfluence", reporter="summary")
+test_check("zaminfluence", reporter="debug")
