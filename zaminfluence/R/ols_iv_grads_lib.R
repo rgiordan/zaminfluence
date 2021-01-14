@@ -59,6 +59,9 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
         (min(se_group):max(se_group))) %>%
       stopifnot()
     num_groups <- nrow(s_mat)
+
+    # v is for variance, so I take the average, but we then need to multiply
+    # again by num_groups to get the standard error variance.
     v_mat <- t(s_mat) %*% s_mat / num_groups
 
     # Covariance matrix
@@ -74,7 +77,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
     xwx_inv_s_mat_expanded <- solve(xwx, t(s_mat_expanded))
     ddiag_semat_dw_partial <-
-      2 * xwx_inv_s_mat_expanded * solve(xwx, t(x * eps)) / num_groups -
+      2 * xwx_inv_s_mat_expanded * solve(xwx, t(x * eps)) -
       2 * (solve(xwx, t(x))) * (se_mat %*% t(x))
 
     # Second, the partials through the beta dependence.
@@ -86,8 +89,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
       xi_d <- GroupedSum(-1 * x_w * x[, d], se_group)
       xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
       ddiag_semat_dbeta_partial[, d] <-
-        solve(xwx, t(s_mat)) %*% t(solve(xwx, t(xi_d))) %>% diag() *
-        2 / num_groups
+        2 * solve(xwx, t(s_mat)) %*% t(solve(xwx, t(xi_d))) %>% diag()
     }
 
     ddiag_semat_dw <-
@@ -256,11 +258,14 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
         (min(se_group):max(se_group))) %>%
       stopifnot()
     num_groups <- nrow(s_mat)
+
+    # v is for variance, so I take the average, but we then need to multiply
+    # again by num_groups to get the standard error variance.
     v_mat <- t(s_mat) %*% s_mat / num_groups
 
     # Covariance matrix
     zwx_inv_vmat <- solve(zwx, v_mat)
-    se_mat <- solve(zwx, t(zwx_inv_vmat))
+    se_mat <- solve(zwx, t(zwx_inv_vmat)) * num_groups
 
     # Covariance matrix derivatives.
 
@@ -271,7 +276,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
 
     zwx_inv_s_mat_expanded <- solve(zwx, t(s_mat_expanded))
     ddiag_semat_dw_partial <-
-      2 * zwx_inv_s_mat_expanded * solve(zwx, t(z * eps)) / num_groups -
+      2 * zwx_inv_s_mat_expanded * solve(zwx, t(z * eps)) -
       2 * (solve(zwx, t(z))) * (se_mat %*% t(x))
 
     # Second, the partials through the beta dependence.
@@ -283,8 +288,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL, testing=FALSE) {
       xi_d <- GroupedSum(-1 * z_w * x[, d], se_group)
       xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
       ddiag_semat_dbeta_partial[, d] <-
-        solve(zwx, t(s_mat)) %*% t(solve(zwx, t(xi_d))) %>% diag() *
-        2 / num_groups
+        2 * solve(zwx, t(s_mat)) %*% t(solve(zwx, t(xi_d))) %>% diag()
     }
 
     ddiag_semat_dw <-

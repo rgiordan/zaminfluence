@@ -323,7 +323,7 @@ S_{1}^{T}\\
 S_{G}^{T}
 \end{array}\right)\\
 \hat{V} & :=\frac{1}{G}S^{T}S\\
-\hat{\Sigma} & =\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}.
+\hat{\Sigma} & =G\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}.
 \end{align*}
 
 \end_inset

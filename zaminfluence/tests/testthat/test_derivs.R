@@ -258,9 +258,8 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
                    reg_se_list$v_mat, tol=1e-12)
 
   vcov_se_cov <- vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
-  AssertNearlyZero(vcov_se_cov / num_groups - reg_se_list$se_mat, tol=1e-12)
-  AssertNearlyZero(
-    sqrt(diag(vcov_se_cov)/ num_groups) - reg_se_list$se, tol=1e-12)
+  AssertNearlyZero(vcov_se_cov - reg_se_list$se_mat, tol=1e-12)
+  AssertNearlyZero(sqrt(diag(vcov_se_cov)) - reg_se_list$se, tol=1e-12)
 
   # Test that the s_mat_expanded worked correctly.
   for (n in 1:length(df$se_group)) {
