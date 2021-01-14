@@ -310,11 +310,11 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
   AssertNearlyZero(dse_dw_num - reg_se_list$dse_dw, tol=1e-10)
 }
 
+
 test_that("ungrouped_derivs_correct", {
   TestRegressionDerivatives(do_iv=TRUE)
   TestRegressionDerivatives(do_iv=FALSE)
 })
-
 
 
 test_that("grouped_derivs_correct", {

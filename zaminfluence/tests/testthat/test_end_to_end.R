@@ -13,6 +13,43 @@ source("utils.R")
 # README.md.
 venv_bin <- "../../../venv/bin/python3"
 
+# reg_infl should be the output of ComputeRegressionInfluence
+TestConfiguration <- function(model_fit, se_group) {
+  reg_infl <- ComputeModelInfluence(model_fit, se_group)
+
+  grad_df <- GetTargetRegressorGrads(reg_infl, "x1")
+  influence_dfs <- SortAndAccumulate(grad_df)
+
+  # Check that the regressions match.
+  reg <- tidy(reg_infl$model_fit)
+  testthat::expect_equivalent(reg$estimate, reg_infl$betahat)
+
+  # Check that the target index is correct..
+  target_index <- attr(grad_df, "target_index")
+  base_vals <- attr(grad_df, "base_vals")
+  testthat::expect_equivalent(reg$estimate[target_index], base_vals["beta"])
+
+  # Check that the standard errors match...
+  if (is.null(se_group)) {
+      se <- reg$std.error[target_index]
+  } else {
+      vcov_se_cov <- vcovCL(model_fit, cluster=se_group,
+                            type="HC0", cadjust=FALSE)
+      se <- sqrt(diag(vcov_se_cov))[target_index]
+  }
+  testthat::expect_equivalent(se, base_vals["se"])
+
+  # Check the "scale" of the influence function is correct (note that this
+  # may not match the actual standard errors for grouping).
+  n_obs <- length(model_fit$y)
+  vcov_se_cov <- vcovCL(model_fit, cluster=1:n_obs, type="HC0", cadjust=FALSE)
+  robust_se <- sqrt(diag(vcov_se_cov))[target_index]
+
+  infl_scale <- GetInfluenceScale(grad_df$beta_grad)
+  testthat::expect_equivalent(sqrt(n_obs) * robust_se, infl_scale)
+}
+
+
 test_that("python runs", {
     if (!file.exists(venv_bin)) {
         print(paste0("Virtual environment for testing is missing (",
@@ -25,44 +62,7 @@ test_that("python runs", {
 })
 
 
-
 test_that("regression works", {
-  # reg_infl should be the output of ComputeRegressionInfluence
-  TestConfiguration <- function(model_fit, se_group) {
-    reg_infl <- ComputeModelInfluence(model_fit, se_group)
-
-    grad_df <- GetTargetRegressorGrads(reg_infl, "x1")
-    influence_dfs <- SortAndAccumulate(grad_df)
-
-    # Check that the regressions match.
-    reg <- tidy(reg_infl$model_fit)
-    testthat::expect_equivalent(reg$estimate, reg_infl$betahat)
-
-    # Check that the target index is correct..
-    target_index <- attr(grad_df, "target_index")
-    base_vals <- attr(grad_df, "base_vals")
-    testthat::expect_equivalent(reg$estimate[target_index], base_vals["beta"])
-
-    # Check that the standard errors match...
-    if (is.null(se_group)) {
-        se <- reg$std.error[target_index]
-    } else {
-        vcov_se_cov <- vcovCL(model_fit, cluster=se_group,
-                              type="HC0", cadjust=FALSE)
-        se <- sqrt(diag(vcov_se_cov))[target_index]
-    }
-    testthat::expect_equivalent(se, base_vals["se"])
-
-    # Check the "scale" of the influence function is correct (note that this
-    # may not match the actual standard errors for grouping).
-    n_obs <- length(model_fit$y)
-    vcov_se_cov <- vcovCL(model_fit, cluster=1:n_obs, type="HC0", cadjust=FALSE)
-    robust_se <- sqrt(diag(vcov_se_cov))[target_index]
-
-    infl_scale <- GetInfluenceScale(grad_df$beta_grad)
-    testthat::expect_equivalent(sqrt(n_obs) * robust_se, infl_scale)
-  }
-
   TestRegressionConfiguration <- function(num_groups, weights) {
     df <- GenerateRegressionData(100, 0.5, num_groups=num_groups)
     lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE, weights=weights)
@@ -76,7 +76,8 @@ test_that("regression works", {
 
   TestIVRegressionConfiguration <- function(num_groups, weights) {
     df <- GenerateIVRegressionData(100, 0.5, num_groups=num_groups)
-    iv_res <- ivreg(y ~ x1 + 1 | z1 + 1, data=df, x=TRUE, y=TRUE, weights=weights)
+    iv_res <- ivreg(y ~ x1 + 1 | z1 + 1,
+                    data=df, x=TRUE, y=TRUE, weights=weights)
     TestConfiguration(iv_res, se_group=df[["se_group"]])
   }
 
