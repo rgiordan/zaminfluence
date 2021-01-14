@@ -26,9 +26,19 @@ source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
 
 set.seed(42)
 
-AssertNearlyZero <- function(x, tol=1e-15) {
-    stopifnot(max(abs(x)) < tol)
-}
+# AssertNearlyZero <- function(x, tol=1e-15) {
+#     stopifnot(max(abs(x)) < tol)
+# }
+
+########################
+setwd("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence/tests/testthat")
+source("test_derivs.R")
+
+#debug(TestGroupedRegressionDerivatives)
+undebug(TestGroupedRegressionDerivatives)
+TestGroupedRegressionDerivatives(do_iv=FALSE)
+TestGroupedRegressionDerivatives(do_iv=TRUE)
+
 
 
 ###################

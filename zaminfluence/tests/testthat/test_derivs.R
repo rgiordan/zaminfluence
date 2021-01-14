@@ -14,7 +14,9 @@ source("utils.R")
 
 
 AssertNearlyZero <- function(x, tol=1e-15) {
-  expect_true(max(abs(x)) < tol)
+  x_norm <- max(abs(x))
+  info_str <- sprintf("%e > %e", x_norm, tol)
+  expect_true(x_norm < tol, info=info_str)
 }
 
 
@@ -251,21 +253,21 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
   w0 <- df$weights
   beta <- reg_fit$coefficients
 
-  AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
-  AssertNearlyZero(colMeans(reg_se_list$s_mat), tol=1e-11)
+  AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-9)
+  AssertNearlyZero(colMeans(reg_se_list$s_mat), tol=1e-9)
   num_groups <- max(df$se_group) + 1
   AssertNearlyZero(cov(reg_se_list$s_mat) * (num_groups - 1) / num_groups -
-                   reg_se_list$v_mat, tol=1e-12)
+                   reg_se_list$v_mat, tol=1e-9)
 
   vcov_se_cov <- vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
-  AssertNearlyZero(vcov_se_cov - reg_se_list$se_mat, tol=1e-12)
-  AssertNearlyZero(sqrt(diag(vcov_se_cov)) - reg_se_list$se, tol=1e-12)
+  AssertNearlyZero(vcov_se_cov - reg_se_list$se_mat, tol=1e-9)
+  AssertNearlyZero(sqrt(diag(vcov_se_cov)) - reg_se_list$se, tol=1e-9)
 
   # Test that the s_mat_expanded worked correctly.
   for (n in 1:length(df$se_group)) {
       gn <- df$se_group[n] + 1
       AssertNearlyZero(reg_se_list$s_mat_expanded[n, ] -
-                       reg_se_list$s_mat[gn, ], tol=1e-11)
+                       reg_se_list$s_mat[gn, ], tol=1e-9)
   }
 
   #######
@@ -275,14 +277,14 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
           LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
       }, w0)
   AssertNearlyZero(ddiag_semat_dw_partial_num -
-                   reg_se_list$ddiag_semat_dw_partial, tol=1e-10)
+                   reg_se_list$ddiag_semat_dw_partial, tol=1e-9)
 
   ddiag_semat_dbeta_partial_num <-
       numDeriv::jacobian(function(beta) {
           LocalGetRegressionSEDerivs(beta=beta)$se_mat %>% diag()
       }, beta)
   AssertNearlyZero(ddiag_semat_dbeta_partial_num -
-                   reg_se_list$ddiag_semat_dbeta_partial, tol=1e-10)
+                   reg_se_list$ddiag_semat_dbeta_partial, tol=1e-9)
 
   #######################
   # Full derivatives
@@ -300,25 +302,29 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
 
   dbetahat_dw_num <-
       numDeriv::jacobian(function(w) { GetRegTestResults(w)$beta }, w0)
-  AssertNearlyZero(dbetahat_dw_num - reg_se_list$dbetahat_dw, tol=1e-10)
+  AssertNearlyZero(dbetahat_dw_num - reg_se_list$dbetahat_dw, tol=1e-9)
 
   dse_mat_diag_dw_num <-
       numDeriv::jacobian(function(w) { GetRegTestResults(w)$se_mat_diag }, w0)
-  AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw, tol=1e-10)
+  AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw, tol=1e-9)
 
   dse_dw_num <-
       numDeriv::jacobian(function(w) { GetRegTestResults(w)$se }, w0)
-  AssertNearlyZero(dse_dw_num - reg_se_list$dse_dw, tol=1e-10)
+  AssertNearlyZero(dse_dw_num - reg_se_list$dse_dw, tol=1e-9)
 }
 
 
 test_that("ungrouped_derivs_correct", {
+  set.seed(12611)
   TestRegressionDerivatives(do_iv=TRUE)
+  set.seed(12611)
   TestRegressionDerivatives(do_iv=FALSE)
 })
 
 
 test_that("grouped_derivs_correct", {
+  set.seed(12611)
   TestGroupedRegressionDerivatives(do_iv=TRUE)
+  set.seed(12611)
   TestGroupedRegressionDerivatives(do_iv=FALSE)
 })
