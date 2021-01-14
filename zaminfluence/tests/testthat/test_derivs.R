@@ -190,8 +190,8 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
                                  paste(z_names, collapse=" + ")))
       reg_fit <- ivreg(data=df, formula = iv_form,
                        x=TRUE, y=TRUE, weights=weights)
-      reg_cov <- sandwich::vcovCL(
-        reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
+      # reg_cov <- sandwich::vcovCL(
+      #   reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
   } else {
       # Regression:
       x_names <- sprintf("x%d", 1:x_dim)
@@ -199,30 +199,30 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
                                   paste(x_names, collapse=" + ")))
       reg_fit <- lm(data=df, formula=reg_form,
                     x=TRUE, y=TRUE, weights=weights)
-      reg_cov <- sandwich::vcovCL(
-        reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
+      # reg_cov <- sandwich::vcovCL(
+      #   reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
   }
 
   # Get influence.
 
-  if (do_iv) {
-      reg_se_list <- GetIVSEDerivs(
-          x=df[, x_names] %>% as.matrix(),
-          z=df[, z_names] %>% as.matrix(),
-          y=df$y,
-          beta=reg_fit$coefficients,
-          w0=df$weights,
-          se_group=df$se_group,
-          testing=TRUE)
-  } else {
-      reg_se_list <- GetRegressionSEDerivs(
-          x=df[, x_names] %>% as.matrix(),
-          y=df$y,
-          beta=reg_fit$coefficients,
-          w0=df$weights,
-          se_group=df$se_group,
-          testing=TRUE)
-  }
+  # if (do_iv) {
+  #     reg_se_list <- GetIVSEDerivs(
+  #         x=df[, x_names] %>% as.matrix(),
+  #         z=df[, z_names] %>% as.matrix(),
+  #         y=df$y,
+  #         beta=reg_fit$coefficients,
+  #         w0=df$weights,
+  #         se_group=df$se_group,
+  #         testing=TRUE)
+  # } else {
+  #     reg_se_list <- GetRegressionSEDerivs(
+  #         x=df[, x_names] %>% as.matrix(),
+  #         y=df$y,
+  #         beta=reg_fit$coefficients,
+  #         w0=df$weights,
+  #         se_group=df$se_group,
+  #         testing=TRUE)
+  # }
 
   LocalGetRegressionSEDerivs <- function(w=df$weights,
                                          beta=reg_fit$coefficients) {
@@ -245,6 +245,8 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
               testing=TRUE))
       }
   }
+
+  reg_se_list <- LocalGetRegressionSEDerivs()
 
   w0 <- df$weights
   beta <- reg_fit$coefficients

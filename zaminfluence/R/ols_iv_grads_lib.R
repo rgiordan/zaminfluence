@@ -63,7 +63,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
     # Covariance matrix
     xwx_inv_vmat <- solve(xwx, v_mat)
-    se_mat <- solve(xwx, t(xwx_inv_vmat))
+    se_mat <- solve(xwx, t(xwx_inv_vmat)) * num_groups
 
     # Covariance matrix derivatives.
 
