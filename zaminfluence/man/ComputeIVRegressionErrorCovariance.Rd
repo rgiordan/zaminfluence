@@ -2,7 +2,7 @@
 % Please edit documentation in R/ols_iv_grads_lib.R
 \name{ComputeIVRegressionErrorCovariance}
 \alias{ComputeIVRegressionErrorCovariance}
-\title{Compute all influence scores for an IV regression.}
+\title{Compute the standard error matrix for an IV regression.}
 \usage{
 ComputeIVRegressionErrorCovariance(iv_res, se_group = NULL)
 }
@@ -15,5 +15,5 @@ ComputeIVRegressionErrorCovariance(iv_res, se_group = NULL)
 The standard error matrix.
 }
 \description{
-Compute all influence scores for an IV regression.
+Compute the standard error matrix for an IV regression.
 }

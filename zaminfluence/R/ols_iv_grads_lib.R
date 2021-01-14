@@ -426,7 +426,7 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
 }
 
 
-#' Compute all influence scores for an IV regression.
+#' Compute the standard error matrix for an IV regression.
 #' @param iv_res The output of an IV regression computed with AER::ivreg.
 #' @param se_group Optional, a vector of integers defining a standard error grouping.
 #' @return The standard error matrix.
@@ -436,7 +436,7 @@ ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
   iv_grad_list <- GetIVSEDerivs(
     x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
     beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
-  return(iv_grad_list$se_mat / iv_vars$num_obs)
+  return(iv_grad_list$se_mat)
 }
 
 
@@ -446,7 +446,8 @@ ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
 
 #' Compute the influence functions for all regressors given a model fit.
 #' @param model_fit A model fit (currently from lm or AER::iv_reg).
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param se_group Optional, a vector of integers defining a standard error
+#  grouping.
 #' @return A list containing the regression and influence result.
 #' @export
 ComputeModelInfluence <- function(model_fit, se_group=NULL) {

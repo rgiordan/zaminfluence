@@ -9,7 +9,7 @@ ComputeModelInfluence(model_fit, se_group = NULL)
 \arguments{
 \item{model_fit}{A model fit (currently from lm or AER::iv_reg).}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional, a vector of integers defining a standard error}
 }
 \value{
 A list containing the regression and influence result.
