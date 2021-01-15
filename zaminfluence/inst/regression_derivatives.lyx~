@@ -76,9 +76,17 @@
 \begin_body
 
 \begin_layout Standard
-In order to avoid Python and autograd dependence for the common cases of
- OLS and IV, let's derive the needed derivatives by hand.
- It suffices to do the derivations for IV, of which OLS is a special case.
+This document contains brief notes for manually computing the derivatives
+ needed to compute the AMIP and related scores for OLS and IV regression.
+ The original versoin of zaminfluence used Python autograd to compute these
+ derivatives.
+ In order to avoid Python and autograd dependence for the common cases of
+ OLS and IV, I will here derive the needed derivatives by hand.
+ 
+\end_layout
+
+\begin_layout Standard
+It suffices to do the derivations for IV, of which OLS is a special case.
 \begin_inset Formula 
 \begin{align*}
 \epsilon_{n} & :=y_{n}-x_{n}^{T}\theta\\

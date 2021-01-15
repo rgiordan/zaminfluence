@@ -27,6 +27,8 @@ You can install different branches using the `ref` argument.
 
 Please submit an issue or email us if you have any questions or comments!
 
+# Organizational structure
+
 # Python backend
 
 The original version of `zaminfluence` depended on a Python backend.  The
