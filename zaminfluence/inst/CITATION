@@ -1,0 +1,25 @@
+citHeader("To cite zaminfluence in publications use:")
+
+@article{broderick2020automatic,
+  title={An Automatic Finite-Sample Robustness Metric: Can Dropping a Little Data Change Conclusions?},
+  author={Broderick, Tamara and Giordano, Ryan and Meager, Rachael},
+  journal={arXiv preprint arXiv:2011.14999},
+  year={2020}
+}
+
+citEntry(entry = "Article",
+  title        = "An Automatic Finite-Sample Robustness Metric: Can Dropping a Little Data Change Conclusions?",
+  author       = personList(
+                   as.person("Tamara Broderick"),
+                   as.person("Rachael Meager"),
+                   as.person("Ryan Giordano")),
+  journal      = "arxiv preprint 2011.14999",
+  url          = "https://arxiv.org/abs/2011.14999",
+  year         = "2020",
+
+  textVersion  =
+  paste0("Broderick, Tamara, Ryan Giordano, and Rachael Meager. ",
+        "\"An Automatic Finite-Sample Robustness Metric: ",
+        "Can Dropping a Little Data Change Conclusions?.\" ",
+        "arXiv preprint arXiv:2011.14999 (2020).")
+)
