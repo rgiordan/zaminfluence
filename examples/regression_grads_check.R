@@ -34,12 +34,21 @@ TestGroupedRegressionDerivatives(do_iv = FALSE)
 
 
 
-a <- runif(25) %>% matrix(5, 5) + diag(5)
-b <- runif(5)
-solve(a, b)
-a_qr <- qr(a)
-solve(a_qr, b) - solve(a, b)
-solve(a_qr) - solve(a)
+ExpandGroupedSum <- function(s_mat, group) {
+    group_rows <- split(1:length(group), group)
+    s_mat_expanded <- matrix(NA, length(group), ncol(s_mat))
+    for (g in names(group_rows)) {
+        for (row in group_rows[[g]]) {
+            s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
+        }
+    }
+    return(s_mat_expanded)
+}
+
+s_mat <- 1:15 %>% matrix(5, 3)
+group <- rep(1:5, each=3) - 1
+
+ExpandGroupedSum(s_mat, group) -  s_mat[group + 1, ]
 
 #####################
 

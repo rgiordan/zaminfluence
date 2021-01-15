@@ -14,16 +14,8 @@ GroupedSum <- function(mat, group) {
 
 # Repeat grouped sum rows to match the shape of the original data.
 # s_mat might be the output of GroupedSum.
-# TODO: do this more efficiently?
 ExpandGroupedSum <- function(s_mat, group) {
-  group_rows <- split(1:length(group), group)
-  s_mat_expanded <- matrix(NA, length(group), ncol(s_mat))
-  for (g in names(group_rows)) {
-    for (row in group_rows[[g]]) {
-      s_mat_expanded[row, ] <- s_mat[as.numeric(g) + 1, ]
-    }
-  }
-  return(s_mat_expanded)
+  return(s_mat[group + 1, ])
 }
 
 
@@ -367,7 +359,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
-    # TODO: you can make this faster by factorizing zwx.
     zwx_inv_zwz <- solve(zwx_qr, zwz)
     sand_mat <- solve(zwx_qr, t(zwx_inv_zwz))
     se_mat <- sig2_hat * sand_mat
@@ -411,8 +402,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
     }
 
     # Specify return values
-    # TODO: should we return the se_mat scaled by 1 / N or not?
-    # Also make sure this decision is made consistently everywhere.
     ret_list <- list(
         betahat=betahat,
         se_mat=se_mat,
