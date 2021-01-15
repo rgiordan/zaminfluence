@@ -73,11 +73,16 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
       # First the partials wrt the weights.
       # s_mat_expanded is s_mat with rows repeated to match the shape of z.
+      xwx_inv_s_mat <- solve(xwx_qr, t(s_mat))
       s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
+      xwx_inv_s_mat_expanded <-
+        ExpandGroupedSum(t(xwx_inv_s_mat), se_group) %>% t()
+      #xwx_inv_s_mat_expanded <- solve(xwx_qr, t(s_mat_expanded))
 
-      xwx_inv_s_mat_expanded <- solve(xwx_qr, t(s_mat_expanded))
+      # To understand the next line,
+      # note that dbetahat_dw = solve(xwx_qr, t(x * eps))
       ddiag_semat_dw_partial <-
-        2 * xwx_inv_s_mat_expanded * solve(xwx_qr, t(x * eps)) -
+        2 * xwx_inv_s_mat_expanded * dbetahat_dw -
         2 * (solve(xwx_qr, t(x))) * (se_mat %*% t(x))
 
       # Second, the partials through the beta dependence.
@@ -89,7 +94,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
         xi_d <- GroupedSum(-1 * x_w * x[, d], se_group)
         xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
         ddiag_semat_dbeta_partial[, d] <-
-          2 * solve(xwx_qr, t(s_mat)) %*%
+          2 * xwx_inv_s_mat %*%
               t(solve(xwx_qr, t(xi_d))) %>% diag()
       }
 
@@ -302,12 +307,17 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
       # First the partials wrt the weights.
 
-      # s_mat_expanded is s_mat with rows repeated to match the shape of z.
-      s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
+      #s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
 
-      zwx_inv_s_mat_expanded <- solve(zwx_qr, t(s_mat_expanded))
+      zwx_inv_s_mat <- solve(zwx_qr, t(s_mat))
+      #zwx_inv_s_mat_expanded <- solve(zwx_qr, t(s_mat_expanded))
+      zwx_inv_s_mat_expanded <-
+        ExpandGroupedSum(t(zwx_inv_s_mat), se_group) %>% t()
+
+      # To understand the next line, note that
+      # dbetahat_dw = solve(zwx_qr, t(z * eps))
       ddiag_semat_dw_partial <-
-        2 * zwx_inv_s_mat_expanded * solve(zwx_qr, t(z * eps)) -
+        2 * zwx_inv_s_mat_expanded * dbetahat_dw -
         2 * (solve(zwx_qr, t(z))) * (se_mat %*% t(x))
 
       # Second, the partials through the beta dependence.
@@ -319,7 +329,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
         xi_d <- GroupedSum(-1 * z_w * x[, d], se_group)
         xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
         ddiag_semat_dbeta_partial[, d] <-
-          2 * solve(zwx_qr, t(s_mat)) %*%
+          2 * zwx_inv_s_mat %*%
               t(solve(zwx_qr, t(xi_d))) %>% diag()
       }
 
@@ -348,7 +358,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
         ret_list$v_mat <- v_mat
         ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
         ret_list$s_mat <- s_mat
-        ret_list$s_mat_expanded <- s_mat_expanded
         ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
     }
     return(ret_list)

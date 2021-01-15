@@ -238,13 +238,6 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
   AssertNearlyZero(vcov_se_cov - reg_se_list$se_mat, tol=1e-9)
   AssertNearlyZero(sqrt(diag(vcov_se_cov)) - reg_se_list$se, tol=1e-9)
 
-  # Test that the s_mat_expanded worked correctly.
-  for (n in 1:length(df$se_group)) {
-      gn <- df$se_group[n] + 1
-      AssertNearlyZero(reg_se_list$s_mat_expanded[n, ] -
-                       reg_se_list$s_mat[gn, ], tol=1e-9)
-  }
-
   #######
 
   ddiag_semat_dw_partial_num <-
