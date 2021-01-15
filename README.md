@@ -27,6 +27,14 @@ You can install different branches using the `ref` argument.
 
 Please submit an issue or email us if you have any questions or comments!
 
-For defining sensitivity to custom objectives, you may want to use
-Python automatic differentiation tools.  To do that, follow the
-(more complicated) [Python installation instructions](python_installation.md).
+# Python backend
+
+The original version of `zaminfluence` depended on a Python backend.  The
+Python part is no longer required.
+
+However, if you know what you're doing and are interested in defining
+sensitivity to custom objectives, you may want to use Python automatic
+differentiation tools. To do that, follow the (more complicated) [Python
+installation instructions](python_installation.md).  Currently the interface for
+custom objectives is not documented, but the authors could be prompted to write
+such documentation if there is a need.  In other words, send us an email!
