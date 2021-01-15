@@ -11,6 +11,7 @@ The repo name comes from "Z-estimator approximate maximal influence".
 library(devtools)
 devtools::install_github("https://github.com/rgiordan/zaminfluence/",
                          ref="reg_derivs",
+                         upgrade="never",
                          force=TRUE)
 ```
 

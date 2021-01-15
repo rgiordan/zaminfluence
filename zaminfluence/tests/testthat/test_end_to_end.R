@@ -50,16 +50,16 @@ TestConfiguration <- function(model_fit, se_group) {
 }
 
 
-test_that("python runs", {
-    if (!file.exists(venv_bin)) {
-        print(paste0("Virtual environment for testing is missing (",
-                     venv_bin,
-                     "). ",
-                     "Please follow the installation directions in the ",
-                     "README.md file."))
-    }
-    zaminfluence::InitializePython(venv_bin)
-})
+# test_that("python runs", {
+#     if (!file.exists(venv_bin)) {
+#         print(paste0("Virtual environment for testing is missing (",
+#                      venv_bin,
+#                      "). ",
+#                      "Please follow the installation directions in the ",
+#                      "README.md file."))
+#     }
+#     zaminfluence::InitializePython(venv_bin)
+# })
 
 
 test_that("regression works", {
@@ -108,7 +108,6 @@ test_that("rerun works", {
   set.seed(42)
 
   test_rerun <- function(model_fit, paired) {
-
     if (paired) {
       grad_df <-
         ComputeModelInfluence(model_fit) %>%
@@ -287,19 +286,19 @@ test_that("aggregated pairing works", {
 })
 
 
-test_that("regression moment conditions works", {
-  set.seed(42)
-
-  df <- GenerateRegressionData(100, 0.5)
-  lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE)
-  reg_moment_sens <- ComputeRegressionMomentSensitivity(lm_result)
-  new_offset <- runif(ncol(lm_result$x))
-
-  new_reg <- RegressWithOffset(lm_result, new_offset)
-  actual_change <- new_reg$betahat - lm_result$coefficients
-  pred_change <- as.numeric(reg_moment_sens$beta_grad %*% new_offset)
-
-  # The dependence is actually linear, so the prediction is exact.
-  testthat::expect_equivalent(actual_change, pred_change)
-  stopifnot(max(abs(actual_change - pred_change)) < 1e-8)
-})
+# test_that("regression moment conditions works", {
+#   set.seed(42)
+#
+#   df <- GenerateRegressionData(100, 0.5)
+#   lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE)
+#   reg_moment_sens <- ComputeRegressionMomentSensitivity(lm_result)
+#   new_offset <- runif(ncol(lm_result$x))
+#
+#   new_reg <- RegressWithOffset(lm_result, new_offset)
+#   actual_change <- new_reg$betahat - lm_result$coefficients
+#   pred_change <- as.numeric(reg_moment_sens$beta_grad %*% new_offset)
+#
+#   # The dependence is actually linear, so the prediction is exact.
+#   testthat::expect_equivalent(actual_change, pred_change)
+#   stopifnot(max(abs(actual_change - pred_change)) < 1e-8)
+# })

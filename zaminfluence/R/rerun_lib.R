@@ -83,30 +83,27 @@ GetWeightForAlpha <- function(infl_df, alpha_colname, alpha_val,
 #' covariance, and standard errors.
 #'@export
 RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
-  if (length(lm_result$y) != length(w_bool)) {
-    stop(paste0("``w_bool`` is not the same length as the regression data. ",
-                "Note that re-running regression with aggregated ",
-                "influence functions is not implemented."))
-  }
-  py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
+  # Rerun using my own code; I don't want to deal with how R handles the
+  # scoping of the weight variables in the regression.
 
-  new_w <- rep(0.0, nrow(py_main$x))
+  new_w <- rep(0.0, length(w_bool))
   if ("weights" %in% names(lm_result)) {
     new_w[w_bool] <- lm_result$weights[w_bool]
   } else {
     new_w[w_bool] <- 1.0
   }
-  py_main$new_w <- as.array(as.numeric(new_w))
-  reticulate::py_run_string("betahat_w = regsens_rgiordandev.reg(y, x, w=new_w)")
-  reticulate::py_run_string("
-se_cov = regsens_rgiordandev.get_standard_error_matrix(
-  betahat_w, y, x, w=new_w, se_group=se_group)")
+
+  reg_vars <- GetRegressionVariables(lm_result)
+  reg_results <- GetRegressionSEDerivs(
+    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
+    w0=new_w, se_group=se_group, compute_derivs=FALSE, testing=TRUE)
+
   ret_list <- list(
-    betahat=py_main$betahat_w,
-    se_cov=py_main$se_cov,
-    se=sqrt(diag(py_main$se_cov)))
+    betahat=reg_results$betahat,
+    se_cov=reg_results$se_mat,
+    se=reg_results$se)
   if (save_w) {
-    ret_list$w <- py_main$new_w
+    ret_list$w <- new_w
   }
   return(ret_list)
 }
@@ -152,31 +149,32 @@ RerunTargetRegressorForAlpha <- function(
 #' covariance, and standard errors.
 #'@export
 RerunIVRegression <- function(w_bool, iv_res, se_group=NULL, save_w=FALSE) {
+  # Rerun using my own code; I don't want to deal with how R handles the
+  # scoping of the weight variables in the regression.
   if (length(iv_res$y) != length(w_bool)) {
     stop(paste0("``w_bool`` is not the same length as the regression data. ",
                 "Note that re-running regression with aggregated ",
                 "influence functions is not implemented."))
   }
-  py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
 
-  new_w <- rep(0.0, nrow(py_main$x))
+  new_w <- rep(0.0, length(w_bool))
   if (is.null(iv_res[["weights"]])) {
     new_w[w_bool] <- 1.0
   } else {
     new_w[w_bool] <- iv_res$weights[w_bool]
   }
-  py_main$new_w <- as.array(as.numeric(new_w))
-  reticulate::py_run_string("
-betahat_w = iv_lib.iv_reg(y, x, z, w=new_w)")
-  reticulate::py_run_string("
-se_cov = iv_lib.get_iv_standard_error_matrix(
-  betahat_w, y, x, z, w=new_w, se_group=se_group)")
+
+  iv_vars <- GetIVVariables(iv_res)
+  iv_results <- GetIVSEDerivs(
+    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y, beta=iv_vars$betahat,
+    w0=new_w, se_group=se_group, compute_derivs=FALSE, testing=TRUE)
+
   ret_list <- list(
-    betahat=py_main$betahat_w,
-    se_cov=py_main$se_cov,
-    se=sqrt(diag(py_main$se_cov)))
+    betahat=iv_results$betahat,
+    se_cov=iv_results$se_mat,
+    se=iv_results$se)
   if (save_w) {
-    ret_list$w <- py_main$new_w
+    ret_list$w <- new_w
   }
   return(ret_list)
 }

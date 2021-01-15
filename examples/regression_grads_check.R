@@ -22,7 +22,19 @@ check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 n_obs <- 10000
 
 # The test utilities can simulate data.
+setwd(file.path(base_dir, "zaminfluence/tests/testthat/"))
 source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
+source(file.path(base_dir, "zaminfluence/tests/testthat/test_derivs.R"))
+
+
+debug(TestGroupedRegressionDerivatives)
+TestGroupedRegressionDerivatives(do_iv = FALSE)
+
+
+
+#####################
+
+
 
 set.seed(42)
 
@@ -35,61 +47,6 @@ AssertNearlyZero <- function(x, tol=1e-9) {
 
 
 ###############
-
-ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
-    py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
-    reg <- broom::tidy(lm_result)
-    reticulate::py_run_string("
-betahat = regsens_rgiordandev.reg(y, x, w=w0)
-se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
-    betahat, y, x, w0, se_group=se_group)
-")
-    if (max(abs(py_main$betahat - reg$estimate)) > 1e-8) {
-        warning("Regression coefficients do not match.")
-    }
-    
-    # Note that the standard errors may not match lm_result when using se_group.
-    return(list(model_fit=lm_result,
-                n_obs=nrow(lm_result$x),
-                regressor_names=colnames(lm_result$x),
-                grad_fun="get_regression_w_grads",
-                
-                betahat=py_main$betahat,
-                se=py_main$se,
-                weights=py_main$w0,
-                
-                beta_grad=py_main$betahat_grad,
-                se_grad=py_main$se_grad)
-    )
-}
-
-
-ComputeIVRegressionInfluencePython <- function(iv_res, se_group=NULL) {
-    py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
-    reg <- broom::tidy(iv_res)
-    reticulate::py_run_string("
-betahat = iv_lib.iv_reg(y, x, z, w=w0)
-se, betahat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
-    betahat, y, x, z, w0, se_group=se_group)
-")
-    if (max(abs(py_main$betahat - reg$estimate)) > 1e-8) {
-        warning("Regression coefficients do not match.")
-    }
-    
-    # Note that the standard errors may not match iv_res when using se_group.
-    return(list(model_fit=iv_res,
-                n_obs=length(iv_res$y),
-                regressor_names=colnames(iv_res$x$regressors),
-                grad_fun="get_iv_regression_w_grads",
-                
-                betahat=py_main$betahat,
-                se=py_main$se,
-                weights=py_main$w0,
-                
-                beta_grad=py_main$betahat_grad,
-                se_grad=py_main$se_grad)
-    )
-}
 
 
 ###################
@@ -129,6 +86,10 @@ if (do_iv) {
     reg_fit <- lm(data=df, formula=reg_form,
                   x=TRUE, y=TRUE, weights=weights)
 }
+
+
+reg_fit
+
 
 
 #######################
