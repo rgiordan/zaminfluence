@@ -107,6 +107,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
       ddiag_semat_dw_partial <- NA
       s_mat_expanded <- NA
       ddiag_semat_dbeta_partial <- NA
+      ddiag_semat_dw <- NA
     }
 
     # Specify return values

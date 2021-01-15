@@ -10,7 +10,7 @@ library(testthat)
 library(tidyverse)
 
 context("zaminfluence")
-source("utils.R")
+#source("utils.R")
 
 
 AssertNearlyZero <- function(x, tol=1e-15) {

@@ -7,11 +7,11 @@ library(testthat)
 library(tidyverse)
 
 context("zaminfluence")
-source("utils.R")
+#source("utils.R")
 
 # This requires the venv to have been set up precisely as described in the
 # README.md.
-venv_bin <- "../../../venv/bin/python3"
+#venv_bin <- "../../../venv/bin/python3"
 
 # reg_infl should be the output of ComputeRegressionInfluence
 TestConfiguration <- function(model_fit, se_group) {
