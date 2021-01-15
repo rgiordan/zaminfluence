@@ -29,6 +29,8 @@ ExpandGroupedSum <- function(s_mat, group) {
 
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
+# See the file inst/regression_derivatives.pdf for the derivation of
+# the derivatives computed by this function.
 GetRegressionSEDerivs <- function(x, y, beta, w0,
                                   se_group=NULL,
                                   testing=FALSE,
@@ -37,12 +39,13 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
   eps <- as.numeric(y - x %*% beta)
   x_w <- x * w0
-  # TODO: you can make this faster by factorizing xwx.
-  xwx <- t(x_w) %*% x
+
+  xwx_qr <- qr(t(x_w) %*% x)
+  betahat <- solve(xwx_qr, t(x_w) %*% y) %>% as.numeric()
 
   if (compute_derivs) {
     # This derivative is common to both standard error methods.
-    dbetahat_dw <- solve(xwx, t(x * eps))
+    dbetahat_dw <- solve(xwx_qr, t(x * eps))
   } else {
     dbetahat_dw <- NA
   }
@@ -70,8 +73,8 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
     v_mat <- t(s_mat) %*% s_mat / num_groups
 
     # Covariance matrix
-    xwx_inv_vmat <- solve(xwx, v_mat)
-    se_mat <- solve(xwx, t(xwx_inv_vmat)) * num_groups
+    xwx_inv_vmat <- solve(xwx_qr, v_mat)
+    se_mat <- solve(xwx_qr, t(xwx_inv_vmat)) * num_groups
 
     if (compute_derivs) {
       # Covariance matrix derivatives.
@@ -80,10 +83,10 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
       # s_mat_expanded is s_mat with rows repeated to match the shape of z.
       s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
 
-      xwx_inv_s_mat_expanded <- solve(xwx, t(s_mat_expanded))
+      xwx_inv_s_mat_expanded <- solve(xwx_qr, t(s_mat_expanded))
       ddiag_semat_dw_partial <-
-        2 * xwx_inv_s_mat_expanded * solve(xwx, t(x * eps)) -
-        2 * (solve(xwx, t(x))) * (se_mat %*% t(x))
+        2 * xwx_inv_s_mat_expanded * solve(xwx_qr, t(x * eps)) -
+        2 * (solve(xwx_qr, t(x))) * (se_mat %*% t(x))
 
       # Second, the partials through the beta dependence.
       beta_dim <- ncol(x)
@@ -94,7 +97,8 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
         xi_d <- GroupedSum(-1 * x_w * x[, d], se_group)
         xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
         ddiag_semat_dbeta_partial[, d] <-
-          2 * solve(xwx, t(s_mat)) %*% t(solve(xwx, t(xi_d))) %>% diag()
+          2 * solve(xwx_qr, t(s_mat)) %*%
+              t(solve(xwx_qr, t(xi_d))) %>% diag()
       }
 
       ddiag_semat_dw <-
@@ -112,7 +116,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
     # Specify return values
     ret_list <- list(
-        betahat=solve(xwx, t(x_w) %*% y) %>% as.numeric(),
+        betahat=betahat,
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),
         dbetahat_dw=dbetahat_dw,
@@ -136,7 +140,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
-    sand_mat <- solve(xwx)
+    sand_mat <- solve(xwx_qr)
     se_mat <- sig2_hat * sand_mat
 
     if (compute_derivs) {
@@ -150,7 +154,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
       # Derivative of the diagonal of the sandwich matrix, which does not
       # depend on beta.
       # See notes for the definition of these terms and the derivation.
-      R_x <- solve(xwx, t(x))
+      R_x <- solve(xwx_qr, t(x))
       dsand_mat_diag_dw_partial <- -1 * R_x * R_x
 
       dse_mat_diag_dw_partial <-
@@ -178,17 +182,17 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 
     # Specify return values
     ret_list <- list(
-        se_mat=se_mat,
-        se=sqrt(diag(se_mat)),
-        sig2_hat=sig2_hat,
-        dbetahat_dw=dbetahat_dw,
-        dsig2_hat_dw=dsig2_hat_dw,
-        dse_mat_diag_dw=dse_mat_diag_dw,
-        dse_dw=dse_dw)
+      betahat=betahat,
+      se_mat=se_mat,
+      se=sqrt(diag(se_mat)),
+      sig2_hat=sig2_hat,
+      dbetahat_dw=dbetahat_dw,
+      dsig2_hat_dw=dsig2_hat_dw,
+      dse_mat_diag_dw=dse_mat_diag_dw,
+      dse_dw=dse_dw)
 
     if (testing) {
         # For testing and debugging, it's useful to get the intermediate results.
-        ret_list$betahat <- solve(xwx, t(x_w) %*% y) %>% as.numeric()
         ret_list$sand_mat <- sand_mat
         ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta
         ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial
@@ -253,6 +257,8 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
 
 # Compute the estimate, standard errors, and their derivatives for
 # instrumental variables regression.
+# See the file inst/regression_derivatives.pdf for the derivation of
+# the derivatives computed by this function.
 GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
                           compute_derivs=TRUE, testing=FALSE) {
   num_obs <- length(y)
@@ -261,11 +267,14 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
   z_w <- z * w0
   zwz <- t(z_w) %*% z
-  zwx <- t(z_w) %*% x
+  #zwx <- t(z_w) %*% x
+  zwx_qr <- qr(t(z_w) %*% x)
+
+  betahat <- solve(zwx_qr, t(z_w) %*% y) %>% as.numeric()
 
   if (compute_derivs) {
     # This derivative is the same for both SE methods.
-    dbetahat_dw <- solve(zwx, t(z * eps))
+    dbetahat_dw <- solve(zwx_qr, t(z * eps))
   } else {
     dbetahat_dw <- NA
   }
@@ -293,8 +302,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
     v_mat <- t(s_mat) %*% s_mat / num_groups
 
     # Covariance matrix
-    zwx_inv_vmat <- solve(zwx, v_mat)
-    se_mat <- solve(zwx, t(zwx_inv_vmat)) * num_groups
+    zwx_inv_vmat <- solve(zwx_qr, v_mat)
+    se_mat <- solve(zwx_qr, t(zwx_inv_vmat)) * num_groups
 
     if (compute_derivs) {
       # Covariance matrix derivatives.
@@ -304,10 +313,10 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
       # s_mat_expanded is s_mat with rows repeated to match the shape of z.
       s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
 
-      zwx_inv_s_mat_expanded <- solve(zwx, t(s_mat_expanded))
+      zwx_inv_s_mat_expanded <- solve(zwx_qr, t(s_mat_expanded))
       ddiag_semat_dw_partial <-
-        2 * zwx_inv_s_mat_expanded * solve(zwx, t(z * eps)) -
-        2 * (solve(zwx, t(z))) * (se_mat %*% t(x))
+        2 * zwx_inv_s_mat_expanded * solve(zwx_qr, t(z * eps)) -
+        2 * (solve(zwx_qr, t(z))) * (se_mat %*% t(x))
 
       # Second, the partials through the beta dependence.
       beta_dim <- ncol(x)
@@ -318,7 +327,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
         xi_d <- GroupedSum(-1 * z_w * x[, d], se_group)
         xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
         ddiag_semat_dbeta_partial[, d] <-
-          2 * solve(zwx, t(s_mat)) %*% t(solve(zwx, t(xi_d))) %>% diag()
+          2 * solve(zwx_qr, t(s_mat)) %*%
+              t(solve(zwx_qr, t(xi_d))) %>% diag()
       }
 
       ddiag_semat_dw <-
@@ -333,6 +343,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
     # Specify return values
     ret_list <- list(
+        betahat=betahat,
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),
         dbetahat_dw=dbetahat_dw,
@@ -342,7 +353,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
     if (testing) {
         # For testing and debugging, it's useful to get the intermediate results.
-        ret_list$betahat <- solve(zwx, t(z_w) %*% y) %>% as.numeric()
         ret_list$v_mat <- v_mat
         ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
         ret_list$s_mat <- s_mat
@@ -358,8 +368,8 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
     sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
 
     # TODO: you can make this faster by factorizing zwx.
-    zwx_inv_zwz <- solve(zwx, zwz)
-    sand_mat <- solve(zwx, t(zwx_inv_zwz))
+    zwx_inv_zwz <- solve(zwx_qr, zwz)
+    sand_mat <- solve(zwx_qr, t(zwx_inv_zwz))
     se_mat <- sig2_hat * sand_mat
 
     if (compute_derivs) {
@@ -373,8 +383,9 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
       # Derivative of the diagonal of the sandwich matrix, which does not
       # depend on beta.
       # See notes for the definition of these terms and the derivation.
-      AR_x <- zwx_inv_zwz %*% solve(t(zwx), t(x))
-      R_z <- solve(zwx, t(z))
+      #AR_x <- zwx_inv_zwz %*% solve(t(zwx), t(x))
+      AR_x <- sand_mat %*% t(x)
+      R_z <- solve(zwx_qr, t(z))
       dsand_mat_diag_dw_partial <- R_z * R_z - 2 * AR_x * R_z
 
       dse_mat_diag_dw_partial <-
@@ -403,6 +414,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
     # TODO: should we return the se_mat scaled by 1 / N or not?
     # Also make sure this decision is made consistently everywhere.
     ret_list <- list(
+        betahat=betahat,
         se_mat=se_mat,
         se=sqrt(diag(se_mat)),
         sig2_hat=sig2_hat,
@@ -413,7 +425,6 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
     if (testing) {
         # For testing and debugging, it's useful to get the intermediate results.
-        ret_list$betahat <- solve(zwx, t(z_w) %*% y) %>% as.numeric()
         ret_list$sand_mat <- sand_mat
         ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta
         ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial

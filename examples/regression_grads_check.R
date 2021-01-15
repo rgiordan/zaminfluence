@@ -12,6 +12,8 @@ library(zaminfluence)
 library(AER)
 library(numDeriv)
 
+library(Matrix)
+
 library(devtools)
 devtools::load_all("zaminfluence")
 
@@ -31,6 +33,13 @@ debug(TestGroupedRegressionDerivatives)
 TestGroupedRegressionDerivatives(do_iv = FALSE)
 
 
+
+a <- runif(25) %>% matrix(5, 5) + diag(5)
+b <- runif(5)
+solve(a, b)
+a_qr <- qr(a)
+solve(a_qr, b) - solve(a, b)
+solve(a_qr) - solve(a)
 
 #####################
 
