@@ -269,7 +269,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
 #' @export
 ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
   reg_vars <- GetRegressionVariables(lm_result)
-  if (weights == NULL) {
+  if (is.null(weights)) {
     weights <- reg_vars$w0
   }
   reg_grad_list <- GetRegressionSEDerivs(
@@ -546,7 +546,7 @@ ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
 #' @export
 ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
   iv_vars <- GetIVVariables(iv_res)
-  if (weights == NULL) {
+  if (is.null(weights)) {
     weights <- iv_vars$w0
   }
   iv_grad_list <- GetIVSEDerivs(
