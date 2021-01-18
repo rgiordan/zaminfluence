@@ -13,5 +13,4 @@ test_that("se groups can be non-ordered", {
   iv_res <- ivreg(y ~ x1 + 1 | z1 + 1, data=df, x=TRUE, y=TRUE)
   reg_res <- ivreg(y ~ x1 + 1, data=df, x=TRUE, y=TRUE)
 
-  
 })
