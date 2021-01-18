@@ -71,6 +71,74 @@ GetWeightForAlpha <- function(infl_df, alpha_colname, alpha_val,
 }
 
 
+GetInflDfForTargetChangeRow <- function(influence_dfs, target_change) {
+  if (nrow(target_change) != 1) {
+    stop("target_change must have exactly one row.")
+  }
+
+  if (!("direction" %in% names(target_change))) {
+    stop("target_change must have a column named `direction`")
+  }
+
+  if (!("change" %in% names(target_change))) {
+    stop("target_change must have a column named `change`")
+  }
+
+  direction <- target_change$direction
+  change <- target_change$change
+
+  change_entry <- case_when(
+    change == "sign" ~ "sign",
+    change == "signifiance" ~ "sig",
+    change == "sign and significance" ~ "sig",
+    TRUE ~ NULL)
+  if (is.null(change_entry)) {
+    allowed_changes <- c("sign", "significance", "sign and significance")
+    stop(sprintf("target_change$change must be one of (%s)",
+                 paste(allowed_changes, collapse=", ")))
+  }
+
+  infl_df <- influence_dfs[[change_entry]][[direction]]
+
+  return(infl_df)
+}
+
+
+GetAlphaColFromTargetChange <- function(target_change) {
+  # Get whether proportion or number removed was used.
+  alpha_col <- intersect(c("num_removed", "prop_removed"), names(target_change))
+  if (length(alpha_col) >= 2) {
+      stop(paste0("target_change should have only one of ",
+                  "`num_removed` or `prop_removed`."))
+  }
+  if (length(alpha_col) == 0) {
+      stop("target_change must have a column `num_removed` or `prop_removed`.")
+  }
+  return(alpha_col)
+}
+
+
+#' Get the weight vector to achieve the change given by a single row of
+#' a target change.
+#' @param influence_dfs A list of influence dataframes
+#' @param target_change A single row of a target change dataframe.
+#' @param boolean Optional.  If TRUE, return a boolean vector.  If FALSE,
+#' return a vector of integer indices.
+#' @param rows_to_keep Optional.  If TRUE, return a vector of rows to keep
+#' for the target level of alpha.  If FALSE, return a vector of rows to drop.
+#'@export
+GetWeightForTargetChangeRow <- function(influence_dfs, target_change,
+                                        boolean=TRUE, rows_to_keep=TRUE) {
+  infl_df <- GetInflDfForTargetChangeRow(influence_dfs, target_change)
+
+  alpha_col <- GetAlphaColFromTargetChange(target_change)
+  alpha <- target_change[[alpha_col]]
+
+  return(GetWeightForAlpha(
+    infl_df, alpha_colname=alpha_col, alpha_val=alpha,
+    boolean=boolean, rows_to_keep=rows_to_keep))
+}
+
 #######################################
 # Functions for ordinary regression
 
@@ -83,9 +151,6 @@ GetWeightForAlpha <- function(infl_df, alpha_colname, alpha_val,
 #' covariance, and standard errors.
 #'@export
 RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
-  # Rerun using my own code; I don't want to deal with how R handles the
-  # scoping of the weight variables in the regression.
-
   new_w <- rep(0.0, length(w_bool))
   if ("weights" %in% names(lm_result)) {
     new_w[w_bool] <- lm_result$weights[w_bool]
@@ -93,15 +158,10 @@ RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
     new_w[w_bool] <- 1.0
   }
 
-  reg_vars <- GetRegressionVariables(lm_result)
-  reg_results <- GetRegressionSEDerivs(
-    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
-    w0=new_w, se_group=se_group, compute_derivs=FALSE, testing=TRUE)
-
-  ret_list <- list(
-    betahat=reg_results$betahat,
-    se_cov=reg_results$se_mat,
-    se=reg_results$se)
+  # Rerun using my own code; I don't want to deal with how R handles the
+  # scoping of the weight variables in the regression.
+  ret_list <-
+    ComputeRegressionResults(lm_result, weights=new_w, se_group=se_group)
   if (save_w) {
     ret_list$w <- new_w
   }
@@ -164,15 +224,8 @@ RerunIVRegression <- function(w_bool, iv_res, se_group=NULL, save_w=FALSE) {
     new_w[w_bool] <- iv_res$weights[w_bool]
   }
 
-  iv_vars <- GetIVVariables(iv_res)
-  iv_results <- GetIVSEDerivs(
-    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y, beta=iv_vars$betahat,
-    w0=new_w, se_group=se_group, compute_derivs=FALSE, testing=TRUE)
-
-  ret_list <- list(
-    betahat=iv_results$betahat,
-    se_cov=iv_results$se_mat,
-    se=iv_results$se)
+  ret_list <-
+    ComputeIVRegressionResults(iv_res, weights=new_w, se_group=se_group)
   if (save_w) {
     ret_list$w <- new_w
   }
@@ -238,6 +291,7 @@ RerunTargetModelForAlpha <- function(
 }
 
 
+
 #' Rerun the target regression for every change in target_change.
 #'@param influence_dfs A list of influence dataframes
 #'@param target_change The output of GetRegressionTargetChange
@@ -246,15 +300,6 @@ RerunTargetModelForAlpha <- function(
 #'@export
 RerunForTargetChanges <- function(influence_dfs, target_change, model_fit,
                                   se_group=NULL) {
-    # Get whether proportion or number removed was used.
-    alpha_col <- intersect(c("num_removed", "prop_removed"), names(target_change))
-    if (length(alpha_col) >= 2) {
-        stop("target_change should have only one of `num_removed` or `prop_removed`.")
-    }
-    if (length(alpha_col) == 0) {
-        stop("target_change must have a column `num_removed` or `prop_removed`.")
-    }
-
     # Which influence dataframe to get for each change.
     target_df <- list()
     target_df[["sign"]] <- "sign"
@@ -266,6 +311,8 @@ RerunForTargetChanges <- function(influence_dfs, target_change, model_fit,
         return(NULL)
     }
 
+    alpha_col <- GetAlphaColFromTargetChange(target_change)
+
     # base_vals are the original values, and should be the same for every
     # influence function.
     base_vals <- attr(influence_dfs$sign$pos, "base_vals")
@@ -276,13 +323,13 @@ RerunForTargetChanges <- function(influence_dfs, target_change, model_fit,
         mutate(target_index=!!target_index, change="original")
     for (change in changes) {
         this_target_change <- filter(target_change, change == !!change)
-        alpha <- this_target_change[[alpha_col]]
-        direction <- this_target_change$direction
+        infl_df <-
+          GetInflDfForTargetChangeRow(influence_dfs, this_target_change)
         rerun_result <- RerunTargetModelForAlpha(
-              infl_df=influence_dfs[[ target_df[[change]] ]][[direction]],
+              infl_df=infl_df,
               model_fit=model_fit,
               alpha_colname=alpha_col,
-              alpha_val=alpha,
+              alpha_val=this_target_change[[alpha_col]],
               se_group=se_group) %>%
             mutate(change=!!change)
         results_list[[length(results_list) + 1]] <- rerun_result
