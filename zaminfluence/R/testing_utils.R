@@ -20,7 +20,7 @@ GenerateRandomEffects <- function(n_obs, num_groups=NULL) {
 }
 
 
-#' @export'
+#' @export
 GenerateRegressionData <- function(n_obs, beta_true, x=NULL, num_groups=NULL) {
   x_dim <- length(beta_true)
   if (is.null(x)) {
@@ -46,7 +46,7 @@ GenerateRegressionData <- function(n_obs, beta_true, x=NULL, num_groups=NULL) {
 }
 
 
-#' @export'
+#' @export
 GenerateIVRegressionData <- function(n_obs, beta_true, num_groups=NULL) {
   # Simulate some IV data
 

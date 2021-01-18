@@ -19,6 +19,19 @@ ExpandGroupedSum <- function(s_mat, group) {
 }
 
 
+CheckGroups <- function(se_group) {
+  if (min(se_group) != 0) {
+    warning(sprintf("se_group should be zero-indexed.  min = %f",
+      min(se_group)))
+  }
+  unique_groups <- unique(se_group)
+  if (length(unique_groups) != (max(unique_groups) + 1)) {
+    warning(sprintf(
+      "se_group should be sequential.  max / num unique groups = %f",
+      (max(unique_groups) + 1) / length(unique_groups)))
+  }
+}
+
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
 # See the file inst/regression_derivatives.pdf for the derivation of
@@ -45,6 +58,11 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
   if (!is.null(se_group)) {
     ##############################################
     # Derivatives for grouped standard errors:
+
+    # Enforces that the grouping variable is sequential and zero-indexed.
+    se_group <- as.numeric(factor(se_group)) - 1
+    CheckGroups(se_group) # Now redudant I believe
+
     s_mat <- GroupedSum(x * w0 * eps, se_group)
 
     # colMeans(s_mat) is zero at the weights used for regression, but include
@@ -52,12 +70,12 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
     s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
 
     # Check for well-formedness of the groups.
-    all(as.numeric(row.names(s_mat)) ==
-        unique(se_group) %>% sort()) %>%
-      stopifnot()
-    all(as.numeric(row.names(s_mat)) ==
-        (min(se_group):max(se_group))) %>%
-      stopifnot()
+    # all(as.numeric(row.names(s_mat)) ==
+    #     unique(se_group) %>% sort()) %>%
+    #   stopifnot()
+    # all(as.numeric(row.names(s_mat)) ==
+    #     (min(se_group):max(se_group))) %>%
+    #   stopifnot()
     num_groups <- nrow(s_mat)
 
     # v is for variance, so I take the average, but we then need to multiply
@@ -279,6 +297,11 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
   if (!is.null(se_group)) {
     ##############################################
     # Derivatives for grouped standard errors:
+
+    # Enforces that the grouping variable is sequential and zero-indexed.
+    se_group <- as.numeric(factor(se_group)) - 1
+    CheckGroups(se_group) # Now redudant I believe
+
     s_mat <- GroupedSum(z * eps * w0, se_group)
 
     # colMeans(s_mat) is zero at the weights used for regression, but include
@@ -286,12 +309,12 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
     s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
 
     # Check for well-formedness of the groups.
-    all(as.numeric(row.names(s_mat)) ==
-        unique(se_group) %>% sort()) %>%
-      stopifnot()
-    all(as.numeric(row.names(s_mat)) ==
-        (min(se_group):max(se_group))) %>%
-      stopifnot()
+    # all(as.numeric(row.names(s_mat)) ==
+    #     unique(se_group) %>% sort()) %>%
+    #   stopifnot()
+    # all(as.numeric(row.names(s_mat)) ==
+    #     (min(se_group):max(se_group))) %>%
+    #   stopifnot()
     num_groups <- nrow(s_mat)
 
     # v is for variance, so I take the average, but we then need to multiply
