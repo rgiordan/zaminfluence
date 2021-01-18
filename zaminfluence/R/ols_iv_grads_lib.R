@@ -69,13 +69,6 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
     # it so we can test partial derivatives.
     s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
 
-    # Check for well-formedness of the groups.
-    # all(as.numeric(row.names(s_mat)) ==
-    #     unique(se_group) %>% sort()) %>%
-    #   stopifnot()
-    # all(as.numeric(row.names(s_mat)) ==
-    #     (min(se_group):max(se_group))) %>%
-    #   stopifnot()
     num_groups <- nrow(s_mat)
 
     # v is for variance, so I take the average, but we then need to multiply
@@ -263,6 +256,30 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
               beta_grad=reg_grad_list$dbetahat_dw,
               se_grad=reg_grad_list$dse_dw)
   )
+}
+
+
+#' Run a regression using zaminfluence code.  This should be identical
+#' to ordinary regression.
+#'
+#' @param lm_result The output of a call to lm.
+#' @param weights Optional, a vector of weights.  If unset, use the original regression weights.
+#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @return A list containing the regression coefficients and standard errors.
+#' @export
+ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
+  reg_vars <- GetRegressionVariables(lm_result)
+  if (weights == NULL) {
+    weights <- reg_vars$w0
+  }
+  reg_grad_list <- GetRegressionSEDerivs(
+    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
+    w0=weights, se_group=se_group, testing=FALSE, compute_derivs=FALSE)
+  return(list(
+    betahat=reg_grad_list$betahat,
+    se=reg_grad_list$se,
+    se_mat=reg_grad_list$se_mat
+  ))
 }
 
 
@@ -515,6 +532,33 @@ ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
     x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
     beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
   return(iv_grad_list$se_mat)
+}
+
+
+#' Run an IV regression using zaminfluence code.  This should be identical
+#' to ordinary regression.
+#'
+#' @param lm_result The output of a call to lm.
+#' @param weights Optional, a vector of weights.  If unset, use the original
+#' regression weights.
+#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @return A list containing the regression coefficients and standard errors.
+#' @export
+ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
+  iv_vars <- GetIVVariables(iv_res)
+  if (weights == NULL) {
+    weights <- iv_vars$w0
+  }
+  iv_grad_list <- GetIVSEDerivs(
+    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+    beta=iv_vars$betahat, w0=weights, se_group=se_group,
+    testing=FALSE, compute_derivs=FALSE)
+
+  return(list(
+    betahat=iv_grad_list$betahat,
+    se=iv_grad_list$se,
+    se_mat=iv_grad_list$se_mat
+  ))
 }
 
 
