@@ -49,3 +49,46 @@ test_that("se groups can be non-ordered", {
   TestSEGroup(ordered_groups[sample(num_obs, replace=TRUE)])
   TestSEGroup(ordered_groups[sample(num_obs)])
 })
+
+
+
+# test_that("rerun works", {
+num_obs <- 100
+df <- GenerateIVRegressionData(num_obs, 0.5, num_groups=10)
+df$w <- runif(num_obs) + 0.5
+w_bool <- rep(TRUE, num_obs)
+w_bool[sample(100, 10)] <- FALSE
+new_w <- df$w
+new_w[!w_bool] <- 0
+
+iv_fit <- ivreg(y ~ x1 + 1 | z1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
+reg_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
+
+for (use_iv in c(TRUE, FALSE)) {
+  for (use_se_group in c(TRUE, FALSE)) {
+    if (use_se_group) {
+      se_group <- df$se_group
+    } else {
+      se_group <- NULL
+    }
+    if (use_iv) {
+      new_fit <- ivreg(y ~ x1 + 1 | z1 + 1, data=df, x=TRUE, y=TRUE, weights=new_w)
+      zam_fit <- RerunIVRegression(w_bool, iv_fit, se_group=se_group)
+    } else {
+      new_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=new_w)
+      zam_fit <- RerunRegression(w_bool, reg_fit, se_group=se_group)
+    }
+    new_vcov <- GetSandwichCov(new_fit, se_group=se_group)
+
+    new_vcov
+    zam_fit$se_cov
+
+    cat(use_iv, use_se_group, new_vcov - zam_fit$se_mat, "\n\n")      
+    print(new_vcov)
+    print(zam_fit$se_mat)
+    cat('------------------\n\n\n')
+    # AssertNearlyEqual(new_fit$coefficients, zam_fit$betahat)
+    # AssertNearlyEqual(new_vcov, zam_fit$se_cov)
+  }
+}
+#})

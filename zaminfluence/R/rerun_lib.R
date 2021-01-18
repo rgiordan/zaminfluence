@@ -306,12 +306,12 @@ RerunForTargetChanges <- function(influence_dfs, target_change, model_fit,
     target_df[["significance"]] <- "sig"
     target_df[["sign and significance"]] <- "sig"
 
+    alpha_col <- GetAlphaColFromTargetChange(target_change)
+
     changes <- target_change[ !is.na(target_change[[alpha_col]]), "change"]
     if (length(changes) == 0) {
         return(NULL)
     }
-
-    alpha_col <- GetAlphaColFromTargetChange(target_change)
 
     # base_vals are the original values, and should be the same for every
     # influence function.
