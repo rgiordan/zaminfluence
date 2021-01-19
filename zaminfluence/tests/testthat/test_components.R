@@ -55,14 +55,58 @@ test_that("se groups can be non-ordered", {
 # test_that("rerun works", {
 num_obs <- 100
 df <- GenerateIVRegressionData(num_obs, 0.5, num_groups=10)
-df$w <- runif(num_obs) + 0.5
-w_bool <- rep(TRUE, num_obs)
-w_bool[sample(100, 10)] <- FALSE
-new_w <- df$w
-new_w[!w_bool] <- 0
+#df$w <- runif(num_obs) + 0.5
+#df$w <- rep(1, num_obs)
+df$w <- rep(1, num_obs)
+df$w[1] <- 0.0000
+
+RegressWithWeights <- function(w) {
+  df$w <- w
+  reg_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
+  reg_vcov <- GetSandwichCov(reg_fit, se_group=df$se_group)
+  return(list(betahat=reg_fit$coefficients, se_mat=reg_vcov))
+}
 
 iv_fit <- ivreg(y ~ x1 + 1 | z1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
 reg_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
+
+zam_iv_fit <- RerunIVRegression(rep(TRUE, num_obs), iv_fit, se_group=df$se_group)
+iv_vcov <- GetSandwichCov(iv_fit, se_group=df$se_group)
+AssertNearlyEqual(iv_fit$coefficients, zam_iv_fit$betahat)
+AssertNearlyEqual(iv_vcov, zam_iv_fit$se_mat)
+
+zam_reg_fit <- RerunRegression(rep(TRUE, num_obs), reg_fit, se_group=df$se_group)
+reg_vcov <- GetSandwichCov(reg_fit, se_group=df$se_group)
+AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$betahat)
+AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)
+
+# ?
+
+eps_vec <- seq(0, 0.01, length.out=20)
+foo <- rep(NA, length(eps_vec))
+for (i in 1:length(eps_vec)) {
+  w_new <- df$w
+  w_new[1] <- eps_vec[i]
+  foo[i] <- RegressWithWeights(w_new)$se_mat[1, 1]
+}
+foo
+
+
+w_bool <- rep(TRUE, num_obs)
+w_bool[sample(100, 10)] <- FALSE
+new_w <- df$w
+new_w[!w_bool] <- 0.0
+stopifnot(length(unique(df$se_group[w_bool])) == length(unique(df$se_group)))
+
+zam_reg_fit <- RerunRegression(w_bool, reg_fit, se_group=df$se_group, save_w=TRUE)
+AssertNearlyEqual(zam_reg_fit$w, new_w)
+new_reg_fit <- lm(y ~ x1 + 1, data=df, weights=new_w)
+new_reg_vcov <- GetSandwichCov(new_reg_fit, se_group=df$se_group)
+AssertNearlyEqual(new_reg_fit$coefficients, zam_reg_fit$betahat)
+AssertNearlyEqual(new_reg_vcov, zam_reg_fit$se_mat)
+1 / (new_reg_vcov / zam_reg_fit$se_mat)
+
+
 
 for (use_iv in c(TRUE, FALSE)) {
   for (use_se_group in c(TRUE, FALSE)) {
