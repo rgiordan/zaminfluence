@@ -19,6 +19,15 @@ ExpandGroupedSum <- function(s_mat, group) {
 }
 
 
+# Run regression using the QR decomposition.
+GetRegressionCoefficients <- function(x, y, w0) {
+  x_w <- x * w0
+  xwx_qr <- qr(t(x_w) %*% x)
+  betahat <- solve(xwx_qr, t(x_w) %*% y) %>% as.numeric()
+  return(list(betahat=betahat, x_w=x_w, xwx_qr=xwx_qr))
+}
+
+
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
 # See the file inst/regression_derivatives.pdf for the derivation of
@@ -27,11 +36,17 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
                                   se_group=NULL,
                                   testing=FALSE,
                                   compute_derivs=TRUE) {
+
+  reg_coeff <- GetRegressionCoefficients(x, y, w0)
+  betahat <- reg_coeff$betahat
+  xwx_qr <- reg_coeff$xwx_qr
+  x_w <- reg_coeff$x_w
+
   num_obs <- length(y)
 
   eps <- as.numeric(y - x %*% beta)
-  x_w <- x * w0
 
+  x_w <- x * w0
   xwx_qr <- qr(t(x_w) %*% x)
   betahat <- solve(xwx_qr, t(x_w) %*% y) %>% as.numeric()
 
@@ -258,9 +273,19 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
   if (is.null(weights)) {
     weights <- reg_vars$w0
   }
+
+  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
+  reg_coeff <- GetRegressionCoefficients(
+    x=reg_vars$x, y=reg_vars$y, w0=weights)
+
   reg_grad_list <- GetRegressionSEDerivs(
-    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
-    w0=weights, se_group=se_group, testing=FALSE, compute_derivs=FALSE)
+    x=reg_vars$x,
+    y=reg_vars$y,
+    beta=reg_coeff$betahat,
+    w0=weights,
+    se_group=se_group,
+    testing=FALSE,
+    compute_derivs=FALSE)
   return(list(
     betahat=reg_grad_list$betahat,
     se=reg_grad_list$se,
@@ -272,6 +297,20 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 ######################################################3
 # Instrumental variables
 
+GetIVCoefficients <- function(x, z, y, w0) {
+  z_w <- z * w0
+  zwz <- t(z_w) %*% z
+  #zwx <- t(z_w) %*% x
+  zwx_qr <- qr(t(z_w) %*% x)
+
+  betahat <- solve(zwx_qr, t(z_w) %*% y) %>% as.numeric()
+
+  return(list(
+    z_w=z_w,
+    zwz=zwz,
+    zwx_qr=zwx_qr,
+    betahat=betahat))
+}
 
 # Compute the estimate, standard errors, and their derivatives for
 # instrumental variables regression.
@@ -283,12 +322,11 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 
   eps <- as.numeric(y - x %*% beta)
 
-  z_w <- z * w0
-  zwz <- t(z_w) %*% z
-  #zwx <- t(z_w) %*% x
-  zwx_qr <- qr(t(z_w) %*% x)
-
-  betahat <- solve(zwx_qr, t(z_w) %*% y) %>% as.numeric()
+  iv_coeff <- GetIVCoefficients(x, z, y, w0)
+  z_w <- iv_coeff$z_w
+  zwz <- iv_coeff$zwz
+  zwx_qr <- iv_coeff$zwx_qr
+  betahat <- iv_coeff$betahat
 
   if (compute_derivs) {
     # This derivative is the same for both SE methods.
@@ -530,10 +568,23 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
   if (is.null(weights)) {
     weights <- iv_vars$w0
   }
+
+  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
+  iv_coeff <- GetIVCoefficients(
+    x=iv_vars$x,
+    z=iv_vars$z,
+    y=iv_vars$y,
+    w0=weights)
+
   iv_grad_list <- GetIVSEDerivs(
-    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
-    beta=iv_vars$betahat, w0=weights, se_group=se_group,
-    testing=FALSE, compute_derivs=FALSE)
+    x=iv_vars$x,
+    z=iv_vars$z,
+    y=iv_vars$y,
+    beta=iv_coeff$betahat,
+    w0=weights,
+    se_group=se_group,
+    testing=FALSE,
+    compute_derivs=FALSE)
 
   return(list(
     betahat=iv_grad_list$betahat,

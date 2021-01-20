@@ -89,13 +89,14 @@ GetInflDfForTargetChangeRow <- function(influence_dfs, target_change) {
 
   change_entry <- case_when(
     change == "sign" ~ "sign",
-    change == "signifiance" ~ "sig",
+    change == "significance" ~ "sig",
     change == "sign and significance" ~ "sig",
-    TRUE ~ NULL)
-  if (is.null(change_entry)) {
+    TRUE ~ "ERROR")
+  if (change_entry == "ERROR") {
     allowed_changes <- c("sign", "significance", "sign and significance")
-    stop(sprintf("target_change$change must be one of (%s)",
-                 paste(allowed_changes, collapse=", ")))
+    stop(sprintf("target_change$change must be one of (%s).  Got %s",
+                 paste(allowed_changes, collapse=", "),
+                 change))
   }
 
   infl_df <- influence_dfs[[change_entry]][[direction]]
