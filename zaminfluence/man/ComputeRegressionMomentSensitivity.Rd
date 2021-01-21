@@ -9,9 +9,9 @@ where the regression is fit with the moment condition Cov(x, resid) = offset.}
 ComputeRegressionMomentSensitivity(lm_result, se_group = NULL)
 }
 \arguments{
-\item{lm_result}{The output of a call to lm.}
+\item{lm_result}{The regression result, i.e, the output of \code{\link[=lm]{lm()}}.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
 A list containing the regression and influence result.

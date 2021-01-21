@@ -9,24 +9,21 @@ SortAndAccumulateForSign(grad_df, sort_col, change_sign, influence_cols)
 \arguments{
 \item{grad_df}{The gradient dataframe with attributes for a particular coefficient, e.g., as returned by \code{\link[=GetTargetRegressorGrads]{GetTargetRegressorGrads()}}.}
 
-\item{sort_col}{Which column to sort by, typically a weight influence column.}
+\item{sort_col}{Which column to sort by, typically an influence column.}
 
 \item{change_sign}{The sign change that is to be effected by removing rows.}
 
-\item{influence_cols}{Additional influence columns to be accumulated after
-sorting, possibly including sort_col.}
+\item{influence_cols}{Which influence columns are to be cumulatively summed after sorting.}
 }
 \value{
-A dataframe sorted using sort_col to effect a change in the
-direction change_sign.  The following columns are calculated for each
-column in influence_cols:
-num_removed: The number of rows removed by removing this row and all above
-prop_removed: The proportaion of rows removed by removing this row and all
-above<col>_grad: The gradient of <col> for this row.
-<col>_change: The estimated change in <col> when removing this row and all
-previous rows (that is, the cumulative sum of the gradient).
-<col>_est: The estimated value of <col> (that is, the original value plus
-the estimated change).
+A dataframe sorted using \code{sort_col} to effect a change in the direction \code{change_sign}.  The following columns are calculated for each column in \code{influence_cols}:
+\describe{
+\item{num_removed}{The number of rows removed by removing this row and all above}
+\item{prop_removed}{The proportion of rows removed by removing this row and all above}
+\item{VAR_grad}{The gradient of variable VAR for this row.}
+\item{VAR_change}{The estimated change in variable VAR when removing this row and all previous rows (that is, the cumulative sum of the gradient).}
+\item{VAR_est}{The estimated value of variable VAR (that is, the original value plus the estimated change).}
+}
 }
 \description{
 Sort and aggregate a gradient dataframe for a particular kind of change.

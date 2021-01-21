@@ -7,9 +7,9 @@
 GetGammaAlpha(influence_df, alpha, alpha_col, gamma_alpha_col)
 }
 \arguments{
-\item{influence_df}{The output of AnalyzeInfluence().}
+\item{influence_df}{A single influence dataframe, e.g., a single member of the list returned by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.}
 
-\item{alpha}{The proportion of left-out observations}
+\item{alpha}{The alpha value to target corresponding to \code{alpha_colname}.}
 }
 \value{
 $Gamma_alpha$, the shape coefficient.

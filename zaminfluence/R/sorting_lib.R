@@ -9,8 +9,7 @@ library(dplyr)
 
 #' Return the $Gamma_alpha$ quantity.
 #'
-#' @param influence_dfs A list with entries pos and neg, each of which is a
-#' gradient dataframe.
+#' @param influence_dfs `r docs$influence_dfs`
 #' @return The <base_vals> attribute, having checked that both pos and neg
 #' have the same values.
 #' @export
@@ -21,29 +20,6 @@ SafeGetBaseVals <- function(influence_dfs) {
     }
     return(base_vals)
 }
-
-
-# PopulateObsPerRow <- function(influence_df) {
-#   # Add a column with one observation per row if the column is missing
-#   # or unspecified.
-#   obs_per_row_col <- attr(influence_df, "obs_per_row_col")
-#   if (is.na(obs_per_row_col)) {
-#     obs_per_row_col <- "obs_per_row"
-#     attr(influence_df, "obs_per_row_col") <- obs_per_row_col
-#     if (obs_per_row_col %in% names(influence_df)) {
-#       stop(paste0("There is already a column ``obs_per_row`` in influence_df, ",
-#                   "but the attribute ``obs_per_row_col`` was not set.  ",
-#                   "Set the attribute ``obs_per_row_col`` to be a column not ",
-#                   "already in ``influence_df`` or rename the ``obs_per_row``",
-#                   "column."))
-#     }
-#   }
-#   if (!(obs_per_row_col %in% names(influence_df))) {
-#     # If the specified obs_per_row column is not present, populate it.
-#     influence_df[[obs_per_row_col]] <- 1
-#   }
-#   return(influence_df)
-# }
 
 
 #' Sort a gradient dataframe to effect a change in the direction of
@@ -101,22 +77,11 @@ PrependZeroRemoved <- function(df, keep_cols) {
 #'Sort and aggregate a gradient dataframe for a particular kind of change.
 #'
 #' @param grad_df `r docs$grad_df`
-#' @param sort_col Which column to sort by, typically a weight influence column.
+#' @param sort_col Which column to sort by, typically an influence column.
 #' @param change_sign The sign change that is to be effected by removing rows.
-#' @param influence_cols Additional influence columns to be accumulated after
-#' sorting, possibly including sort_col.
+#' @param influence_cols `r docs$influence_cols`
 #'
-#' @return A dataframe sorted using sort_col to effect a change in the
-#' direction change_sign.  The following columns are calculated for each
-#' column in influence_cols:
-#' num_removed: The number of rows removed by removing this row and all above
-#' prop_removed: The proportaion of rows removed by removing this row and all
-#' above
-#' <col>_grad: The gradient of <col> for this row.
-#' <col>_change: The estimated change in <col> when removing this row and all
-#' previous rows (that is, the cumulative sum of the gradient).
-#' <col>_est: The estimated value of <col> (that is, the original value plus
-#' the estimated change).
+#' @return `r docs$sort_return`
 #'
 #' @export
 SortAndAccumulateForSign <- function(grad_df, sort_col, change_sign,

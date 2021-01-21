@@ -56,7 +56,19 @@ docs <- list(
     "for both negative and positive changes in both sign and signifiance."),
   target_change=paste0(
     "A dataframe of target changes, e.g., as returned by ",
-    "[GetRegressionTargetChange()] ")
+    "[GetRegressionTargetChange()] "),
+  sort_return=paste0(
+    "A dataframe sorted using `sort_col` to effect a change in the ",
+    "direction `change_sign`.  The following columns are calculated ",
+    "for each column in `influence_cols`:\n",
+    "\\describe{ \n",
+    "  \\item{num_removed}{The number of rows removed by removing this row and all above} \n",
+    "  \\item{prop_removed}{The proportion of rows removed by removing this row and all above} \n",
+    "  \\item{VAR_grad}{The gradient of variable VAR for this row.} \n",
+    "  \\item{VAR_change}{The estimated change in variable VAR when removing this row and all previous rows (that is, the cumulative sum of the gradient).} \n",
+    "  \\item{VAR_est}{The estimated value of variable VAR (that is, the original value plus the estimated change).} \n",
+    "}\n"
+  )
 )
 
 # Usage example:

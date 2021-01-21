@@ -2,18 +2,24 @@
 % Please edit documentation in R/python_lib.R
 \name{ComputeRegressionInfluencePython}
 \alias{ComputeRegressionInfluencePython}
-\title{Compute all influence scores for a regression.}
+\title{Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
+Compute all influence scores for a regression.}
 \usage{
+ComputeRegressionInfluencePython(lm_result, se_group = NULL)
+
 ComputeRegressionInfluencePython(lm_result, se_group = NULL)
 }
 \arguments{
-\item{lm_result}{The output of a call to lm.}
+\item{lm_result}{The regression result, i.e, the output of \code{\link[=lm]{lm()}}.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
 A list containing the regression and influence result.
 }
 \description{
+Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
 Compute all influence scores for a regression.
+
+Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
 }

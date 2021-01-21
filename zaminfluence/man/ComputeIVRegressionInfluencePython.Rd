@@ -2,8 +2,11 @@
 % Please edit documentation in R/python_lib.R
 \name{ComputeIVRegressionInfluencePython}
 \alias{ComputeIVRegressionInfluencePython}
-\title{Compute all influence scores for an IV regression.}
+\title{Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
+Compute all influence scores for an IV regression.}
 \usage{
+ComputeIVRegressionInfluencePython(iv_res, se_group = NULL)
+
 ComputeIVRegressionInfluencePython(iv_res, se_group = NULL)
 }
 \arguments{
@@ -17,5 +20,8 @@ ComputeIVRegressionInfluencePython(iv_res, se_group = NULL)
 A list containing the regression and influence result..
 }
 \description{
+Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
 Compute all influence scores for an IV regression.
+
+Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
 }
