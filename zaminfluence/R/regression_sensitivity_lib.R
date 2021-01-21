@@ -149,6 +149,8 @@ GetAlphaForSignificanceChange <- function(influence_dfs, alpha_col, target) {
   return(result)
 }
 
+#' Estimate the number and proportion of datapoints needed to effect various
+#' changes.
 #'
 #' @param influence_dfs `r docs$influence_dfs`
 #' @param alpha_col `r docs$alpha_col`
