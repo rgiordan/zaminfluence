@@ -2,18 +2,31 @@
 % Please edit documentation in R/ols_iv_grads_lib.R
 \name{ComputeIVRegressionErrorCovariance}
 \alias{ComputeIVRegressionErrorCovariance}
-\title{Compute the standard error matrix for an IV regression.}
+\title{Compute the standard error matrix for an IV regression.  Deprecated --- use
+\code{\link[=ComputeIVRegressionResults]{ComputeIVRegressionResults()}} instead.}
 \usage{
 ComputeIVRegressionErrorCovariance(iv_res, se_group = NULL)
 }
 \arguments{
-\item{iv_res}{The output of an IV regression computed with AER::ivreg.}
+\item{iv_res}{The iv regression result, i.e, the output of \code{\link[=ivreg]{ivreg()}}.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
-The standard error matrix.
+A list containing the sensitivity of the coefficients and standard errors to data re-weighting.  The list entries are
+\describe{
+\item{model_fit}{The original fit as returned by the fitting function}
+\item{n_obs}{The number of observations given weights}
+\item{regressor_names}{The names of the regressors as strings}
+\item{grad_fun}{The function used to compute the derivatives}
+\item{betahat}{The estimated regression coefficient at the original weights}
+\item{se}{The standard errors at the original weights}
+\item{weights}{The original weights}
+\item{beta_grad}{The gradient of betahat with respect to the weights}
+\item{se_grad}{The gradient of se with respect to the weights}
+}
 }
 \description{
-Compute the standard error matrix for an IV regression.
+Compute the standard error matrix for an IV regression.  Deprecated --- use
+\code{\link[=ComputeIVRegressionResults]{ComputeIVRegressionResults()}} instead.
 }

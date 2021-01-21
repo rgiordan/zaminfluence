@@ -7,12 +7,23 @@
 ComputeIVRegressionInfluence(iv_res, se_group = NULL)
 }
 \arguments{
-\item{iv_res}{The output of an IV regression computed with AER::ivreg.}
+\item{iv_res}{The iv regression result, i.e, the output of \code{\link[=ivreg]{ivreg()}}.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
-A list containing the regression and influence result.
+A list containing the sensitivity of the coefficients and standard errors to data re-weighting.  The list entries are
+\describe{
+\item{model_fit}{The original fit as returned by the fitting function}
+\item{n_obs}{The number of observations given weights}
+\item{regressor_names}{The names of the regressors as strings}
+\item{grad_fun}{The function used to compute the derivatives}
+\item{betahat}{The estimated regression coefficient at the original weights}
+\item{se}{The standard errors at the original weights}
+\item{weights}{The original weights}
+\item{beta_grad}{The gradient of betahat with respect to the weights}
+\item{se_grad}{The gradient of se with respect to the weights}
+}
 }
 \description{
 Compute all influence scores for an IV regression.

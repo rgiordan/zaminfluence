@@ -37,7 +37,7 @@ docs <- list(
   weights="Optional.  A vector of weights.  If unset, use the original weights.",
   sig_num_ses="How wide the confidence interval is, as a number of standard errors.",
   grad_df=paste0(
-    "The gradient dataframe with attributes for a particular coefficient, "
+    "The gradient dataframe with attributes for a particular coefficient, ",
     "e.g., as returned by [GetTargetRegressorGrads()].")
 )
 

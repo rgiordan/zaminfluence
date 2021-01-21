@@ -8,14 +8,14 @@ to ordinary regression.}
 ComputeRegressionResults(lm_result, weights = NULL, se_group = NULL)
 }
 \arguments{
-\item{lm_result}{The output of a call to lm.}
+\item{lm_result}{The regression result, i.e, the output of \code{\link[=lm]{lm()}}.}
 
-\item{weights}{Optional, a vector of weights.  If unset, use the original regression weights.}
+\item{weights}{Optional.  A vector of weights.  If unset, use the original weights.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
-A list containing the regression coefficients and standard errors.
+A list containing the new regression estimate, standard error covariance (\code{se_mat}), and standard errors (\code{se}).  The standard errors are the square root of the diagonal of \code{se_mat}, and can be interpreted as an estimate of the standard deviation of the coefficient estimates.
 }
 \description{
 Run a regression using zaminfluence code.  This should be identical
