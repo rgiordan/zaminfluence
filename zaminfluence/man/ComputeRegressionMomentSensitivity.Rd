@@ -3,7 +3,7 @@
 \name{ComputeRegressionMomentSensitivity}
 \alias{ComputeRegressionMomentSensitivity}
 \title{Compute the sensitivity of a regression to the moment condition on the
-residuals.  That is, compute the gradients with respect to `offset`,
+residuals.  That is, compute the gradients with respect to \code{offset},
 where the regression is fit with the moment condition Cov(x, resid) = offset.}
 \usage{
 ComputeRegressionMomentSensitivity(lm_result, se_group = NULL)
@@ -18,6 +18,6 @@ A list containing the regression and influence result.
 }
 \description{
 Compute the sensitivity of a regression to the moment condition on the
-residuals.  That is, compute the gradients with respect to `offset`,
+residuals.  That is, compute the gradients with respect to \code{offset},
 where the regression is fit with the moment condition Cov(x, resid) = offset.
 }

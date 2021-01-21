@@ -11,7 +11,7 @@ RerunForTargetChanges(influence_dfs, target_change, model_fit, se_group = NULL)
 
 \item{target_change}{The output of GetRegressionTargetChange}
 
-\item{model_fit}{The fit from `lm` or `AER:ivreg`.}
+\item{model_fit}{The fit from \code{lm} or \code{AER:ivreg}.}
 }
 \value{
 A dataframe with variables from all the re-run models.

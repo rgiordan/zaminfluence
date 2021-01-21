@@ -15,7 +15,7 @@ RerunTargetModelForAlpha(
 \arguments{
 \item{infl_df}{A particular influence dataframe.}
 
-\item{model_fit}{The fit from `lm` or `AER:ivreg`.}
+\item{model_fit}{The fit from \code{lm} or \code{AER:ivreg}.}
 
 \item{alpha_colname}{A string with the name of the target alpha column}
 

@@ -22,8 +22,7 @@ direction change_sign.  The following columns are calculated for each
 column in influence_cols:
 num_removed: The number of rows removed by removing this row and all above
 prop_removed: The proportaion of rows removed by removing this row and all
-above
-<col>_grad: The gradient of <col> for this row.
+above<col>_grad: The gradient of <col> for this row.
 <col>_change: The estimated change in <col> when removing this row and all
 previous rows (that is, the cumulative sum of the gradient).
 <col>_est: The estimated value of <col> (that is, the original value plus

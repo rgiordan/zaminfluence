@@ -6,6 +6,8 @@ library(sandwich)
 library(testthat)
 library(tidyverse)
 
+
+
 context("zaminfluence")
 
 vcovWrap <- function(obj, cluster=NULL) {
@@ -19,14 +21,14 @@ AssertNearlyEqual <- function(x, y, tol=1e-9) {
 }
 
 GetSandwichCov <- function(fit, se_group=NULL) {
+  # Get a version of the sandwich covariance that should match
+  # our computations.
   if (is.null(se_group)) {
     return(vcov(fit))
   } else {
     return(vcovCL(fit, cluster=se_group, type="HC0", cadjust=FALSE))
   }
 }
-
-
 
 
 test_that("se groups can be non-ordered", {

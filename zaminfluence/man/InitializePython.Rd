@@ -10,7 +10,7 @@ InitializePython(python_path = "/usr/bin/python3")
 \item{python_path}{The path to a Python 3 binary.}
 }
 \value{
-The `reticulate::py_main` object.
+The \code{reticulate::py_main} object.
 }
 \description{
 Start a Python session using the given Python 3 binary.

@@ -3,10 +3,13 @@
 # Functions to help re-running to check the approximations.
 
 
-#' Get the row of an influence dataframe that cooresponds to a particular alpha.
-#' @param infl_df A single influence dataframe.
-#' @param alpha_colname A string with the name of the target alpha column
+#' Get the row of an influence dataframe that corresponds to a particular alpha.
+#'
+#' @param infl_df `r docs$infl_df`
+#' @param alpha_colname `r docs$alpha_colname`
 #' @param alpha_val The alpha value to target
+#'
+#' @return The row of the influence dataframe corresponding to the given alpha.
 #'@export
 GetAlphaRow <- function(infl_df, alpha_colname, alpha_val) {
   # This will round up the number of rows to be removed.
@@ -15,13 +18,13 @@ GetAlphaRow <- function(infl_df, alpha_colname, alpha_val) {
 
 
 #' Get a set of rows targeting a particular value of alpha.
-#' @param infl_df A single influence dataframe.
-#' @param alpha_colname A string with the name of the target alpha column
+#' @param infl_df `r docs$infl_df`
+#' @param alpha_colname `r docs$alpha_colname`
 #' @param alpha_val The alpha value to target
-#' @param boolean Optional.  If TRUE, return a boolean vector.  If FALSE,
+#' @param boolean Optional.  If `TRUE`, return a boolean vector.  If `FALSE`,
 #' return a vector of integer indices.
-#' @param rows_to_keep Optional.  If TRUE, return a vector of rows to keep
-#' for the target level of alpha.  If FALSE, return a vector of rows to drop.
+#' @param rows_to_keep Optional.  If `TRUE`, return a vector of rows to keep
+#' for the target level of alpha.  If `FALSE`, return a vector of rows to drop.
 #' @return A row vector for the original dataframe corresponding to the target
 #' level of alpha.  Note that the number of left-out rows will be rounded up.
 #'@export
@@ -71,6 +74,9 @@ GetWeightForAlpha <- function(infl_df, alpha_colname, alpha_val,
 }
 
 
+# Given a single row of a `target_change` dataframe (as produced by
+# `[GetRegressionTargetChange()]`), return from influence_dfs which influence
+# dataframe is relevant.
 GetInflDfForTargetChangeRow <- function(influence_dfs, target_change) {
   if (nrow(target_change) != 1) {
     stop("target_change must have exactly one row.")
@@ -105,6 +111,8 @@ GetInflDfForTargetChangeRow <- function(influence_dfs, target_change) {
 }
 
 
+# Safely get the alpha column that was used to make the dataframe
+# `target_change`.
 GetAlphaColFromTargetChange <- function(target_change) {
   # Get whether proportion or number removed was used.
   alpha_col <- intersect(c("num_removed", "prop_removed"), names(target_change))
@@ -121,12 +129,13 @@ GetAlphaColFromTargetChange <- function(target_change) {
 
 #' Get the weight vector to achieve the change given by a single row of
 #' a target change.
-#' @param influence_dfs A list of influence dataframes
-#' @param target_change A single row of a target change dataframe.
-#' @param boolean Optional.  If TRUE, return a boolean vector.  If FALSE,
+#' @param influence_dfs `r docs$influence_dfs`
+#' @param target_change A single row of the target change dataframe produced
+#' by [GetRegressionTargetChange()].
+#' @param boolean Optional.  If `TRUE`, return a boolean vector.  If `FALSE`,
 #' return a vector of integer indices.
-#' @param rows_to_keep Optional.  If TRUE, return a vector of rows to keep
-#' for the target level of alpha.  If FALSE, return a vector of rows to drop.
+#' @param rows_to_keep Optional.  If `TRUE`, return a vector of rows to keep
+#' for the target level of alpha.  If `FALSE`, return a vector of rows to drop.
 #'@export
 GetWeightForTargetChangeRow <- function(influence_dfs, target_change,
                                         boolean=TRUE, rows_to_keep=TRUE) {
@@ -145,11 +154,11 @@ GetWeightForTargetChangeRow <- function(influence_dfs, target_change,
 
 #' Rerun the regression with a new subset of rows.
 #'@param w_bool A boolean vector of rows to keep in the original dataframe.
-#'@param lm_result The original regression result.
-#'@param se_group Optional. The standard error grouping variable.
-#'@param save_w Optional. If TRUE, save the new weight vector in the output.
-#'@return A list containing the new regression estimate, standard error
-#' covariance, and standard errors.
+#'@param lm_result `r docs$lm_result`
+#'@param se_group `r docs$se_group`
+#'@param save_w Optional. If `TRUE`, save the new weight vector in the output.
+#'
+#'@return `r docs$rerun_return`
 #'@export
 RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
   new_w <- rep(0.0, length(w_bool))
@@ -171,12 +180,13 @@ RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
 
 
 #' Rerun the target regression for a particular target alpha.
-#'@param infl_df A particular influence dataframe.
-#'@param lm_result The original regression result.
-#'@param alpha_colname A string with the name of the target alpha column
-#'@param alpha_val The alpha value to target
-#'@param se_group Optional. The standard error grouping variable.
-#'@return A dataframe with variables from the re-run regression.
+#'@param infl_df `r docs$infl_df`
+#'@param lm_result `r docs$lm_result`
+#'@param alpha_colname `r docs$alpha_colname`
+#'@param alpha_val `r docs$alpha_val`
+#'@param se_group `r docs$se_group`
+#'
+#'@return `r docs$rerun_return`
 #'@export
 RerunTargetRegressorForAlpha <- function(
     infl_df, lm_result, alpha_colname, alpha_val, se_group=NULL) {
@@ -203,11 +213,12 @@ RerunTargetRegressorForAlpha <- function(
 
 #' Rerun the regression with a new subset of rows.
 #'@param w_bool A boolean vector of rows to keep in the original dataframe.
-#'@param iv_res The original IV regression result.
-#'@param se_group Optional. The standard error grouping variable.
+#'@param iv_res `r docs$iv_res`
+#'@param se_group `r docs$se_group`
 #'@param save_w Optional. If TRUE, save the new weight vector in the output.
-#'@return A list containing the new regression estimate, standard error
-#' covariance, and standard errors.
+#'
+#'@return `r docs$rerun_return`
+#'
 #'@export
 RerunIVRegression <- function(w_bool, iv_res, se_group=NULL, save_w=FALSE) {
   # Rerun using my own code; I don't want to deal with how R handles the
@@ -236,13 +247,16 @@ RerunIVRegression <- function(w_bool, iv_res, se_group=NULL, save_w=FALSE) {
 
 
 #' Rerun the target regression for a particular target alpha.
-#'@param infl_df A particular influence dataframe.
-#'@param iv_res The original IV regression result.
-#'@param alpha_colname A string with the name of the target alpha column
-#'@param alpha_val The alpha value to target
-#'@param se_group Optional. The standard error grouping variable.
-#'@return A dataframe with variables from the re-run regression.
-#'@export
+#'
+#' @param infl_df `r docs$infl_df`
+#' @param iv_res `r docs$iv_res`
+#' @param alpha_colname `r docs$alpha_colname`
+#' @param alpha_val The alpha value to target
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$rerun_ret`
+#'
+#' @export
 RerunTargetIVRegressionForAlpha <- function(
     infl_df, iv_res, alpha_colname, alpha_val, se_group=NULL) {
 
@@ -267,13 +281,15 @@ RerunTargetIVRegressionForAlpha <- function(
 # A wrapper that works for both
 
 #' Rerun the target regression for a particular target alpha.
-#'@param infl_df A particular influence dataframe.
-#'@param model_fit The fit from `lm` or `AER:ivreg`.
-#'@param alpha_colname A string with the name of the target alpha column
-#'@param alpha_val The alpha value to target
-#'@param se_group Optional. The standard error grouping variable.
-#'@return A dataframe with variables from the re-run model.
-#'@export
+#' @param infl_df `r docs$infl_df`
+#' @param model_fit `r docs$model_fit`
+#' @param alpha_colname `r docs$alpha_colname`
+#' @param alpha_val The alpha value to target
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$rerun_return`
+#'
+#' @export
 RerunTargetModelForAlpha <- function(
     infl_df, model_fit, alpha_colname, alpha_val, se_group=NULL) {
 
@@ -294,11 +310,14 @@ RerunTargetModelForAlpha <- function(
 
 
 #' Rerun the target regression for every change in target_change.
-#'@param influence_dfs A list of influence dataframes
-#'@param target_change The output of GetRegressionTargetChange
-#'@param model_fit The fit from `lm` or `AER:ivreg`.
-#'@return A dataframe with variables from all the re-run models.
-#'@export
+#' @param influence_dfs `r docs$influence_dfs`
+#' @param target_change A single row of the target change dataframe produced
+#' by [GetRegressionTargetChange()].
+#' @param model_fit `r docs$model_fit`
+#'
+#' @return `r docs$rerun_return`
+#'
+#' @export
 RerunForTargetChanges <- function(influence_dfs, target_change, model_fit,
                                   se_group=NULL) {
     # Which influence dataframe to get for each change.

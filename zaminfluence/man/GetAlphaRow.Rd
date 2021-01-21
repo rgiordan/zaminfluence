@@ -2,17 +2,17 @@
 % Please edit documentation in R/rerun_lib.R
 \name{GetAlphaRow}
 \alias{GetAlphaRow}
-\title{Get the row of an influence dataframe that cooresponds to a particular alpha.}
+\title{Get the row of an influence dataframe that corresponds to a particular alpha.}
 \usage{
 GetAlphaRow(infl_df, alpha_colname, alpha_val)
 }
 \arguments{
-\item{infl_df}{A single influence dataframe.}
+\item{infl_df}{A single influence dataframe, dude!}
 
-\item{alpha_colname}{A string with the name of the target alpha column}
+\item{alpha_colname}{A string with the name of the target alpha column (typically \code{prop_removed} or \code{num_removed})}
 
 \item{alpha_val}{The alpha value to target}
 }
 \description{
-Get the row of an influence dataframe that cooresponds to a particular alpha.
+Get the row of an influence dataframe that corresponds to a particular alpha.
 }
