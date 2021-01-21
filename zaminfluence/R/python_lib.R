@@ -18,6 +18,7 @@ library(broom)
 #'
 #' @param python_path The path to a Python 3 binary.
 #' @return The `reticulate::py_main` object.
+#'
 #' @export
 InitializePython <- function(python_path="/usr/bin/python3") {
     if (!file.exists(python_path)) {
@@ -53,6 +54,7 @@ GetLMWeights <- function(lm_res) {
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Set python variables corresponding to the output of lm.
 SetPythonRegressionVariables <- function(lm_res, se_group=NULL) {
   if (!(("x" %in% names(lm_res)) &
@@ -75,9 +77,11 @@ SetPythonRegressionVariables <- function(lm_res, se_group=NULL) {
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Compute all influence scores for a regression.
-#' @param lm_result The output of a call to lm.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param lm_result `r docs$lm_result`
+#' @param se_group `r docs$se_group`
+#'
 #' @return A list containing the regression and influence result.
 ##' @export
 ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
@@ -113,8 +117,8 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
 #' Compute the sensitivity of a regression to the moment condition on the
 #' residuals.  That is, compute the gradients with respect to `offset`,
 #' where the regression is fit with the moment condition Cov(x, resid) = offset.
-#' @param lm_result The output of a call to lm.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param lm_result `r docs$lm_result`
+#' @param se_group `r docs$se_group`
 #' @return A list containing the regression and influence result.
 #' @export
 ComputeRegressionMomentSensitivity <- function(lm_result, se_group=NULL) {
@@ -160,9 +164,9 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_offset_grads(
 
 
 #' Compute a regression using the moment condition Cov(x, resid) = offset.
-#' @param lm_result The output of a call to lm.
+#' @param lm_result `r docs$lm_result`
 #' @param offset The target moment condition.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param se_group `r docs$se_group`
 #' @return A list containing the regression and influence result.
 #' @export
 RegressWithOffset <- function(lm_result, offset, se_group=NULL) {
@@ -199,6 +203,7 @@ se_cov = regsens_rgiordandev.get_standard_error_matrix(
 #######################
 # IV regression
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Set python variables corresponding to the output of AER::ivreg.
 SetPythonIVRegressionVariables <- function(iv_res, se_group=NULL) {
     if (!(("x" %in% names(iv_res)) &
@@ -228,6 +233,7 @@ SetPythonIVRegressionVariables <- function(iv_res, se_group=NULL) {
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Compute all influence scores for an IV regression.
 #' @param df A dataframe with regression data.
 #' @param iv_res The output of an IV regression computed with AER::ivreg.
@@ -261,6 +267,7 @@ se, betahat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
     )
 }
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 ##' @export
 ComputeIVRegressionErrorCovariancePython <- function(iv_res, se_group=NULL) {
   py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
@@ -272,6 +279,7 @@ se2 = iv_lib.get_iv_standard_error_matrix(betahat, y, x, z, w0, se_group=se_grou
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 # Equivalent to ComputeRegressionInfluence, which uses closed form derivatives.
 ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
     py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
@@ -300,6 +308,7 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
     )
 }
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 # Equivalent to ComputeIVRegressionInfluence, which uses closed form
 # derivatives.
 ComputeIVRegressionInfluencePython <- function(iv_res, se_group=NULL) {
