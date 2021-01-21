@@ -6,6 +6,13 @@ library(sandwich)
 library(testthat)
 library(tidyverse)
 
+
+AssertNearlyZero <- function(x, tol=1e-15) {
+  x_norm <- max(abs(x))
+  info_str <- sprintf("%e > %e", x_norm, tol)
+  expect_true(x_norm < tol, info=info_str)
+}
+
 context("zaminfluence")
 
 
@@ -97,6 +104,9 @@ test_that("plotting works", {
 
   target_change <- GetRegressionTargetChange(influence_dfs, "num_removed")
   PlotInfluence(influence_dfs$sign, "num_removed", 10, target_change)
+
+  # Just so that there is a test statement and it's not described as skipped.
+  testthat::expect_true(TRUE)
 })
 
 
@@ -269,19 +279,32 @@ test_that("aggregated pairing works", {
       for (direction in c("pos", "neg")) {
           infl_df <- influence_dfs[[change]][[direction]]
           infl_df <- filter(infl_df, num_removed > 0)
-          df_0 <- df[infl_df$row_0, ]
-          df_1 <- df[infl_df$row_1, ]
-          testthat::expect_true(all(df_0$assignment == 0))
-          testthat::expect_true(all(df_1$assignment  == 1))
-          testthat::expect_true(all(df_0$group == df_1$group))
-          testthat::expect_error(
-            RerunForTargetChanges(influence_dfs, target_change, reg_fit),
-            ".*")
+          testthat::expect_true(all(infl_df$arm_0 == 0))
+          testthat::expect_true(all(infl_df$arm_1 == 1))
+
+          # Check that the rows in the paired dataframe match the original.
+          influence_cols <- c("se_grad", "beta_grad", "beta_pzse_grad", "beta_mzse_grad")
+          AssertNearlyZero(
+            grad_df[infl_df$grouped_row_0, influence_cols] -
+              infl_df[, paste(influence_cols, "0", sep="_")]
+          )
+          AssertNearlyZero(
+            grad_df[infl_df$grouped_row_1, influence_cols] -
+              infl_df[, paste(influence_cols, "1", sep="_")]
+          )
+
+          # Check that the pairs worked as expected.          
+          testthat::expect_true(all(grad_df[infl_df$grouped_row_0, "arm"] == 0))
+          testthat::expect_true(all(grad_df[infl_df$grouped_row_1, "arm"] == 1))
+          testthat::expect_true(all(grad_df[infl_df$grouped_row_0, "group"] ==
+                                    grad_df[infl_df$grouped_row_1, "group"]))
       }
   }
 })
 
 
+# Now that we're not supporting the Python stuff by default this
+# we would need a separate test that only runs when Python is set up.
 # test_that("regression moment conditions works", {
 #   set.seed(42)
 #
