@@ -13,7 +13,7 @@ RerunTargetIVRegressionForAlpha(
 )
 }
 \arguments{
-\item{infl_df}{A single influence dataframe, dude!}
+\item{infl_df}{A single influence dataframe, e.g., a single member of the list returned by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.}
 
 \item{iv_res}{The iv regression result, i.e, the output of \code{\link[=ivreg]{ivreg()}}.}
 

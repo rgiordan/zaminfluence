@@ -13,7 +13,7 @@ RerunTargetModelForAlpha(
 )
 }
 \arguments{
-\item{infl_df}{A single influence dataframe, dude!}
+\item{infl_df}{A single influence dataframe, e.g., a single member of the list returned by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.}
 
 \item{model_fit}{The fit from \code{\link[=lm]{lm()}} or \code{\link[AER:ivreg]{AER::ivreg()}}.}
 

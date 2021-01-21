@@ -7,7 +7,7 @@
 SortAndAccumulateForSign(grad_df, sort_col, change_sign, influence_cols)
 }
 \arguments{
-\item{grad_df}{The output of GetTargetRegressorGrads.}
+\item{grad_df}{The gradient dataframe with attributes for a particular coefficient, e.g., as returned by \code{\link[=GetTargetRegressorGrads]{GetTargetRegressorGrads()}}.}
 
 \item{sort_col}{Which column to sort by, typically a weight influence column.}
 

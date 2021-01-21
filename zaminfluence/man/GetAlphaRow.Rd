@@ -7,7 +7,7 @@
 GetAlphaRow(infl_df, alpha_colname, alpha_val)
 }
 \arguments{
-\item{infl_df}{A single influence dataframe, dude!}
+\item{infl_df}{A single influence dataframe, e.g., a single member of the list returned by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.}
 
 \item{alpha_colname}{A string with the name of the target alpha column (typically \code{prop_removed} or \code{num_removed})}
 

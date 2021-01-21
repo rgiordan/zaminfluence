@@ -7,13 +7,16 @@
 SortAndAccumulate(grad_df, influence_cols = NULL)
 }
 \arguments{
-\item{grad_df}{The output of GetTargetRegressorGrads.}
+\item{grad_df}{The gradient dataframe with attributes for a particular coefficient, e.g., as returned by \code{\link[=GetTargetRegressorGrads]{GetTargetRegressorGrads()}}.}
+
+\item{influence_cols}{Optional.  Additional influence columns to be cumulatively summed after sorting.  Effectively, a linear approximation to the change in the values in \code{influence_cols} is computed.  By default all the \code{base_vals} gradients are summed.}
 }
 \value{
-A list of lists, ultimately containing dataframes.  The entries
-sign and sig refer to changing sign and significance of the target regressor,
-and entries pos and neg refer to increasing or decreasing.  See
-SortAndAccumulateForSign for details of the dataframe.
+A list of lists, ultimately containing dataframes, of observations
+sorted for various types of adversarial removal.  The list entries
+\code{sign} and \code{sig} refer to changing sign and significance of the target regressor,
+and entries \code{pos} and \code{neg} refer to increasing or decreasing the value.  See
+\code{\link[=SortAndAccumulateForSign]{SortAndAccumulateForSign()}} for details of the dataframe.
 }
 \description{
 Sort and process a gradient dataframe to approximate adversarial removal sets.

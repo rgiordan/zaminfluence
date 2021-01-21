@@ -1,7 +1,19 @@
 library(ggplot2)
 library(latex2exp)
 
-
+#' Produce a plot of the estimated effects of datapoint removal.
+#'
+#' @param influence_dfs `r docs$influence_dfs`
+#' @param alpha_colname `r docs$alpha_colname`
+#' @param alpha_max The largest `alpha` value plotted, i.e., the rightmost
+#' extent of the x-axis.
+#' @param target_change `r docs$target_change`
+#' @param include_y_zero Whether to force the y-axis to include 0.
+#' @param sig_num_ses `r docs$sig_num_ses`
+#'
+#' @return A ggplot object containing a graphical summary of the estimate
+#' influence.
+#'
 #' @export
 PlotInfluence <- function(influence_dfs, alpha_colname, alpha_max,
                           target_change=NULL,

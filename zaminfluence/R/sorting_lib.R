@@ -100,7 +100,7 @@ PrependZeroRemoved <- function(df, keep_cols) {
 
 #'Sort and aggregate a gradient dataframe for a particular kind of change.
 #'
-#' @param grad_df The output of GetTargetRegressorGrads.
+#' @param grad_df `r docs$grad_df`
 #' @param sort_col Which column to sort by, typically a weight influence column.
 #' @param change_sign The sign change that is to be effected by removing rows.
 #' @param influence_cols Additional influence columns to be accumulated after
@@ -147,11 +147,15 @@ SortAndAccumulateForSign <- function(grad_df, sort_col, change_sign,
 
 #' Sort and process a gradient dataframe to approximate adversarial removal sets.
 #'
-#' @param grad_df The output of GetTargetRegressorGrads.
-#' @return A list of lists, ultimately containing dataframes.  The entries
-#' sign and sig refer to changing sign and significance of the target regressor,
-#' and entries pos and neg refer to increasing or decreasing.  See
-#' SortAndAccumulateForSign for details of the dataframe.
+#' @param grad_df `r docs$grad_df`
+#' @param influence_cols `r docs$influence_cols_default`
+#'
+#' @return A list of lists, ultimately containing dataframes, of observations
+#' sorted for various types of adversarial removal.  The list entries
+#' `sign` and `sig` refer to changing sign and significance of the target regressor,
+#' and entries `pos` and `neg` refer to increasing or decreasing the value.  See
+#' [SortAndAccumulateForSign()] for details of the dataframe.
+#'
 #' @export
 SortAndAccumulate <- function(grad_df, influence_cols=NULL) {
   influence_cols <- names(attr(grad_df, "base_vals"))

@@ -13,7 +13,7 @@ GetWeightForTargetChangeRow(
 )
 }
 \arguments{
-\item{influence_dfs}{Influence dataframes, dude!}
+\item{influence_dfs}{A list of sorted influence dataframes as returned, e.g., by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.  The list is expected to have results sorted for both negative and positive changes in both sign and signifiance.}
 
 \item{target_change}{A single row of the target change dataframe produced
 by \code{\link[=GetRegressionTargetChange]{GetRegressionTargetChange()}}.}
