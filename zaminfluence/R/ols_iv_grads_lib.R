@@ -214,6 +214,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
 }
 
 
+# Extract the relevant variables from the output of `lm()`
 GetRegressionVariables <- function(lm_res) {
   if (!(("x" %in% names(lm_res)) &
         ("y" %in% names(lm_res)))) {
@@ -234,9 +235,11 @@ GetRegressionVariables <- function(lm_res) {
 
 
 #' Compute all influence scores for a regression.
-#' @param lm_result The output of a call to lm.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
-#' @return A list containing the regression and influence result.
+#' @param lm_result `r docs$lm_result`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$grad_return`
+#'
 #' @export
 ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
   reg_vars <- GetRegressionVariables(lm_result)
@@ -248,7 +251,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
   return(list(model_fit=lm_result,
               n_obs=reg_vars$num_obs,
               regressor_names=colnames(lm_result$x),
-              grad_fun="GetIVSEDerivs",
+              grad_fun="GetRegressionSEDerivs",
 
               betahat=reg_vars$betahat,
               se=reg_grad_list$se,
@@ -263,10 +266,12 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
 #' Run a regression using zaminfluence code.  This should be identical
 #' to ordinary regression.
 #'
-#' @param lm_result The output of a call to lm.
-#' @param weights Optional, a vector of weights.  If unset, use the original regression weights.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
-#' @return A list containing the regression coefficients and standard errors.
+#' @param lm_result `r docs$lm_result`
+#' @param weights `r docs$weights`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$rerun_return`
+#'
 #' @export
 ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
   reg_vars <- GetRegressionVariables(lm_result)
@@ -297,10 +302,11 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 ######################################################3
 # Instrumental variables
 
+# Get the IV estimates from regressors x, instruemnts z, responses y, and
+# weights w0.
 GetIVCoefficients <- function(x, z, y, w0) {
   z_w <- z * w0
   zwz <- t(z_w) %*% z
-  #zwx <- t(z_w) %*% x
   zwx_qr <- qr(t(z_w) %*% x)
 
   betahat <- solve(zwx_qr, t(z_w) %*% y) %>% as.numeric()
@@ -490,6 +496,7 @@ GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
 }
 
 
+# Safely extract the IV variables from a fit object.
 GetIVVariables <- function(iv_res) {
   if (!(("x" %in% names(iv_res)) &
         ("y" %in% names(iv_res)))) {
@@ -511,9 +518,11 @@ GetIVVariables <- function(iv_res) {
 
 
 #' Compute all influence scores for an IV regression.
-#' @param iv_res The output of an IV regression computed with AER::ivreg.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
-#' @return A list containing the regression and influence result.
+#' @param iv_res `r docs$iv_res`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$grad_return`
+#'
 #' @export
 ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
     iv_vars <- GetIVVariables(iv_res)
@@ -537,10 +546,14 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
 }
 
 
-#' Compute the standard error matrix for an IV regression.
-#' @param iv_res The output of an IV regression computed with AER::ivreg.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
-#' @return The standard error matrix.
+#' Compute the standard error matrix for an IV regression.  Deprecated --- use
+#' [ComputeIVRegressionResults()] instead.
+#'
+#' @param iv_res `r docs$iv_res`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$grad_return`
+#'
 #' @export
 ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
   warning(paste0(
@@ -557,10 +570,10 @@ ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
 #' Run an IV regression using zaminfluence code.  This should be identical
 #' to ordinary regression.
 #'
-#' @param lm_result The output of a call to lm.
-#' @param weights Optional, a vector of weights.  If unset, use the original
-#' regression weights.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param lm_result `r docs$lm_result`
+#' @param weights `r docs$weights`
+#' @param se_group `r docs$se_group`
+#'
 #' @return A list containing the regression coefficients and standard errors.
 #' @export
 ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
@@ -599,10 +612,11 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 # The remaining functions are common to ordinary and IV regression.
 
 #' Compute the influence functions for all regressors given a model fit.
-#' @param model_fit A model fit (currently from lm or AER::iv_reg).
-#' @param se_group Optional, a vector of integers defining a standard error
-#  grouping.
-#' @return A list containing the regression and influence result.
+#' @param model_fit `r docs$model_fit`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$grad_return`
+#'
 #' @export
 ComputeModelInfluence <- function(model_fit, se_group=NULL) {
   valid_classes <- c("lm", "ivreg")
@@ -621,7 +635,14 @@ ComputeModelInfluence <- function(model_fit, se_group=NULL) {
   }
 }
 
-
+#' Compute the gradients of the upper and lower bounds of confidence intervals
+#' from the gradients of `betahat` and `se` with respect to the weights.
+#'
+#' @param grad_df The output of [ComputeModelInfluence()]
+#' @param sig_num_ses `r docs$sig_num_ses`
+#'
+#' @return `grad_df`, augmented with the interval derivatives and attributes.
+#'
 #' @export
 AppendIntervalColumns <- function(grad_df, sig_num_ses) {
   grad_df[["beta_pzse_grad"]] <-
@@ -642,6 +663,16 @@ AppendIntervalColumns <- function(grad_df, sig_num_ses) {
 }
 
 
+#' Get the influence scores for a particular regressor.
+#'
+#' @param reg_infl The gradients, e.g. as computed by [ComputeModelInfluence()].
+#' @param target_regressor The name of the regressor to target.  This should
+#' correspond to the name of a column of the `x` matrix of the original fit.
+#' @param sig_num_ses `r docs$sig_num_ses`
+#'
+#' @return A gradient dataframe for the specified coefficient with extra
+#' attributes set, suitable for passing to [SortAndAccumulate()].
+#'
 #' @export
 GetTargetRegressorGrads <- function(reg_infl, target_regressor,
                                     sig_num_ses=qnorm(0.975)) {
@@ -680,6 +711,19 @@ GetTargetRegressorGrads <- function(reg_infl, target_regressor,
 }
 
 
+#' Copy the attributes needed for sorting.
+#'
+#' Sometimes if you copy or modify the gradient dataframe returned by
+#' [GetTargetRegressorGrads()], e.g. by merging with another data source,
+#' the attributes required for running [SortAndAccumulate()] are lost.
+#' This function copies the required attributes over from the original
+#' dataframe.
+#'
+#' @param new_df The dataframe to receive the attributes
+#' @param grad_df `r docs$grad_df`
+#'
+#' @return `new_df`, but with the needed attributes of `grad_df` set.
+#'
 #' @export
 CopyGradAttributes <- function(
     new_df, grad_df,

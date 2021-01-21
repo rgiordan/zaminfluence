@@ -13,15 +13,16 @@ GetWeightForTargetChangeRow(
 )
 }
 \arguments{
-\item{influence_dfs}{A list of influence dataframes}
+\item{influence_dfs}{Influence dataframes, dude!}
 
-\item{target_change}{A single row of a target change dataframe.}
+\item{target_change}{A single row of the target change dataframe produced
+by \code{\link[=GetRegressionTargetChange]{GetRegressionTargetChange()}}.}
 
-\item{boolean}{Optional.  If TRUE, return a boolean vector.  If FALSE,
+\item{boolean}{Optional.  If \code{TRUE}, return a boolean vector.  If \code{FALSE},
 return a vector of integer indices.}
 
-\item{rows_to_keep}{Optional.  If TRUE, return a vector of rows to keep
-for the target level of alpha.  If FALSE, return a vector of rows to drop.}
+\item{rows_to_keep}{Optional.  If \code{TRUE}, return a vector of rows to keep
+for the target level of alpha.  If \code{FALSE}, return a vector of rows to drop.}
 }
 \description{
 Get the weight vector to achieve the change given by a single row of

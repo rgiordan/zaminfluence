@@ -13,17 +13,17 @@ GetWeightForAlpha(
 )
 }
 \arguments{
-\item{infl_df}{A single influence dataframe.}
+\item{infl_df}{A single influence dataframe, dude!}
 
-\item{alpha_colname}{A string with the name of the target alpha column}
+\item{alpha_colname}{A string with the name of the target alpha column (typically \code{prop_removed} or \code{num_removed})}
 
 \item{alpha_val}{The alpha value to target}
 
-\item{boolean}{Optional.  If TRUE, return a boolean vector.  If FALSE,
+\item{boolean}{Optional.  If \code{TRUE}, return a boolean vector.  If \code{FALSE},
 return a vector of integer indices.}
 
-\item{rows_to_keep}{Optional.  If TRUE, return a vector of rows to keep
-for the target level of alpha.  If FALSE, return a vector of rows to drop.}
+\item{rows_to_keep}{Optional.  If \code{TRUE}, return a vector of rows to keep
+for the target level of alpha.  If \code{FALSE}, return a vector of rows to drop.}
 }
 \value{
 A row vector for the original dataframe corresponding to the target

@@ -1,5 +1,6 @@
 
-#' @export
+# Experimental: compute the explicit error bounds for the linear approximation.
+##' @export
 GetBoundQuantities <- function(reg_infl, sorted_rows) {
   x_mat <- reg_infl$lm_result$x[sorted_rows, ]
   x_dim <- ncol(x_mat)

@@ -13,6 +13,9 @@ GetAlphaRow(infl_df, alpha_colname, alpha_val)
 
 \item{alpha_val}{The alpha value to target}
 }
+\value{
+The row of the influence dataframe corresponding to the given alpha.
+}
 \description{
 Get the row of an influence dataframe that corresponds to a particular alpha.
 }
