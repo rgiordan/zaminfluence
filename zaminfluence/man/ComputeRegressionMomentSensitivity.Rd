@@ -3,21 +3,21 @@
 \name{ComputeRegressionMomentSensitivity}
 \alias{ComputeRegressionMomentSensitivity}
 \title{Compute the sensitivity of a regression to the moment condition on the
-residuals.  That is, compute the gradients with respect to `offset`,
+residuals.  That is, compute the gradients with respect to \code{offset},
 where the regression is fit with the moment condition Cov(x, resid) = offset.}
 \usage{
 ComputeRegressionMomentSensitivity(lm_result, se_group = NULL)
 }
 \arguments{
-\item{lm_result}{The output of a call to lm.}
+\item{lm_result}{The regression result, i.e, the output of \code{\link[=lm]{lm()}}.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
 A list containing the regression and influence result.
 }
 \description{
 Compute the sensitivity of a regression to the moment condition on the
-residuals.  That is, compute the gradients with respect to `offset`,
+residuals.  That is, compute the gradients with respect to \code{offset},
 where the regression is fit with the moment condition Cov(x, resid) = offset.
 }

@@ -1,0 +1,614 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+This document contains brief notes for manually computing the derivatives
+ needed to compute the AMIP and related scores for OLS and IV regression.
+ The original versoin of zaminfluence used Python autograd to compute these
+ derivatives.
+ In order to avoid Python and autograd dependence for the common cases of
+ OLS and IV, I will here derive the needed derivatives by hand.
+ 
+\end_layout
+
+\begin_layout Standard
+It suffices to do the derivations for IV, of which OLS is a special case.
+\begin_inset Formula 
+\begin{align*}
+\epsilon_{n} & :=y_{n}-x_{n}^{T}\theta\\
+G\left(\theta,w\right) & =\sum_{n}w_{n}\epsilon_{n}z_{n}\Rightarrow\\
+\frac{\partial G\left(\theta,w\right)}{\partial w_{n}} & =w_{n}z_{n}\epsilon_{n}\\
+\frac{\partial G\left(\theta,w\right)}{\partial\theta^{T}} & =-\sum_{n}w_{n}z_{n}x_{n}^{T}.
+\end{align*}
+
+\end_inset
+
+Let 
+\begin_inset Formula $X$
+\end_inset
+
+, 
+\begin_inset Formula $Z$
+\end_inset
+
+, and 
+\begin_inset Formula $Y$
+\end_inset
+
+ be the matrix versions of the regressors, instruments, and responses.
+ Let 
+\begin_inset Formula $Z_{w}$
+\end_inset
+
+ denote the matrix whose 
+\begin_inset Formula $n-$
+\end_inset
+
+th row is 
+\begin_inset Formula $w_{n}z_{n}$
+\end_inset
+
+, and 
+\begin_inset Formula $Z_{\epsilon}$
+\end_inset
+
+ denote the matrix whose 
+\begin_inset Formula $n-$
+\end_inset
+
+th row is 
+\begin_inset Formula $w_{n}\left(y_{n}-x_{n}^{T}\hat{\theta}\right)z_{n}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+It follows that
+\begin_inset Formula 
+\begin{align*}
+\frac{d\hat{\theta}}{dw^{T}} & =\left(Z_{w}^{T}X\right)^{-1}Z_{\epsilon}^{T}.
+\end{align*}
+
+\end_inset
+
+It is the standard errors that require some tedious algebra.
+ 
+\end_layout
+
+\begin_layout Subsection*
+Matrix inverses
+\end_layout
+
+\begin_layout Standard
+Recall the matrix inverse derivative formula.
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\\
+\frac{d}{dw_{n}}\left(X^{T}Z_{w}\right)^{-1} & =-\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Ungrouped SEs
+\end_layout
+
+\begin_layout Standard
+In the ungrouped case, the full standard error matrix is given by
+\begin_inset Formula 
+\begin{align*}
+\hat{\Sigma} & =\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(Z_{w}^{T}X\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For the standard errors, in the case to match the output of lm, we have
+\begin_inset Formula 
+\begin{align*}
+\hat{\sigma}^{2} & =\frac{1}{N-D}\sum_{n=1}^{N}w_{n}\epsilon_{n}^{2}\Rightarrow\\
+\frac{\partial\hat{\sigma}^{2}}{\partial\theta} & =\frac{-2}{N-D}\sum_{n=1}^{N}w_{n}\epsilon_{n}x_{n}.
+\end{align*}
+
+\end_inset
+
+For OLS, 
+\begin_inset Formula $d\hat{\sigma}^{2}/d\theta=0$
+\end_inset
+
+.
+ Additionally, 
+\begin_inset Formula $\hat{\sigma}$
+\end_inset
+
+ has explicit weight dependence:
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial\hat{\sigma}^{2}}{\partial w_{n}} & =\frac{\epsilon_{n}^{2}}{N-D}.
+\end{align*}
+
+\end_inset
+
+Alternatively, if we use
+\begin_inset Formula 
+\begin{align*}
+\hat{\sigma}^{2} & =\frac{1}{\sum_{n}w_{n}-D}\sum_{n=1}^{N}w_{n}\epsilon_{n}^{2}\Rightarrow\\
+\frac{\partial\hat{\sigma}^{2}}{\partial w_{n}} & =\frac{\hat{\sigma}^{2}}{\sum_{n}w_{0n}-D}\left(\epsilon_{n}^{2}-\hat{\sigma}^{2}\right).
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The chain rule and the above matrix inverse formula gives
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw_{n}}\hat{\Sigma} & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}+\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}-\\
+ & \quad\hat{\sigma}^{2}\left[\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right]\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}-\\
+ & \quad\hat{\sigma}^{2}\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left[\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}\right].
+\end{align*}
+
+\end_inset
+
+Note that if
+\begin_inset Formula 
+\begin{align*}
+A & =\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\\
+r_{x,n} & =\left(X^{T}Z_{w}\right)^{-1}x_{n}\\
+r_{z,n} & =\left(Z_{w}^{T}X\right)^{-1}z_{n}
+\end{align*}
+
+\end_inset
+
+then
+\begin_inset Formula 
+\begin{align*}
+\left[\left(Z_{w}^{T}X\right)^{-1}\left(z_{n}x_{n}^{T}\right)\left(Z_{w}^{T}X\right)^{-1}\right]\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1} & =r_{z,n}r_{x,n}^{T}A^{T}\\
+\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left[\left(X^{T}Z_{w}\right)^{-1}\left(x_{n}z_{n}^{T}\right)\left(X^{T}Z_{w}\right)^{-1}\right] & =Ar_{x,n}r_{z,n}^{T}\\
+\left(Z_{w}^{T}X\right)^{-1}z_{n}z_{n}^{T}\left(Z_{w}^{T}X\right)^{-1} & =r_{z,n}r_{z,n}^{T}.
+\end{align*}
+
+\end_inset
+
+We typically only care about the diagonal, which is more convenient for
+ matrix-valued expressions.
+ By writing
+\begin_inset Formula 
+\begin{align*}
+R_{x} & :=\left(X^{T}Z_{w}\right)^{-1}X^{T}\\
+R_{z} & :=\left(Z_{w}^{T}X\right)^{-1}Z^{T},
+\end{align*}
+
+\end_inset
+
+we can express the derivative using the element-wise (Hadamard) product
+ 
+\begin_inset Formula $\odot$
+\end_inset
+
+ as
+\begin_inset Formula 
+\begin{align*}
+\frac{d}{dw^{T}}\mathrm{diag}\left(\hat{\Sigma}\right) & =\frac{d\hat{\sigma}^{2}}{dw_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}\right)+\\
+ & \quad\hat{\sigma}^{2}\left(R_{z}\odot R_{z}\right)-2\hat{\sigma}^{2}\left(\left(AR_{x}\right)\odot R_{z}\right).
+\end{align*}
+
+\end_inset
+
+Incidentally,
+\begin_inset Formula 
+\begin{align*}
+AR_{x} & =\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}X^{T}\\
+ & =\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z_{w}^{T}Z\right)\left(X^{T}Z_{w}\right)^{-1}\right)X^{T},
+\end{align*}
+
+\end_inset
+
+where the first term is just the 
+\begin_inset Quotes eld
+\end_inset
+
+sandwich matrix.
+\begin_inset Quotes erd
+\end_inset
+
+ Noticing this could save an inverse as well as connect the result to the
+ grouped standard errors.
+\end_layout
+
+\begin_layout Subsection*
+Grouped SEs
+\end_layout
+
+\begin_layout Standard
+In the grouped case, the full standard error matrix is given by the grouped
+ score function.
+ Let 
+\begin_inset Formula $g\left(n\right)$
+\end_inset
+
+ denote the group to which observation 
+\begin_inset Formula $n$
+\end_inset
+
+ belongs, which is in 
+\begin_inset Formula $1\ldots G$
+\end_inset
+
+, and let
+\begin_inset Formula 
+\begin{align*}
+\gamma_{g} & :=\sum_{n:g\left(n\right)=g}\epsilon_{n}w_{n}z_{n}\\
+S_{g} & :=\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\gamma_{g}\\
+ & =\sum_{n:g\left(n\right)=g}\epsilon_{n}w_{n}z_{n}-\frac{1}{G}\sum_{n=1}^{N}\epsilon_{n}w_{n}z_{n}\\
+S & :=\left(\begin{array}{c}
+S_{1}^{T}\\
+\vdots\\
+S_{G}^{T}
+\end{array}\right)\\
+\hat{V} & :=\frac{1}{G}S^{T}S\\
+\hat{\Sigma} & =G\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+The dependence on 
+\begin_inset Formula $\left(Z_{w}^{T}X\right)^{-1}$
+\end_inset
+
+ is the same as in the un-grouped case.
+ Let us consider derivatives of 
+\begin_inset Formula $\hat{V}$
+\end_inset
+
+.
+ First,
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial w_{n}}\hat{V} & =\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}+\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\\
+\frac{\partial}{\partial w_{n}}\gamma_{g\left(n\right)} & =\epsilon_{n}z_{n},\quad0\textrm{ otherwise}\\
+\frac{\partial S}{\partial w_{n}} & =\left(\begin{array}{c}
+-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}\\
+\vdots\\
+\frac{\partial}{\partial w_{n}}\gamma_{g}-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}\\
+\vdots\\
+-\frac{1}{G}\sum_{g=1}^{N}\frac{\partial}{\partial w_{n}}\gamma_{g}
+\end{array}\right)=\left(\begin{array}{c}
+-\frac{1}{G}\\
+\vdots\\
+1-\frac{1}{G}\\
+\vdots\\
+-\frac{1}{G}
+\end{array}\right)\epsilon_{n}z_{n}^{T},
+\end{align*}
+
+\end_inset
+
+where the entry containing 
+\begin_inset Formula $\frac{\partial}{\partial w_{n}}\gamma_{g}$
+\end_inset
+
+ is in the group 
+\begin_inset Formula $g\left(n\right)$
+\end_inset
+
+ to which observation 
+\begin_inset Formula $n$
+\end_inset
+
+ belongs.
+ Note that 
+\begin_inset Formula $\left(\frac{1}{G},\ldots,\frac{1}{G}\right)S=0$
+\end_inset
+
+ since the entries of 
+\begin_inset Formula $S$
+\end_inset
+
+ are already de-meaned.
+ So
+\begin_inset Formula 
+\begin{align*}
+\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}} & =\frac{1}{G}S_{g\left(n\right)}z_{n}^{T}\epsilon_{n}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that
+\begin_inset Formula 
+\begin{align*}
+\left(Z_{w}^{T}X\right)^{-1}\frac{\partial\hat{V}}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1} & =\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}+\\
+ & \quad\left(Z_{w}^{T}X\right)^{-1}\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\right)^{T}\left(X^{T}Z_{w}\right)^{-1}.
+\end{align*}
+
+\end_inset
+
+The first term is thus given by
+\begin_inset Formula 
+\begin{align*}
+\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1} & =\frac{1}{G}\left(Z_{w}^{T}X\right)^{-1}S_{g}z_{n}^{T}\left(X^{T}Z_{w}\right)^{-1}\epsilon_{n}.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The diagonal is given by
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{1}{G}S^{T}\frac{\partial S}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =\frac{1}{G}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
+\end{align*}
+
+\end_inset
+
+By symmetry, the second term is the same, giving
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\frac{\partial\hat{V}}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =2\frac{1}{G}\left(\left(Z_{w}^{T}X\right)^{-1}S_{g}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\epsilon_{n}\right).
+\end{align*}
+
+\end_inset
+
+Recall from above that
+\begin_inset Formula 
+\begin{align*}
+\left(\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\right)\hat{V}\left(X^{T}Z_{w}\right)^{-1} & =-\left(Z_{w}^{T}X\right)^{-1}z_{n}x_{n}^{T}\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}\\
+\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(\frac{\partial}{\partial w_{n}}\left(X^{T}Z_{w}\right)^{-1}\right) & =-\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}x_{n}z_{n}^{T}\left(X^{T}Z_{w}\right)^{-1}\\
+ & =\left(\left(\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\right)\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right)^{T}.
+\end{align*}
+
+\end_inset
+
+Again recognizing the diagonal,
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\left(\frac{\partial}{\partial w_{n}}\left(Z_{w}^{T}X\right)^{-1}\right)\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right) & =\\
+-\left(\left(Z_{w}^{T}X\right)^{-1}z_{n}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}x_{n}\right) & .
+\end{align*}
+
+\end_inset
+
+Putting everything together, and letting 
+\begin_inset Formula $\tilde{S}$
+\end_inset
+
+ be an 
+\begin_inset Formula $N\times D$
+\end_inset
+
+ matrix which is an expanded version of 
+\begin_inset Formula $S$
+\end_inset
+
+ so that row 
+\begin_inset Formula $n$
+\end_inset
+
+ of 
+\begin_inset Formula $\tilde{S}$
+\end_inset
+
+ contains row 
+\begin_inset Formula $g\left(n\right)$
+\end_inset
+
+ of 
+\begin_inset Formula $S$
+\end_inset
+
+, 
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial w_{n}}\mathrm{diag}\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}\right) & =\\
+-2\left(\left(Z_{w}^{T}X\right)^{-1}Z^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\hat{V}\left(X^{T}Z_{w}\right)^{-1}X^{T}\right)+\\
+2\frac{G-1}{G^{2}}\left(\left(Z_{w}^{T}X\right)^{-1}\tilde{S}^{T}\right)\odot\left(\left(Z_{w}^{T}X\right)^{-1}\left(Z\odot\epsilon\right)^{T}\right) & .
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+——————————–
+\end_layout
+
+\begin_layout Standard
+Now, we consider the 
+\begin_inset Formula $\hat{\theta}$
+\end_inset
+
+ dependence.
+ Only 
+\begin_inset Formula $\hat{V}$
+\end_inset
+
+ depends on 
+\begin_inset Formula $\hat{\theta}$
+\end_inset
+
+ in this case, and, as above
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial\hat{\theta}_{d}}\hat{V} & =\frac{1}{G}S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}}+\left(\frac{1}{G}S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}}\right)^{T}\\
+\frac{\partial\epsilon_{n}}{\partial\hat{\theta}} & =-x_{n}
+\end{align*}
+
+\end_inset
+
+Let's do it component-wise.
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial\hat{\theta}_{d}}\gamma_{g\left(n\right)} & =\sum_{n:g\left(n\right)=g}w_{n}z_{n}\frac{\partial\epsilon_{n}}{\partial\hat{\theta}_{d}}\\
+ & =-\sum_{n:g\left(n\right)=g}w_{n}z_{n}x_{nd}\\
+\frac{\partial S}{\partial\hat{\theta}_{d}} & =-\left(\begin{array}{c}
+\vdots\\
+\sum_{n:g\left(n\right)=g}w_{n}z_{n}^{T}x_{nd}-\frac{1}{G}\sum_{n:=1}^{N}w_{n}z_{n}^{T}x_{nd}\\
+\vdots
+\end{array}\right).
+\end{align*}
+
+\end_inset
+
+From this,
+\begin_inset Formula 
+\begin{align*}
+S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}} & =\left(-\sum_{g}S_{g}\sum_{n:g\left(n\right)=g}w_{n}z_{n}^{T}x_{nd}+\frac{1}{G}\left(\sum_{g}S_{g}\right)\sum_{n:=1}^{N}w_{n}z_{n}^{T}x_{nd}\right)\\
+ & =-\sum_{g}S_{g}\sum_{n:g\left(n\right)=g}w_{n}z_{n}^{T}x_{nd}
+\end{align*}
+
+\end_inset
+
+because 
+\begin_inset Formula $\sum_{g}S_{g}=0$
+\end_inset
+
+.
+ Let's let 
+\begin_inset Formula 
+\begin{align*}
+\Xi_{gd} & =\sum_{n:g\left(n\right)=g}\left(-w_{n}x_{nd}\right)z_{n}\in\mathbb{R}^{D}\\
+\Xi_{d} & =\left(\begin{array}{c}
+\Xi_{1d}^{T}\\
+\vdots\\
+\Xi_{gd}^{T}\\
+\vdots\\
+\Xi_{Gd}^{T}
+\end{array}\right),
+\end{align*}
+
+\end_inset
+
+so that
+\begin_inset Formula 
+\begin{align*}
+S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}} & =S^{T}\Xi_{d}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now,
+\begin_inset Formula 
+\begin{align*}
+\left(Z_{w}^{T}X\right)^{-1}S^{T}\frac{\partial S}{\partial\hat{\theta}_{d}}\left(X^{T}Z_{w}\right)^{-1} & =\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\right)\left(\left(Z_{w}^{T}X\right)^{-1}\Xi_{d}^{T}\right)^{T},
+\end{align*}
+
+\end_inset
+
+Looking at it this way, I'm not sure how you would avoid either a for loop
+ over the entries of 
+\begin_inset Formula $\hat{\beta}$
+\end_inset
+
+ or construction of higher-dimensional arrays.
+ Putting things together,
+\begin_inset Formula 
+\begin{align*}
+\mathrm{diag}\left(\frac{\partial\hat{\Sigma}}{\partial\hat{\beta}_{d}}\right) & =\frac{2}{G}\mathrm{diag}\left(\left(\left(Z_{w}^{T}X\right)^{-1}S^{T}\right)\left(\left(Z_{w}^{T}X\right)^{-1}\Xi_{d}^{T}\right)^{T}\right).
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

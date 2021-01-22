@@ -120,9 +120,17 @@ PairInfluenceScoresForSign <- function(influence_df, assignment_col, sort_col,
 
 
 #' Process influence dataframes to require observations to be removed in pairs.
-#' @param influence_df The output of GetTargetRegressorGrads with assignment
-#' information
-#' @param assignment_col A string containing the column name of the assignment
+#'
+#' It may be desireable to enforce removal of pairs of observations, e.g.,
+#' to reomve the same number of control as treatment observations.  To
+#' facilitate such analyses, this function pairs observations together into
+#' "combined" observations which can then be analyzed with the rest of the
+#' `zaminfluence` ecosystem.  Optionally, one may also enforce that pairs
+#' match one another according to some group attributes.  The output of this
+#' function can be used in place of the output of [SortAndAccumulate()].
+#'
+#' @param influence_df `r docs$grad_df`
+#' @param assignment_col A string containing the column name of the assignment.
 #' @param influence_cols Optional custom influence column names
 #' @param group_cols Optional.  If you wish to make sure that additional
 #' attributes match in removed pairs, you can specify the columns to match on
@@ -131,8 +139,10 @@ PairInfluenceScoresForSign <- function(influence_df, assignment_col, sort_col,
 #' with this assignment level.
 #' @param level1 The second value of assignment.  Each pair will also have one
 #' with this assignment level.
+#'
 #' @return A list of influence dataframes analogous to that returned by
-#' SortAndAccumulate, but with paired, grouped observations.
+#' [SortAndAccumulate()], but with paired, grouped observations.
+#'
 #' @export
 PairInfluenceScores <- function(influence_df,
                                 assignment_col,

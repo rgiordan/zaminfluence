@@ -13,18 +13,18 @@ RerunTargetModelForAlpha(
 )
 }
 \arguments{
-\item{infl_df}{A particular influence dataframe.}
+\item{infl_df}{A single influence dataframe, e.g., a single member of the list returned by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.}
 
-\item{model_fit}{The fit from `lm` or `AER:ivreg`.}
+\item{model_fit}{The fit from \code{\link[=lm]{lm()}} or \code{\link[AER:ivreg]{AER::ivreg()}}.}
 
-\item{alpha_colname}{A string with the name of the target alpha column}
+\item{alpha_colname}{A string with the name of the target alpha column (typically \code{prop_removed} or \code{num_removed})}
 
 \item{alpha_val}{The alpha value to target}
 
 \item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
-A dataframe with variables from the re-run model.
+A list containing the new regression estimate, standard error covariance (\code{se_mat}), and standard errors (\code{se}).  The standard errors are the square root of the diagonal of \code{se_mat}, and can be interpreted as an estimate of the standard deviation of the coefficient estimates.
 }
 \description{
 Rerun the target regression for a particular target alpha.

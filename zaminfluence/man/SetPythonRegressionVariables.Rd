@@ -2,10 +2,12 @@
 % Please edit documentation in R/python_lib.R
 \name{SetPythonRegressionVariables}
 \alias{SetPythonRegressionVariables}
-\title{Set python variables corresponding to the output of lm.}
+\title{Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
+Set python variables corresponding to the output of lm.}
 \usage{
 SetPythonRegressionVariables(lm_res, se_group = NULL)
 }
 \description{
+Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
 Set python variables corresponding to the output of lm.
 }

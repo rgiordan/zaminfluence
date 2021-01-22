@@ -7,8 +7,7 @@
 SafeGetBaseVals(influence_dfs)
 }
 \arguments{
-\item{influence_dfs}{A list with entries pos and neg, each of which is a
-gradient dataframe.}
+\item{influence_dfs}{A list of sorted influence dataframes as returned, e.g., by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.  The list is expected to have results sorted for both negative and positive changes in both sign and signifiance.}
 }
 \value{
 The <base_vals> attribute, having checked that both pos and neg

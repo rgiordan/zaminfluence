@@ -14,10 +14,9 @@ PairInfluenceScores(
 )
 }
 \arguments{
-\item{influence_df}{The output of GetTargetRegressorGrads with assignment
-information}
+\item{influence_df}{The gradient dataframe with attributes for a particular coefficient, e.g., as returned by \code{\link[=GetTargetRegressorGrads]{GetTargetRegressorGrads()}}.}
 
-\item{assignment_col}{A string containing the column name of the assignment}
+\item{assignment_col}{A string containing the column name of the assignment.}
 
 \item{influence_cols}{Optional custom influence column names}
 
@@ -33,8 +32,14 @@ with this assignment level.}
 }
 \value{
 A list of influence dataframes analogous to that returned by
-SortAndAccumulate, but with paired, grouped observations.
+\code{\link[=SortAndAccumulate]{SortAndAccumulate()}}, but with paired, grouped observations.
 }
 \description{
-Process influence dataframes to require observations to be removed in pairs.
+It may be desireable to enforce removal of pairs of observations, e.g.,
+to reomve the same number of control as treatment observations.  To
+facilitate such analyses, this function pairs observations together into
+"combined" observations which can then be analyzed with the rest of the
+\code{zaminfluence} ecosystem.  Optionally, one may also enforce that pairs
+match one another according to some group attributes.  The output of this
+function can be used in place of the output of \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.
 }

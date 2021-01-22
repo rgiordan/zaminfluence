@@ -13,8 +13,8 @@ GetInfluenceScale <- function(influence_vec) {
 
 #' Return the $Gamma_alpha$ quantity.
 #'
-#' @param influence_df The output of AnalyzeInfluence().
-#' @param alpha The proportion of left-out observations
+#' @param influence_df `r docs$infl_df`
+#' @param alpha `r docs$alpha_val`
 #' @return $Gamma_alpha$, the shape coefficient.
 #' @export
 GetGammaAlpha <- function(influence_df, alpha, alpha_col, gamma_alpha_col) {
@@ -149,7 +149,16 @@ GetAlphaForSignificanceChange <- function(influence_dfs, alpha_col, target) {
   return(result)
 }
 
-
+#' Estimate the number and proportion of datapoints needed to effect various
+#' changes.
+#'
+#' @param influence_dfs `r docs$influence_dfs`
+#' @param alpha_col `r docs$alpha_col`
+#'
+#' @return A dataframe summarizing the estimated number of points needed
+#' to effect changes in sign, significance, or both sign and significance,
+#' or `NA` if the linear approximation cannot produce such a change.
+#'
 #' @export
 GetRegressionTargetChange <- function(influence_dfs, alpha_col) {
     return(bind_rows(

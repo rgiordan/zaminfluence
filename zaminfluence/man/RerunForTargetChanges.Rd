@@ -7,14 +7,15 @@
 RerunForTargetChanges(influence_dfs, target_change, model_fit, se_group = NULL)
 }
 \arguments{
-\item{influence_dfs}{A list of influence dataframes}
+\item{influence_dfs}{A list of sorted influence dataframes as returned, e.g., by \code{\link[=SortAndAccumulate]{SortAndAccumulate()}}.  The list is expected to have results sorted for both negative and positive changes in both sign and signifiance.}
 
-\item{target_change}{The output of GetRegressionTargetChange}
+\item{target_change}{A single row of the target change dataframe produced
+by \code{\link[=GetRegressionTargetChange]{GetRegressionTargetChange()}}.}
 
-\item{model_fit}{The fit from `lm` or `AER:ivreg`.}
+\item{model_fit}{The fit from \code{\link[=lm]{lm()}} or \code{\link[AER:ivreg]{AER::ivreg()}}.}
 }
 \value{
-A dataframe with variables from all the re-run models.
+A list containing the new regression estimate, standard error covariance (\code{se_mat}), and standard errors (\code{se}).  The standard errors are the square root of the diagonal of \code{se_mat}, and can be interpreted as an estimate of the standard deviation of the coefficient estimates.
 }
 \description{
 Rerun the target regression for every change in target_change.

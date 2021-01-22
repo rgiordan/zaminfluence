@@ -2,15 +2,7 @@
 #
 # These simple examples illustrate the use of zaminfluence.
 # https://github.com/rgiordan/zaminfluence
-#
 # See the README.md file for installation instructions.
-# We assume you have set the $REPO environment variable to the git repository
-# clone as described in the README file.  Alternatively, you can manaully
-# edit the following line to set it yourself.
-
-#base_dir <- Sys.getenv("REPO")
-base_dir  <- "/home/rgiordan/Documents/git_repos/zaminfluence"
-setwd(base_dir)
 
 library(ggplot2)
 library(dplyr)
@@ -20,17 +12,14 @@ library(sandwich)
 library(zaminfluence)
 library(AER)
 
-py_main <- InitializePython(file.path(base_dir, "venv/bin/python"))
-
-reticulate::py_run_string("import regsens_rgiordandev")
-
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
 n_obs <- 10000
 
-# The test utilities can simulate data.
-source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
+# # The test utilities can simulate data.
+# base_dir <- file.path("/home/rgiordan/Documents/git_repos/zaminfluence")
+# source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
 
 set.seed(42)
 
@@ -38,7 +27,7 @@ set.seed(42)
 # Oridinary regression.
 
 x_dim <- 3
-beta_true <- runif(x_dim)
+beta_true <- 0.1 * runif(x_dim)
 df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
 
 # Fit a regression model.
@@ -65,7 +54,7 @@ select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
 
 # Generate data.
 x_dim <- 3
-beta_true <- runif(x_dim)
+beta_true <- 0.1 * runif(x_dim)
 df <- GenerateIVRegressionData(n_obs, beta_true, num_groups=NULL)
 
 # Fit an IV model.
@@ -196,7 +185,8 @@ if (FALSE) {
 # However, we can still get weights into the grad_df data frame.
 this_change <- filter(target_change, change == "sign")
 infl_df <- influence_dfs[["sign"]][[this_change[["direction"]]]]
-w_bool <- GetWeightForAlpha(infl_df, "prop_removed", this_change[["prop_removed"]], rows_to_keep=FALSE)
+w_bool <- GetWeightForAlpha(infl_df, "prop_removed",
+                            this_change[["prop_removed"]], rows_to_keep=FALSE)
 grad_df[w_bool, ] %>% select(arm, group, beta_grad, grouped_row)
 table(grad_df[w_bool, "arm"])
 

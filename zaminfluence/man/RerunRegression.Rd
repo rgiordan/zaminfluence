@@ -9,15 +9,14 @@ RerunRegression(w_bool, lm_result, se_group = NULL, save_w = FALSE)
 \arguments{
 \item{w_bool}{A boolean vector of rows to keep in the original dataframe.}
 
-\item{lm_result}{The original regression result.}
+\item{lm_result}{The regression result, i.e, the output of \code{\link[=lm]{lm()}}.}
 
 \item{se_group}{Optional. The standard error grouping variable.}
 
-\item{save_w}{Optional. If TRUE, save the new weight vector in the output.}
+\item{save_w}{Optional. If \code{TRUE}, save the new weight vector in the output.}
 }
 \value{
-A list containing the new regression estimate, standard error
-covariance, and standard errors.
+A list containing the new regression estimate, standard error covariance (\code{se_mat}), and standard errors (\code{se}).  The standard errors are the square root of the diagonal of \code{se_mat}, and can be interpreted as an estimate of the standard deviation of the coefficient estimates.
 }
 \description{
 Rerun the regression with a new subset of rows.

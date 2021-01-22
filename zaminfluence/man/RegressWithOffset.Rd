@@ -7,11 +7,11 @@
 RegressWithOffset(lm_result, offset, se_group = NULL)
 }
 \arguments{
-\item{lm_result}{The output of a call to lm.}
+\item{lm_result}{The regression result, i.e, the output of \code{\link[=lm]{lm()}}.}
 
 \item{offset}{The target moment condition.}
 
-\item{se_group}{Optional, a vector of integers defining a standard error grouping.}
+\item{se_group}{Optional. The standard error grouping variable.}
 }
 \value{
 A list containing the regression and influence result.

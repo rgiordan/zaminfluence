@@ -18,6 +18,7 @@ library(broom)
 #'
 #' @param python_path The path to a Python 3 binary.
 #' @return The `reticulate::py_main` object.
+#'
 #' @export
 InitializePython <- function(python_path="/usr/bin/python3") {
     if (!file.exists(python_path)) {
@@ -53,6 +54,7 @@ GetLMWeights <- function(lm_res) {
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Set python variables corresponding to the output of lm.
 SetPythonRegressionVariables <- function(lm_res, se_group=NULL) {
   if (!(("x" %in% names(lm_res)) &
@@ -75,12 +77,14 @@ SetPythonRegressionVariables <- function(lm_res, se_group=NULL) {
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Compute all influence scores for a regression.
-#' @param lm_result The output of a call to lm.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param lm_result `r docs$lm_result`
+#' @param se_group `r docs$se_group`
+#'
 #' @return A list containing the regression and influence result.
-#' @export
-ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
+##' @export
+ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
   py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
   reg <- broom::tidy(lm_result)
   reticulate::py_run_string("
@@ -113,8 +117,8 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
 #' Compute the sensitivity of a regression to the moment condition on the
 #' residuals.  That is, compute the gradients with respect to `offset`,
 #' where the regression is fit with the moment condition Cov(x, resid) = offset.
-#' @param lm_result The output of a call to lm.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param lm_result `r docs$lm_result`
+#' @param se_group `r docs$se_group`
 #' @return A list containing the regression and influence result.
 #' @export
 ComputeRegressionMomentSensitivity <- function(lm_result, se_group=NULL) {
@@ -160,9 +164,9 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_offset_grads(
 
 
 #' Compute a regression using the moment condition Cov(x, resid) = offset.
-#' @param lm_result The output of a call to lm.
+#' @param lm_result `r docs$lm_result`
 #' @param offset The target moment condition.
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
+#' @param se_group `r docs$se_group`
 #' @return A list containing the regression and influence result.
 #' @export
 RegressWithOffset <- function(lm_result, offset, se_group=NULL) {
@@ -199,8 +203,8 @@ se_cov = regsens_rgiordandev.get_standard_error_matrix(
 #######################
 # IV regression
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Set python variables corresponding to the output of AER::ivreg.
-#' @export
 SetPythonIVRegressionVariables <- function(iv_res, se_group=NULL) {
     if (!(("x" %in% names(iv_res)) &
           ("y" %in% names(iv_res)))) {
@@ -229,13 +233,14 @@ SetPythonIVRegressionVariables <- function(iv_res, se_group=NULL) {
 }
 
 
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
 #' Compute all influence scores for an IV regression.
 #' @param df A dataframe with regression data.
 #' @param iv_res The output of an IV regression computed with AER::ivreg.
 #' @param se_group Optional, a vector of integers defining a standard error grouping.
 #' @return A list containing the regression and influence result..
-#' @export
-ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
+##' @export
+ComputeIVRegressionInfluencePython <- function(iv_res, se_group=NULL) {
     py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
     reg <- broom::tidy(iv_res)
     reticulate::py_run_string("
@@ -262,9 +267,9 @@ se, betahat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
     )
 }
 
-
-#' @export
-ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
+##' @export
+ComputeIVRegressionErrorCovariancePython <- function(iv_res, se_group=NULL) {
   py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
   reticulate::py_run_string("
 betahat = iv_lib.iv_reg(y, x, z, w=w0)
@@ -273,98 +278,62 @@ se2 = iv_lib.get_iv_standard_error_matrix(betahat, y, x, z, w0, se_group=se_grou
   return(py_main$se2)
 }
 
-####################################################################
-# The remaining functions are common to ordinary and IV regression.
 
-#' Compute the influence functions for all regressors given a model fit.
-#' @param model_fit A model fit (currently from lm or AER::iv_reg).
-#' @param se_group Optional, a vector of integers defining a standard error grouping.
-#' @return A list containing the regression and influence result.
-#' @export
-ComputeModelInfluence <- function(model_fit, se_group=NULL) {
-  valid_classes <- c("lm", "ivreg")
-  model_class <- class(model_fit)
-  if (!(model_class %in% valid_classes)) {
-    stop(sprintf("The class of `model_fit` must be one of %s",
-                 paste(valid_classes, collapse=", ")))
-  }
-  if (model_class == "lm") {
-    return(ComputeRegressionInfluence(model_fit, se_group))
-  } else if (model_class == "ivreg") {
-    return(ComputeIVRegressionInfluence(model_fit, se_group))
-  } else {
-    # Redundant, so sue me.
-    stop(sprint("Unknown model class %s", model_class))
-  }
-}
-
-
-#' @export
-AppendIntervalColumns <- function(grad_df, sig_num_ses) {
-  grad_df[["beta_pzse_grad"]] <-
-    grad_df[["beta_grad"]] + sig_num_ses * grad_df[["se_grad"]]
-  grad_df[["beta_mzse_grad"]] <-
-    grad_df[["beta_grad"]] - sig_num_ses * grad_df[["se_grad"]]
-  base_vals <- attr(grad_df, "base_vals")
-  base_vals_names <- names(base_vals)
-  base_vals <- c(base_vals,
-                 base_vals["beta"] + sig_num_ses * base_vals["se"],
-                 base_vals["beta"] - sig_num_ses * base_vals["se"])
-  names(base_vals) <- c(base_vals_names,
-                        "beta_pzse",
-                        "beta_mzse")
-  attr(grad_df, "base_vals") <- base_vals
-  attr(grad_df, "sig_num_ses") <- sig_num_ses
-  return(grad_df)
-}
-
-
-#' @export
-GetTargetRegressorGrads <- function(reg_infl, target_regressor,
-                                    sig_num_ses=qnorm(0.975)) {
-    target_index <- which(reg_infl$regressor_names == target_regressor)
-    if (length(target_index) != 1) {
-        stop("Error finding target regressor in the regression.")
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
+# Equivalent to ComputeRegressionInfluence, which uses closed form derivatives.
+ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
+    py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
+    reg <- broom::tidy(lm_result)
+    reticulate::py_run_string("
+betahat = regsens_rgiordandev.reg(y, x, w=w0)
+se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
+    betahat, y, x, w0, se_group=se_group)
+")
+    if (max(abs(py_main$betahat - reg$estimate)) > 1e-8) {
+        warning("Regression coefficients do not match.")
     }
 
-    # The reg_infl$*_grad columns are derivatives with respect to each
-    # observation at `weights`.  They are converted to derivatives with respect
-    # to a weight scaled to be one at inclusion and zero at exclusion by the
-    # chain rule.
-    grad_df <-
-      data.frame(
-        row=1:reg_infl$n_obs,
-        weights=reg_infl$weights,
-        se_grad=reg_infl$weights * reg_infl$se_grad[target_index,],
-        beta_grad=reg_infl$weights * reg_infl$beta_grad[target_index, ],
-        obs_per_row=1)
+    # Note that the standard errors may not match lm_result when using se_group.
+    return(list(model_fit=lm_result,
+                n_obs=nrow(lm_result$x),
+                regressor_names=colnames(lm_result$x),
+                grad_fun="get_regression_w_grads",
 
-    attr(grad_df, "n_obs") <- reg_infl$n_obs
-    attr(grad_df, "n_grad_rows") <- reg_infl$n_obs
-    attr(grad_df, "obs_per_row_col") <- "obs_per_row"
-    base_vals <- c(
-        reg_infl$betahat[target_index],
-        reg_infl$se[target_index])
-    names(base_vals) <- c("beta", "se")
-    attr(grad_df, "base_vals") <- base_vals
-    attr(grad_df, "target_regressor") <- target_regressor
-    attr(grad_df, "target_index") <- target_index
-    attr(grad_df, "data_row_cols") <- "row"
+                betahat=py_main$betahat,
+                se=py_main$se,
+                weights=py_main$w0,
 
-    grad_df <- AppendIntervalColumns(grad_df, sig_num_ses=sig_num_ses)
-
-    return(grad_df)
+                beta_grad=py_main$betahat_grad,
+                se_grad=py_main$se_grad)
+    )
 }
 
-
-#' @export
-CopyGradAttributes <- function(
-    new_df, grad_df,
-    attrs=c("n_obs", "obs_per_row_col", "base_vals",
-            "target_regressor", "target_index",
-            "sig_num_ses", "data_row_cols", "n_grad_rows")) {
-    for (a in attrs) {
-        attr(new_df, a) <- attr(grad_df, a)
+#' Deprecated --- use the functions in `ols_iv_grads_lib.R` instead.
+# Equivalent to ComputeIVRegressionInfluence, which uses closed form
+# derivatives.
+ComputeIVRegressionInfluencePython <- function(iv_res, se_group=NULL) {
+    py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
+    reg <- broom::tidy(iv_res)
+    reticulate::py_run_string("
+betahat = iv_lib.iv_reg(y, x, z, w=w0)
+se, betahat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
+    betahat, y, x, z, w0, se_group=se_group)
+")
+    if (max(abs(py_main$betahat - reg$estimate)) > 1e-8) {
+        warning("Regression coefficients do not match.")
     }
-    return(new_df)
+
+    # Note that the standard errors may not match iv_res when using se_group.
+    return(list(model_fit=iv_res,
+                n_obs=length(iv_res$y),
+                regressor_names=colnames(iv_res$x$regressors),
+                grad_fun="get_iv_regression_w_grads",
+
+                betahat=py_main$betahat,
+                se=py_main$se,
+                weights=py_main$w0,
+
+                beta_grad=py_main$betahat_grad,
+                se_grad=py_main$se_grad)
+    )
 }

@@ -2,10 +2,12 @@
 % Please edit documentation in R/python_lib.R
 \name{SetPythonIVRegressionVariables}
 \alias{SetPythonIVRegressionVariables}
-\title{Set python variables corresponding to the output of AER::ivreg.}
+\title{Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
+Set python variables corresponding to the output of AER::ivreg.}
 \usage{
 SetPythonIVRegressionVariables(iv_res, se_group = NULL)
 }
 \description{
+Deprecated --- use the functions in \code{ols_iv_grads_lib.R} instead.
 Set python variables corresponding to the output of AER::ivreg.
 }
