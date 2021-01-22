@@ -77,6 +77,10 @@ GetWeightForAlpha <- function(infl_df, alpha_colname, alpha_val,
 # Given a single row of a `target_change` dataframe (as produced by
 # `[GetRegressionTargetChange()]`), return from influence_dfs which influence
 # dataframe is relevant.
+#' @param influence_dfs `r docs$influence_dfs`
+#' @param target_change A single row of the target change dataframe produced
+#' by [GetRegressionTargetChange()].
+#'@export
 GetInflDfForTargetChangeRow <- function(influence_dfs, target_change) {
   if (nrow(target_change) != 1) {
     stop("target_change must have exactly one row.")
@@ -127,8 +131,8 @@ GetAlphaColFromTargetChange <- function(target_change) {
 }
 
 
-#' Get the weight vector to achieve the change given by a single row of
-#' a target change.
+#' Get the weight vector for rows of the original dataset to achieve the change
+#' given by a single row of a target change.
 #' @param influence_dfs `r docs$influence_dfs`
 #' @param target_change A single row of the target change dataframe produced
 #' by [GetRegressionTargetChange()].
@@ -148,6 +152,10 @@ GetWeightForTargetChangeRow <- function(influence_dfs, target_change,
     infl_df, alpha_colname=alpha_col, alpha_val=alpha,
     boolean=boolean, rows_to_keep=rows_to_keep))
 }
+
+
+
+
 
 #######################################
 # Functions for ordinary regression
