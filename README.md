@@ -1,8 +1,9 @@
 # ZAM influence
 
-This repo contains code to perform the analyses in our paper,
-"Automatic Finite-Sample Robustness Metrics".
-The repo name comes from "Z-estimator approximate maximal influence".
+This repo contains code to perform analyses described in our paper, "Automatic
+Finite-Sample Robustness Metrics," for the case of ordinary least squares and
+instrumental variable regressions. The repo name comes from "Z-estimator
+approximate maximal influence".
 
 # Installation
 
@@ -26,8 +27,6 @@ You can install different branches using the `ref` argument.
    `examples/simple_examples.R`.
 
 Please submit an issue or email us if you have any questions or comments!
-
-# Organizational structure
 
 # Python backend
 
