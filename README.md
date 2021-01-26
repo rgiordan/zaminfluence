@@ -17,12 +17,7 @@ approximate maximal influence".
 
 You can install different branches using the `ref` argument.
 
-2. Run the R tests to make sure everything is working.
-```
-> devtools::test("zaminfluence")
-```
-
-3. Done, hopefully!  You should now be able to run the script in
+2. Done, hopefully!  You should now be able to run the script in
    `examples/simple_examples.R`.
 
 Please submit an issue or email us if you have any questions or comments!
