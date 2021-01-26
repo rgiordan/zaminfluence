@@ -12,6 +12,7 @@ approximate maximal influence".
 > library(devtools)
 > devtools::install_github("https://github.com/rgiordan/zaminfluence/",
                            ref="master",
+                           subdir="zaminfluence",
                            force=TRUE)
 ```
 
