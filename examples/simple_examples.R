@@ -40,13 +40,71 @@ reg_infl <- ComputeModelInfluence(reg_fit)
 grad_df <- GetTargetRegressorGrads(reg_infl, "x1")
 influence_dfs <- SortAndAccumulate(grad_df)
 
+# Compute the AMIP and friends for changes of sign and significance.
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
+
 if (FALSE) {
     PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
 }
 
+# Rerun.
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, reg_fit)
 select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+
+
+# See which points were left out for, e.g., a sign change.
+target_change_row <- filter(target_change, change == "sign")
+w_drop <- GetWeightForTargetChangeRow(influence_dfs, target_change_row, rows_to_keep=FALSE)
+
+# w_drop corresponds to rows of the influence dataframe.  The "row" column of the
+# influence dataframe gives which row of the original model was dropped in the
+# corresponding row of the influence dataframe.  
+#orig_rows <- infl_df %>% filter(!is.na(row)) %>% pull(row)
+#orig_rows <- infl_df %>% pull(row)
+
+#w_drop <- w_drop[!is.na(orig_rows)]
+#orig_rows <- orig_rows[!is.na(orig_rows)]
+
+drop_df <- data.frame(
+    leverage=hatvalues(reg_fit),
+    residual=reg_fit$residuals,
+    x1=reg_fit$x[, 1],
+    x2=reg_fit$x[, 2],
+    drop=w_drop)
+
+if (FALSE) {
+    # The beta gradient is not precisely the leverage score times the residual,
+    # but it's closely related.  See the paper for more details.
+    ggplot(drop_df) +
+        geom_point(aes(x=leverage, y=residual)) +
+        geom_point(aes(x=leverage, y=residual), data=filter(drop_df, drop),
+                   color="red", size=3)
+}
+
+# To compare an influence score to the original data, use the row column of
+# an influence dataframe.
+infl_df <- zaminfluence::GetInflDfForTargetChangeRow(influence_dfs, target_change_row)
+
+drop_infl_df <- 
+    drop_df %>%
+    mutate(row=1:nrow(drop_df)) %>%
+    inner_join(select(infl_df, row, beta_grad), by="row")
+
+if (FALSE) {
+    # Sanity check that we're dropping the points with the largest gradients.
+    ggplot(drop_infl_df) +
+        geom_histogram(aes(x=beta_grad, y=..density.., fill=drop, group=drop), alpha=0.5)
+    
+    # You can then examine the resulation between the influence scores and the
+    # values of the regressors, for example.
+    grid.arrange(
+        ggplot(drop_infl_df) +
+            geom_point(aes(x=x1, y=beta_grad)),
+        ggplot(drop_infl_df) +
+            geom_point(aes(x=x2, y=beta_grad)),
+        ncol=2
+    )
+}
 
 
 #############################
@@ -227,3 +285,5 @@ if (FALSE) {
 
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, reg_fit, se_group=df$se_group)
 select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+
+
