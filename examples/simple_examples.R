@@ -17,10 +17,6 @@ check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
 n_obs <- 10000
 
-# # The test utilities can simulate data.
-# base_dir <- file.path("/home/rgiordan/Documents/git_repos/zaminfluence")
-# source(file.path(base_dir, "zaminfluence/tests/testthat/utils.R"))
-
 set.seed(42)
 
 #############################
@@ -55,15 +51,6 @@ select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
 # See which points were left out for, e.g., a sign change.
 target_change_row <- filter(target_change, change == "sign")
 w_drop <- GetWeightForTargetChangeRow(influence_dfs, target_change_row, rows_to_keep=FALSE)
-
-# w_drop corresponds to rows of the influence dataframe.  The "row" column of the
-# influence dataframe gives which row of the original model was dropped in the
-# corresponding row of the influence dataframe.  
-#orig_rows <- infl_df %>% filter(!is.na(row)) %>% pull(row)
-#orig_rows <- infl_df %>% pull(row)
-
-#w_drop <- w_drop[!is.na(orig_rows)]
-#orig_rows <- orig_rows[!is.na(orig_rows)]
 
 drop_df <- data.frame(
     leverage=hatvalues(reg_fit),
