@@ -10,6 +10,8 @@ library(latex2exp)
 #' @param target_change `r docs$target_change`
 #' @param include_y_zero Whether to force the y-axis to include 0.
 #' @param sig_num_ses `r docs$sig_num_ses`
+#' @param rerun_df Optional.  If specified, plot the results of
+#' a rerun as produced by `RerunRegression`.
 #'
 #' @return A ggplot object containing a graphical summary of the estimate
 #' influence.
@@ -17,7 +19,8 @@ library(latex2exp)
 #' @export
 PlotInfluence <- function(influence_dfs, alpha_colname, alpha_max,
                           target_change=NULL,
-                          include_y_zero=TRUE, sig_num_ses=qnorm(0.975)) {
+                          include_y_zero=TRUE, sig_num_ses=qnorm(0.975),
+                          rerun_df=NULL) {
   alpha_col <- sym(alpha_colname)
   base_vals <- SafeGetBaseVals(influence_dfs)
 
@@ -61,8 +64,19 @@ PlotInfluence <- function(influence_dfs, alpha_colname, alpha_max,
                   group=sort,
                   color="Observed"), lwd=2) +
     xlab(xlab_name) + ylab(TeX("$\\beta$")) +
-    guides(color=FALSE,
+    guides(color="none",
            linetype=guide_legend(title="Change type"))
+
+  if (!is.null(rerun_df)) {
+    rerun_df <- filter(rerun_df, !!alpha_col <= alpha_max)
+    if (nrow(rerun_df) > 0) {
+        plot <- plot +
+        geom_point(data=rerun_df, aes(x=!!alpha_col, y=beta)) +
+        geom_errorbar(data=rerun_df,
+                      aes(x=!!alpha_col, ymin=beta_mzse, ymax=beta_pzse),
+                      width=alpha_max / 100)
+    }
+  }
 
   return(plot)
 }

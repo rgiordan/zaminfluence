@@ -105,6 +105,10 @@ test_that("plotting works", {
   target_change <- GetRegressionTargetChange(influence_dfs, "num_removed")
   PlotInfluence(influence_dfs$sign, "num_removed", 10, target_change)
 
+  rerun_df <- RerunForTargetChanges(influence_dfs, target_change, lm_result)
+  PlotInfluence(influence_dfs$sign, "num_removed", 10, target_change,
+                rerun_df=rerun_df)
+
   # Just so that there is a test statement and it's not described as skipped.
   testthat::expect_true(TRUE)
 })
@@ -293,7 +297,7 @@ test_that("aggregated pairing works", {
               infl_df[, paste(influence_cols, "1", sep="_")]
           )
 
-          # Check that the pairs worked as expected.          
+          # Check that the pairs worked as expected.
           testthat::expect_true(all(grad_df[infl_df$grouped_row_0, "arm"] == 0))
           testthat::expect_true(all(grad_df[infl_df$grouped_row_1, "arm"] == 1))
           testthat::expect_true(all(grad_df[infl_df$grouped_row_0, "group"] ==
