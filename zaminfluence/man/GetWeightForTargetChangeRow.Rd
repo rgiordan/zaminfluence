@@ -2,8 +2,8 @@
 % Please edit documentation in R/rerun_lib.R
 \name{GetWeightForTargetChangeRow}
 \alias{GetWeightForTargetChangeRow}
-\title{Get the weight vector to achieve the change given by a single row of
-a target change.}
+\title{Get the weight vector for rows of the original dataset to achieve the change
+given by a single row of a target change.}
 \usage{
 GetWeightForTargetChangeRow(
   influence_dfs,
@@ -25,6 +25,6 @@ return a vector of integer indices.}
 for the target level of alpha.  If \code{FALSE}, return a vector of rows to drop.}
 }
 \description{
-Get the weight vector to achieve the change given by a single row of
-a target change.
+Get the weight vector for rows of the original dataset to achieve the change
+given by a single row of a target change.
 }

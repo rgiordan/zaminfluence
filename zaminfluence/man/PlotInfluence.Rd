@@ -10,7 +10,8 @@ PlotInfluence(
   alpha_max,
   target_change = NULL,
   include_y_zero = TRUE,
-  sig_num_ses = qnorm(0.975)
+  sig_num_ses = qnorm(0.975),
+  rerun_df = NULL
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ extent of the x-axis.}
 \item{include_y_zero}{Whether to force the y-axis to include 0.}
 
 \item{sig_num_ses}{How wide the confidence interval is, as a number of standard errors.}
+
+\item{rerun_df}{Optional.  If specified, plot the results of
+a rerun as produced by \code{RerunRegression}.}
 }
 \value{
 A ggplot object containing a graphical summary of the estimate

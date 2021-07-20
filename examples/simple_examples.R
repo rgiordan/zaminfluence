@@ -39,13 +39,13 @@ influence_dfs <- SortAndAccumulate(grad_df)
 # Compute the AMIP and friends for changes of sign and significance.
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
 
-if (FALSE) {
-    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
-}
-
 # Rerun.
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, reg_fit)
 select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+
+if (FALSE) {
+    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change, rerun_df=rerun_df)
+}
 
 
 # See which points were left out for, e.g., a sign change.
@@ -116,12 +116,12 @@ grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
 influence_dfs <- SortAndAccumulate(grad_df)
 
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
-if (FALSE) {
-    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
-}
-
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, iv_fit)
 select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+
+if (FALSE) {
+    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change, rerun_df=rerun_df)
+}
 
 
 #############################
@@ -154,14 +154,13 @@ influence_dfs <-
 
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
 
-if (FALSE) {
-    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
-}
-
 # Rerun
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, reg_fit)
 select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
 
+if (FALSE) {
+    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change, rerun_df=rerun_df)
+}
 
 
 #############################
@@ -266,11 +265,11 @@ cat(
     sprintf("zaminfluence:\t%f", base_vals["se"]), "\n", sep="")
 
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
-if (FALSE) {
-    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
-}
-
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, reg_fit, se_group=df$se_group)
 select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+
+if (FALSE) {
+    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change, rerun_df=rerun_df)
+}
 
 
