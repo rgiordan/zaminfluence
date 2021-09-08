@@ -27,16 +27,16 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs, obs_per_row=1) {
 
 
 
-GetAPIP <- function(infl_lists, delta) {
+GetAPIP <- function(infl_lists, signal) {
     # To produce a negative change, drop observations with positive influence
     # scores, and vice-versa.
-    infl_list <- if (delta < 0) infl_lists$pos else infl_lists$neg
-    n_vec <- 1:infl_list$num_obs
+    infl_list <- if (signal < 0) infl_lists$pos else infl_lists$neg
+    n_vec <- 1:length(infl_list$infl_cumsum)
     # TODO: do this more efficiently using your own routine, since
     # we know that infl_cumsum is increasing?
     n_drop <- approx(x=-1 * c(0, infl_list$infl_cumsum),
                      y=c(0, n_vec),
-                     xout=delta)$y %>% ceiling()
+                     xout=signal)$y %>% ceiling()
     if (is.na(n_drop)) {
         drop_inds <- NA
     } else if (n_drop == 0) {
@@ -75,7 +75,7 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
 
 GetAMIS <- function(infl_list, n_drop=NULL, prop_drop=NULL) {
   if (sum(c(!is.null(n_drop), !is.null(prop_drop)) == 1)) {
-    stop("Only one of `n_drop` and `prop_drop` can be specified.")
+    stop("Exactly one of `n_drop` and `prop_drop` can be specified.")
   }
   if (!is.null(prop_drop)) {
     n_drop <- ceiling(prop_drop * infl_list$num_obs)

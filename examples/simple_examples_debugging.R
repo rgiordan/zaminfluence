@@ -87,31 +87,35 @@ influence_dfs <- SortAndAccumulate(grad_df)
 target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
 
 GetRegressionSignals <- function(betahat, beta_mzse, beta_pzse) {
-    signals <- list()
-    signals$sign <- list(metric="beta", change=-1 * betahat)
-    is_significant <- sign(beta_mzse) == sign(beta_mzse)
+    sign_label <- "sign"
+    sig_label <- "significance"
+    both_label <- "sign and significance"
     
+    signals <- list()
+    signals$sign <- list(metric="beta", signal=-1 * betahat, change=sign_label)
+
+    is_significant <- sign(beta_mzse) == sign(beta_mzse)
     if (is_significant) {
         if (beta_mzse >= 0) { # then beta_pzse > 0 too because significant
-            signals$sig <- list(metric="beta_mzse", change=-1 * beta_mzse)
-            signals$both <- list(metric="beta_pzse", change=-1 * beta_pzse)
+            signals$sig <- list(metric="beta_mzse", signal=-1 * beta_mzse, change=sig_label)
+            signals$both <- list(metric="beta_pzse", signal=-1 * beta_pzse, change=both_label)
         } else if (beta_pzse < 0) { # then beta_mzse < 0 too because significant
-            signals$sig <- list(metric="beta_pzse", change=-1 * beta_pzse)
-            signals$both <- list(metric="beta_mzse", change=-1 * beta_mzse)
+            signals$sig <- list(metric="beta_pzse", signal=-1 * beta_pzse, change=sig_label)
+            signals$both <- list(metric="beta_mzse", signal=-1 * beta_mzse, change=both_label)
         } else {
             stop("Impossible for a significant result")
         }
     } else { # Not significant.  Choose to change the interval endpoint which is closer
         if (abs(beta_mzse) >= abs(beta_pzse)) { 
-            signals$sig <- list(metric="beta_pzse", change=-1 * beta_pzse)
+            signals$sig <- list(metric="beta_pzse", signal=-1 * beta_pzse, change=sig_label)
         } else  { 
-            signals$sig <- list(metric="beta_mzse", change=-1 * beta_mzse)
+            signals$sig <- list(metric="beta_mzse", signal=-1 * beta_mzse, change=sig_label)
         }
         
         if (betahat >= 0) {
-            signals$both <- list(metric="beta_pzse", change=-1 * beta_pzse)
+            signals$both <- list(metric="beta_pzse", signal=-1 * beta_pzse, change=both_label)
         } else {
-            signals$both <- list(metric="beta_mzse", change=-1 * beta_mzse)
+            signals$both <- list(metric="beta_mzse", signal=-1 * beta_mzse, change=both_label)
         }
     }
     return(signals)
@@ -123,14 +127,31 @@ c(betahat=reg_infl$targets[["x1"]]$beta$base_value,
     beta_mzse=reg_infl$targets[["x1"]]$beta_mzse$base_value,
     beta_pzse=reg_infl$targets[["x1"]]$beta_pzse$base_value)
 
-GetRegressionSignals(
+reg_signals <- GetRegressionSignals(
     betahat=reg_infl$targets[["x1"]]$beta$base_value,
     beta_mzse=reg_infl$targets[["x1"]]$beta_mzse$base_value,
     beta_pzse=reg_infl$targets[["x1"]]$beta_pzse$base_value
 )
 
 
+source(file.path(git_repo_dir, "zaminfluence/R/influence_lib.R"))
 
+target_change_df <- data.frame()
+for (target in names(reg_signals)) {
+    reg_signal <- reg_signals[[target]]
+    apip <- GetAPIP(
+        infl_lists=reg_infl$targets[["x1"]][[reg_signal$metric]],
+        signal=reg_signal$signal)
+    target_change_df <- bind_rows(
+        target_change_df,
+        data.frame(reg_signal) %>%
+            mutate(num_removed=apip$n, prop_removed=apip$prop)
+    )   
+}
+
+target_change <- GetRegressionTargetChange(influence_dfs, "num_removed")
+target_change
+target_change_df
 
 
 if (FALSE) {
