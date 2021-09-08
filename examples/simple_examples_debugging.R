@@ -136,22 +136,65 @@ reg_signals <- GetRegressionSignals(
 
 source(file.path(git_repo_dir, "zaminfluence/R/influence_lib.R"))
 
+GetSignalDataFrame <- function(reg_signal) {
+    data.frame(
+        metric=reg_signal$metric,
+        change=reg_signal$change,
+        signal=reg_signal$signal)
+}
+
+estimator_infl <- reg_infl$targets[["x1"]]
+
 target_change_df <- data.frame()
 for (target in names(reg_signals)) {
     reg_signal <- reg_signals[[target]]
     apip <- GetAPIP(
-        infl_lists=reg_infl$targets[["x1"]][[reg_signal$metric]],
+        infl_lists=estimator_infl[[reg_signal$metric]],
         signal=reg_signal$signal)
     target_change_df <- bind_rows(
         target_change_df,
-        data.frame(reg_signal) %>%
+        GetSignalDataFrame(reg_signal) %>%
             mutate(num_removed=apip$n, prop_removed=apip$prop)
-    )   
+    )
+    reg_signals[[target]]$apip <- apip
 }
 
 target_change <- GetRegressionTargetChange(influence_dfs, "num_removed")
 target_change
 target_change_df
+
+rerun_df <- data.frame()
+for (target in names(reg_signals)) {
+    reg_signal <- reg_signals[[target]]
+    w_bool <- GetWeightVector(
+        drop_inds=reg_signal$apip$inds,
+        num_obs=reg_infl$n_obs,
+        bool=TRUE)
+    
+    rerun <- RerunRegression(reg_fit, w_bool=w_bool)
+    estimator_infl$target_index    
+    betahat <- rerun$betahat[[estimator_infl$target_index]]
+    sehat <- rerun$se[[estimator_infl$target_index]]
+    
+    reg_signal$rerun <- rerun
+    apip <- reg_signal$apip
+    sig_num_ses <- estimator_infl$sig_num_ses
+    rerun_df <- bind_rows(
+        rerun_df,
+        GetSignalDataFrame(reg_signal) %>%
+            mutate(
+                num_removed=reg_signal$apip$n, 
+                prop_removed=reg_signal$apip$prop,
+                betahat_refit=betahat,
+                beta_mzse_refit=betahat - sig_num_ses * sehat,
+                beta_pzse_refit=betahat + sig_num_ses * sehat,
+                betahat_orig=estimator_infl$beta$base_value,
+                beta_mzse_orig=estimator_infl$beta_mzse$base_value,
+                beta_pzse_orig=estimator_infl$beta_pzse$base_value)
+    )
+}
+
+rerun_df
 
 
 if (FALSE) {
