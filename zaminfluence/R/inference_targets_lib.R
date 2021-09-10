@@ -180,10 +180,20 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun) {
 # Plotting and visualization functions
 
 
+#' Produce an influence dataframe suitable for visualization.
+#' @param param_infl `r docs$param_infl`
+#' @param sorting_qoi_name The name of a QOI ("beta", "beta_mzse", or
+#' "beta_pzse") whose influence is used to sort the dataframe.
+#' @param max_num_obs (Optional)  Include at most the `max_num_obs`
+#' most influential observations for the sorting QOI.
+#' Default is to include all observations.
+#'
+#' @return A dataframe with predictions, leaving out cumulatively more
+#' points according to the sorting QOI's influence scores.
 #' @export
-GetSortedInfluenceDf <- function(parameter_infl, sorting_qoi_name,
+GetSortedInfluenceDf <- function(param_infl, sorting_qoi_name,
                                  max_num_obs=Inf) {
-    qoi_for_sorting <- parameter_infl[[sorting_qoi_name]]
+    qoi_for_sorting <- param_infl[[sorting_qoi_name]]
 
     GetQOIDf <- function(infl_sign) {
         ordered_inds <- qoi_for_sorting[[infl_sign]]$infl_inds
@@ -195,8 +205,8 @@ GetSortedInfluenceDf <- function(parameter_infl, sorting_qoi_name,
             mutate(prop_dropped=num_dropped / qoi_for_sorting[[infl_sign]]$num_obs,
                    sign=infl_sign)
         for (qoi_name in c("beta", "beta_mzse", "beta_pzse")) {
-            base_value <- parameter_infl[[qoi_name]]$base_value
-            infl_sorted <- parameter_infl[[qoi_name]]$infl[ordered_inds]
+            base_value <- param_infl[[qoi_name]]$base_value
+            infl_sorted <- param_infl[[qoi_name]]$infl[ordered_inds]
             qoi_df[[qoi_name]] <- base_value + cumsum(c(0, infl_sorted))
         }
         return(qoi_df)
@@ -210,7 +220,17 @@ GetSortedInfluenceDf <- function(parameter_infl, sorting_qoi_name,
 }
 
 
-
+#' Plot influence scores, signals, and reruns.
+#' @param influence_df The output of [GetSortedInfluenceDf]
+#' @param plot_num_dropped If TRUE, plot the number dropped on the x-axis.
+#' If FALSE (the default), plot the proportion dropped.
+#' @param apip_max The maximum value for the x-axis (as a number or proportion
+#' according to the value of `plot_num_dropped`).
+#' @param signals (Optional) A list of signals to plot.
+#' @param include_y_zero (Optional) If TRUE (the default), force the y-axis
+#' to include zero and plot a horizontal line.
+#'
+#' @return A plot.
 #' @export
 PlotInfluence <- function(influence_df,
                           plot_num_dropped=FALSE,
@@ -286,8 +306,12 @@ PlotInfluence <- function(influence_df,
 }
 
 
+#' Plot influence scores, signals, and reruns.
+#' @param param_infl `r docs$param_infl`
+#' @param signal `r docs$signal`
+#' @return A plot for the specified signal.
 #'@export
-PlotSignal <- function(parameter_infl, signal, ...) {
-    influence_df <- GetSortedInfluenceDf(parameter_infl, signal$metric)
+PlotSignal <- function(param_infl, signal, ...) {
+    influence_df <- GetSortedInfluenceDf(param_infl, signal$metric)
     PlotInfluence(influence_df, signals=list(signal), ...)
 }
