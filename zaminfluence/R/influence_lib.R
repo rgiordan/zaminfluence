@@ -109,3 +109,9 @@ GetAMIP <- function(infl_list, n_drop=NULL, prop_drop=NULL) {
   }
   return(sum(infl_list$infl_cumsum[n_drop]))
 }
+
+
+#'@export
+PredictChange <- function(qoi_infl, drop_inds) {
+    return(sum(qoi_infl$infl[drop_inds]))
+}

@@ -1,47 +1,112 @@
 
-# The main object is a Model Gradients object.  It is a list and must have
-# - weights:    The original data weights
-# - betahat:   The original estimator (length D)
-# - sehat:      The original standard errors (length D)
-# - n_obs:      The original number of observations
-#
-# - beta_grad:  A matrix (n_obs x D) of beta gradients
-# - se_grad:    A matrix (n_obs x D) of se gradients
-#
-# For a regression, it must also have
-# - regressor_names:    The names of the regressors
-# - model_fit:          Everything you need to re-run stuff
+# Overall organization
 
-# Then maybe a parameter inference object?  Need a better name.
-# It has a:
-# - target_index:   The index into betahat
-# - sig_num_ses:    The number of ses that form a confidence interval
-# - beta, beta_mzse, beta_pzse:
-# Influence summary objects (quantity of interest objects?)
+The code is organized into a hierarchy of objects, which I try to refer
+to using common variable names.
 
-# QOI influence
-# Influence summary objects contain an processed influence vector.
-# (Quantity of interest objects?)
-# They are the influence scores for a single quantity of interest.
-# They are created with ProcessInfluenceVector().  Then contain
-# - base_value:     The original value of the quantity of interest
-# - neg, pos:       Sorted influence scores for the negative and positive
-#                    influence scores, where.
-# Sorted influence scores (neg and pos) have
-# - infl_inds:      Indices into the original data that sort the influence
-#                   scores of the corresponding sign.  E.g., infl_inds[1]
-#                   for the `neg` entry is the index of the most negative
-#                   influence score.
-# - infl_cumsum:    The cumulative sum of the sorted influences scores with
-#                   the specified sign.
-# - num_obs:        The total number of observations (is this necessary?  As of now, #                   yes, for plotting.)
-# - obs_per_row:    The number of observations per row (is this necessary?)
+- Model Gradients (`model_grads`).  They contain information for an
+entire model, including all the information needed to re-run it, and all the
+gradients that will be needed to compute influence functions.
+A Model Gradients object will typically
+contain a number of Parameter Influence objects.
+- Parameter Influence (`param_infl`).  A parameter influence object
+stores a number of quantities of interest and their influence functions for
+a particular parameter in the model.
+A Parameter Influence object will contain a number of
+Quantity of Interest objects.
+- Quantity of Interest (QOI) object (`qoi`).  This contains all information about a
+particular quantity of interest, including sorted influence functions and
+the base value.  The key quantites of our paper --- the approximate
+perturbation-inducing proportion (APIP), approximate maximally influential
+set (AMIS), and approximate maximumally influential perturbation (AMIP) ---
+are computed from Quantity of Interest objects.
+- Signal objects (`signal`).  A signal object stores information about a
+particular change in a quantity of interest, including a description of
+what the change means, the approximate
+perturbation-inducing proportion (APIP), the corresponding approximate maximally
+influential set (AMIS), and, optionally, the result of a re-run.  A signal
+only uses a single Quantity of Interest, but a Quantity of Interest may
+appear in more than one signal, if changes of different magnitudes have
+different meanings.
 
+The code has an organization that corresponds to the above structures.
 
+- Model Gradient objects for regression are computed in `ols_iv_grads_lib.R`.
+- QOI objects are computed and wrangled in `influence_lib.R`.
+- Parameter influence and signal objects dealing with changes of sign,
+significance, and both sign and significance are constructed and wrangled in
+`inference_targets_lib.R`.
+- Helper functions for re-running regressions at particular weight vectors
+are in `rerun_lib.R`.
 
-# Then there are signals, which are changes in quantities of interest
-# that produce certain changes.  A signal can have
-# - metric:         The name of the quantity of interest
-# - signal:         The amount to change the quantity of interest
-# - description:    A summary of what the change means
-# - apip:           The APIP for this particular change
+# Details
+
+### Model Gradients
+
+The most capacious object is a Model Gradients object.  A model is a fit
+of a `D`-dimensional parameter using `n_obs` datapoints  It is a list and must
+have the following fields:
+- `weights`:    The original data weights (length `n_obs`)
+- `betahat`:   The original estimator (length `D`)
+- `se`:      The original standard errors (length `D`)
+- `n_obs`:      The original number of observations
+- `beta_grad`:  A matrix (`n_obs` x `D`) of gradients of the point estimates
+- `se_grad`:    A matrix (`n_obs` x `D`) of gradients of the standard errors
+- `regressor_names`:    The names of the regressors
+- `model_fit`:          Everything you need to re-fit the model
+- `targets`:  An (optional) list of Parameter Influence objects.
+
+### Parameter Influence
+
+A Parameter Influence object contains influence scores for inference concerning
+a single parameter form a Model Gradients object.  They are
+created with `AppendTargetRegressorInfluence`.
+It is a list and must have the following fields:
+- `target_index`:   The index into betahat
+- `sig_num_ses`:    The number of ses that form a confidence interval
+- `beta`:  A QOI object for the point estimate
+- `beta_mzse`:  A QOI object for the lower end of a confidence
+interval ("minus z standard errors").
+- `beta_pzse`:  A QOI object for the upper end of a confidence
+interval ("plus z standard errors").
+
+### Quantity of Interest
+
+QOI objects contain a processed influence vector for a particular scalar-valued
+quantity of interest.
+They are created with `ProcessInfluenceVector`.  Then contain
+- `base_value`:     The original value of the quantity of interest
+- `neg`, `pos`:       Sorted influence scores for the negative and positive
+- `infl`: The unsorted influence scores (in the same order as the original data)
+influence scores, where sorted influence scores have:
+- `infl_inds`:      Indices into the original data that sort the influence
+scores of the corresponding sign.  For example, `infl_inds[1]`
+for the `neg` entry is the index in the order of the original
+data of the most negative influence score.  Equivalently,
+`infl[neg$infl_inds[1]] == min(infl)`, and
+`infl[pos$infl_inds[1]] == max(infl)`.
+- `infl_cumsum`:    The cumulative sum of the sorted influences scores with
+the specified sign.
+- `num_obs`:        The total number of observations (is this necessary?)
+- `obs_per_row`:    The number of observations per row (is this necessary?)
+
+QOI objects can be maniupated using functions in `influence_lib.R`.
+
+### Signal
+
+A signal records a target change in a QOI.  A signal is a list and must have
+- `metric`:         The name of the quantity of interest
+- `signal`:         The amount to change the quantity of interest
+- `change`:    A plain language description of what the change means
+- `apip`:           The APIP for this particular change, which contains
+    - `n`: The number of points to remove
+    - `prop`: The proportion of points to remove
+    - `inds`: The indices (in the original data order) of the data dropped in the corresponding AMIS.
+
+Currently, signals are created with `GetRegressionSignals`, which defines signals
+to change the sign, significance, and both sign and significance.
+
+Optionally, a signal may also contain:
+- `rerun`: The complete result of a re-run at the AMIS.
+- `rerun_df`: A tidy summary dataframe of the predicted and actual changes
+in the parameter and its confidence interval.

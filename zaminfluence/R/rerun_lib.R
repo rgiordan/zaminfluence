@@ -1,11 +1,46 @@
 
-######################
+#############################################################
 # Functions to help re-running to check the approximations.
-
-
 
 #######################################
 # Functions for ordinary regression
+
+
+#' Run a regression using zaminfluence code.  This should be identical
+#' to ordinary regression.
+#'
+#' @param lm_result `r docs$lm_result`
+#' @param weights `r docs$weights`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$rerun_return`
+#'
+#' @export
+ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
+  reg_vars <- GetRegressionVariables(lm_result)
+  if (is.null(weights)) {
+    weights <- reg_vars$w0
+  }
+
+  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
+  reg_coeff <- GetRegressionCoefficients(
+    x=reg_vars$x, y=reg_vars$y, w0=weights)
+
+  reg_grad_list <- GetRegressionSEDerivs(
+    x=reg_vars$x,
+    y=reg_vars$y,
+    beta=reg_coeff$betahat,
+    w0=weights,
+    se_group=se_group,
+    testing=FALSE,
+    compute_derivs=FALSE)
+  return(list(
+    betahat=reg_grad_list$betahat,
+    se=reg_grad_list$se,
+    se_mat=reg_grad_list$se_mat
+  ))
+}
+
 
 #' Rerun the regression with a new subset of rows.
 #'@param w_bool A boolean vector of rows to keep in the original dataframe.
@@ -36,6 +71,70 @@ RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
 
 #######################################
 # Functions for IV regression
+
+
+
+
+#' Compute the standard error matrix for an IV regression.  Deprecated --- use
+#' [ComputeIVRegressionResults()] instead.
+#'
+#' @param iv_res `r docs$iv_res`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$grad_return`
+#'
+#' @export
+ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
+  warning(paste0(
+    "ComputeIVRegressionErrorCovariance is deprecated; use the ",
+    "se_mat output of ComputeIVRegressionResults instead."))
+  iv_vars <- GetIVVariables(iv_res)
+  iv_grad_list <- GetIVSEDerivs(
+    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+    beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+  return(iv_grad_list$se_mat)
+}
+
+
+#' Run an IV regression using zaminfluence code.  This should be identical
+#' to ordinary regression.
+#'
+#' @param lm_result `r docs$lm_result`
+#' @param weights `r docs$weights`
+#' @param se_group `r docs$se_group`
+#'
+#' @return A list containing the regression coefficients and standard errors.
+#' @export
+ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
+  iv_vars <- GetIVVariables(iv_res)
+  if (is.null(weights)) {
+    weights <- iv_vars$w0
+  }
+
+  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
+  iv_coeff <- GetIVCoefficients(
+    x=iv_vars$x,
+    z=iv_vars$z,
+    y=iv_vars$y,
+    w0=weights)
+
+  iv_grad_list <- GetIVSEDerivs(
+    x=iv_vars$x,
+    z=iv_vars$z,
+    y=iv_vars$y,
+    beta=iv_coeff$betahat,
+    w0=weights,
+    se_group=se_group,
+    testing=FALSE,
+    compute_derivs=FALSE)
+
+  return(list(
+    betahat=iv_grad_list$betahat,
+    se=iv_grad_list$se,
+    se_mat=iv_grad_list$se_mat
+  ))
+}
+
 
 
 #' Rerun the regression with a new subset of rows.
