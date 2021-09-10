@@ -43,19 +43,13 @@ reg_signals <-
     GetRegressionSignals(reg_infl$targets[["x1"]]) %>%
     RerunForTargetChanges(reg_infl)
 
+# reg_signals <- GetRegressionSignals(reg_infl$targets[["x1"]])
+# RerunForTargetChanges(reg_signals, reg_infl)
+# reg_infl$targets[["x1"]] %>% names()
 
-reg_infl$targets[["x1"]] %>% names()
-
-target_change_df <- 
-    lapply(reg_signals, GetSignalDataFrame) %>%
+rerun_df <- 
+    lapply(c("sign", "sig", "both"), 
+           function(x) { reg_signals[[x]]$rerun_df }) %>%
     do.call(bind_rows, .)
 
 
-rerun_df <- data.frame()
-for (reg_signal in reg_signals) {
-    rerun_df <- bind_rows(
-        rerun_df,
-    )
-}
-
-rerun_df

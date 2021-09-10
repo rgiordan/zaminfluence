@@ -655,6 +655,7 @@ AppendTargetRegressorInfluence <- function(reg_infl, target_regressor,
 
     target_list <- list(
         target_index=target_index,
+        target_regressor=target_regressor,
         beta=ProcessInfluenceVector(
             infl=beta_grad,
             base_value=betahat,
@@ -686,8 +687,9 @@ GetRegressionSignals <- function(estimator_infl) {
     both_label <- "sign and significance"
 
     signals <- list()
-    signals$target_index <- estimator_infl$target_index
-    signals$sig_num_ses <- estimator_infl$sig_num_ses
+    # signals$target_index <- estimator_infl$target_index
+    # signals$sig_num_ses <- estimator_infl$sig_num_ses
+    signals$target_regressor <- estimator_infl$target_regressor
     signals$sign <- list(metric="beta", signal=-1 * betahat, change=sign_label)
 
     is_significant <- sign(beta_mzse) == sign(beta_mzse)
@@ -724,8 +726,8 @@ GetRegressionSignals <- function(estimator_infl) {
         }
     }
 
-    # Get the APIP
-    for (target in names(signals)) {
+    # Get the APIP for all the signals
+    for (target in c("sign", "sig", "both")) {
         reg_signal <- signals[[target]]
         apip <- GetAPIP(
             infl_lists=estimator_infl[[reg_signal$metric]],
@@ -750,7 +752,7 @@ GetSignalDataFrame <- function(reg_signal) {
 
 #' @export
 RerunForTargetChanges <- function(signals, reg_infl) {
-  for (target in names(signals)) {
+  for (target in c("sign", "sig", "both")) {
       reg_signal <- signals[[target]]
       w_bool <- GetWeightVector(
           drop_inds=reg_signal$apip$inds,
@@ -762,10 +764,11 @@ RerunForTargetChanges <- function(signals, reg_infl) {
       # Save the whole rerun
       signals[[target]]$rerun <- rerun
 
+      regressor_infl <- reg_infl$targets[[signals$target_regressor]]
       # Make a nice dataframe with the targeted regressor
-      betahat <- rerun$betahat[[signals$target_index]]
-      sehat <- rerun$se[[signals$target_index]]
-      sig_num_ses <- signals$sig_num_ses
+      betahat <- rerun$betahat[[regressor_infl$target_index]]
+      sehat <- rerun$se[[regressor_infl$target_index]]
+      sig_num_ses <- regressor_infl$sig_num_ses
 
       signals[[target]]$rerun_df <-
           GetSignalDataFrame(reg_signal) %>%
@@ -773,9 +776,9 @@ RerunForTargetChanges <- function(signals, reg_infl) {
                   betahat_refit=betahat,
                   beta_mzse_refit=betahat - sig_num_ses * sehat,
                   beta_pzse_refit=betahat + sig_num_ses * sehat,
-                  betahat_orig=estimator_infl$beta$base_value,
-                  beta_mzse_orig=estimator_infl$beta_mzse$base_value,
-                  beta_pzse_orig=estimator_infl$beta_pzse$base_value)
+                  betahat_orig=regressor_infl$beta$base_value,
+                  beta_mzse_orig=regressor_infl$beta_mzse$base_value,
+                  beta_pzse_orig=regressor_infl$beta_pzse$base_value)
   }
   return(signals)
 }
