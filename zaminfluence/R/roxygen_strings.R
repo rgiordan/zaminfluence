@@ -17,7 +17,7 @@ docs <- list(
     "produced by [GetRegressionSignals])."),
   apip=paste0("An approximation perturbation inducing proportion object ",
 "(e.g. as produced by [GetAPIP])"),
-drop_inds="The indices to drop (in the order of the original data)"
+drop_inds="The indices to drop (in the order of the original data)",
 
   model_fit="The fit from [lm()] or [AER::ivreg()].",
   lm_result="The regression result, i.e, the output of [lm()].",
@@ -37,7 +37,8 @@ drop_inds="The indices to drop (in the order of the original data)"
     "  \\item{n_obs}{The number of observations given weights} \n",
     "  \\item{regressor_names}{The names of the regressors as strings} \n",
     "  \\item{grad_fun}{The function used to compute the derivatives} \n",
-    "  \\item{betahat}{The estimated regression coefficient at the original weights} \n",
+    "  \\item{betahat}{The estimated regression coefficient ",
+    "at the original weights} \n",
     "  \\item{se}{The standard errors at the original weights} \n",
     "  \\item{weights}{The original weights} \n",
     "  \\item{beta_grad}{The gradient of betahat with respect to the weights} \n",

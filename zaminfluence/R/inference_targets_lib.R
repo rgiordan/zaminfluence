@@ -2,22 +2,32 @@ library(ggplot2)
 library(latex2exp)
 
 
+#' Compute the influence scores for a particular parameter.
+#' @param model_grads `r docs$model_grads`
+#' @param target_regressor The string naming a regressor (must be an
+#' entry in [model_grads$regressor_names]).
+#' @param sig_num_ses `r docs$sig_num_ses`
+#'
+#' @return The original `model_grads`, with an entry
+#' `model_grads$targets[[target_regressor]]` containing a
+#' parameter influence object.
+#'
 #'@export
-AppendTargetRegressorInfluence <- function(reg_infl, target_regressor,
+AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
                                            sig_num_ses=qnorm(0.975)) {
-    if (is.null(reg_infl[["targets"]])) {
-        reg_infl$targets <- list()
+    if (is.null(model_grads[["targets"]])) {
+        model_grads$targets <- list()
     }
-    target_index <- which(reg_infl$regressor_names == target_regressor)
+    target_index <- which(model_grads$regressor_names == target_regressor)
     if (length(target_index) != 1) {
         stop("Error finding target regressor in the regression.")
     }
 
-    se_grad <- reg_infl$weights * reg_infl$se_grad[target_index,]
-    beta_grad <- reg_infl$weights * reg_infl$beta_grad[target_index, ]
-    betahat <- reg_infl$betahat[target_index]
-    sehat <- reg_infl$se[target_index]
-    n_obs <- reg_infl$n_obs
+    se_grad <- model_grads$weights * model_grads$se_grad[target_index,]
+    beta_grad <- model_grads$weights * model_grads$beta_grad[target_index, ]
+    betahat <- model_grads$betahat[target_index]
+    sehat <- model_grads$se[target_index]
+    n_obs <- model_grads$n_obs
 
     target_list <- list(
         target_index=target_index,
@@ -37,25 +47,27 @@ AppendTargetRegressorInfluence <- function(reg_infl, target_regressor,
         sig_num_ses=sig_num_ses
     )
 
-    reg_infl$targets[[target_regressor]] <- target_list
-    return(reg_infl)
+    model_grads$targets[[target_regressor]] <- target_list
+    return(model_grads)
 }
 
-
+#' Compute the signals for changes to sign, significance, and both.
+#' @param param_infl `r docs$param_infl`
+#'
+#' @return A list of signals, named "sign", "sig", and "both".  Each
+#' entry is a `signal` object.
 #' @export
-GetRegressionSignals <- function(estimator_infl) {
-    betahat <- estimator_infl$beta$base_value
-    beta_mzse <- estimator_infl$beta_mzse$base_value
-    beta_pzse <- estimator_infl$beta_pzse$base_value
+GetRegressionSignals <- function(param_infl) {
+    betahat <- param_infl$beta$base_value
+    beta_mzse <- param_infl$beta_mzse$base_value
+    beta_pzse <- param_infl$beta_pzse$base_value
 
     sign_label <- "sign"
     sig_label <- "significance"
     both_label <- "sign and significance"
 
     signals <- list()
-    # signals$target_index <- estimator_infl$target_index
-    # signals$sig_num_ses <- estimator_infl$sig_num_ses
-    signals$target_regressor <- estimator_infl$target_regressor
+    signals$target_regressor <- param_infl$target_regressor
     signals$sign <- list(metric="beta", signal=-1 * betahat, change=sign_label)
 
     is_significant <- sign(beta_mzse) == sign(beta_mzse)
@@ -94,10 +106,10 @@ GetRegressionSignals <- function(estimator_infl) {
 
     # Get the APIP for all the signals
     for (target in c("sign", "sig", "both")) {
-        reg_signal <- signals[[target]]
+        signal <- signals[[target]]
         apip <- GetAPIP(
-            infl_lists=estimator_infl[[reg_signal$metric]],
-            signal=reg_signal$signal)
+            infl_lists=param_infl[[signal$metric]],
+            signal=signal$signal)
         signals[[target]]$apip <- apip
     }
 
@@ -105,39 +117,53 @@ GetRegressionSignals <- function(estimator_infl) {
 }
 
 
+#' Produce a tidy dataframe summarizing a signal.
+#' @param signal `r docs$signal`
+#'
+#' @return A dataframe summarizing the signal.
 #' @export
-GetSignalDataFrame <- function(reg_signal) {
+GetSignalDataFrame <- function(signal) {
     data.frame(
-        metric=reg_signal$metric,
-        change=reg_signal$change,
-        signal=reg_signal$signal,
-        num_removed=reg_signal$apip$n,
-        prop_removed=reg_signal$apip$prop)
+        metric=signal$metric,
+        change=signal$change,
+        signal=signal$signal,
+        num_removed=signal$apip$n,
+        prop_removed=signal$apip$prop)
 }
 
 
+#' Rerun the model at the AMIS for a set of signals.
+#' @param signals `A list of signal objects, "sign", "sig", "both",
+#' as produced by [GetRegressionSignals].
+#' @param model_grads `r docs$model_grads`
+#' @param RerunFun A function taking as inputs `model_grads$model_fit`
+#' and a vector of weights, and return a rerun object.
+#'
+#' @return The original `signals`, with two new fields:
+#' - rerun_df: A dataframe summarizing the rerun.
+#' - rerun: The complete rerun result.
 #' @export
-RerunForTargetChanges <- function(signals, reg_infl) {
+RerunForTargetChanges <- function(signals, model_grads, RerunFun) {
   for (target in c("sign", "sig", "both")) {
-      reg_signal <- signals[[target]]
+      signal <- signals[[target]]
       w_bool <- GetWeightVector(
-          drop_inds=reg_signal$apip$inds,
-          num_obs=reg_infl$n_obs,
+          drop_inds=signal$apip$inds,
+          num_obs=model_grads$n_obs,
           bool=TRUE)
 
-      rerun <- RerunRegression(reg_infl$model_fit, w_bool=w_bool)
+      rerun <- Rerun(model_grads$model_fit, w_bool=w_bool)
 
       # Save the whole rerun
       signals[[target]]$rerun <- rerun
 
-      regressor_infl <- reg_infl$targets[[signals$target_regressor]]
+      regressor_infl <- model_grads$targets[[signals$target_regressor]]
       # Make a nice dataframe with the targeted regressor
       betahat <- rerun$betahat[[regressor_infl$target_index]]
       sehat <- rerun$se[[regressor_infl$target_index]]
       sig_num_ses <- regressor_infl$sig_num_ses
 
       signals[[target]]$rerun_df <-
-          GetSignalDataFrame(reg_signal) %>%
+          GetSignalDataFrame(signal) %>%
               mutate(
                   betahat_refit=betahat,
                   beta_mzse_refit=betahat - sig_num_ses * sehat,
@@ -150,9 +176,13 @@ RerunForTargetChanges <- function(signals, reg_infl) {
 }
 
 
+################################################################################
+# Plotting and visualization functions
+
 
 #' @export
-GetSortedInfluenceDf <- function(parameter_infl, sorting_qoi_name, max_num_obs=Inf) {
+GetSortedInfluenceDf <- function(parameter_infl, sorting_qoi_name,
+                                 max_num_obs=Inf) {
     qoi_for_sorting <- parameter_infl[[sorting_qoi_name]]
 
     GetQOIDf <- function(infl_sign) {
@@ -185,17 +215,17 @@ GetSortedInfluenceDf <- function(parameter_infl, sorting_qoi_name, max_num_obs=I
 PlotInfluence <- function(influence_df,
                           plot_num_dropped=FALSE,
                           apip_max=NULL,
-                          reg_signals=NULL,
+                          signals=NULL,
                           include_y_zero=TRUE) {
 
-    PlotRegSignal <- function(plot, reg_signal) {
+    PlotRegSignal <- function(plot, signal) {
         alpha_type <- if (plot_num_dropped) "n" else "prop"
-        alpha <- reg_signal$apip[[alpha_type]]
+        alpha <- signal$apip[[alpha_type]]
         if (is.null(apip_max) || (!is.null(apip_max) && alpha <= apip_max)) {
             plot <- plot + geom_vline(aes(xintercept=!!alpha,
-                                          linetype=!!reg_signal$change))
-            if (!is.null(reg_signal$rerun_df)) {
-                rerun_df <- reg_signal$rerun_df
+                                          linetype=!!signal$change))
+            if (!is.null(signal$rerun_df)) {
+                rerun_df <- signal$rerun_df
                 stopifnot(nrow(rerun_df) == 1)
                 plot <-
                     plot +
@@ -229,9 +259,9 @@ PlotInfluence <- function(influence_df,
             plot +
             geom_line(aes(y=0.0), col="gray50")
     }
-    if (!is.null(reg_signals)) {
-        for (reg_signal in reg_signals) {
-            plot <- PlotRegSignal(plot,  reg_signal)
+    if (!is.null(signals)) {
+        for (signal in signals) {
+            plot <- PlotRegSignal(plot,  signal)
         }
         plot <- plot + guides(linetype=guide_legend(title="Change type"))
     }
@@ -257,7 +287,7 @@ PlotInfluence <- function(influence_df,
 
 
 #'@export
-PlotSignal <- function(parameter_infl, reg_signal, ...) {
-    influence_df <- GetSortedInfluenceDf(parameter_infl, reg_signal$metric)
-    PlotInfluence(influence_df, reg_signals=list(reg_signal), ...)
+PlotSignal <- function(parameter_infl, signal, ...) {
+    influence_df <- GetSortedInfluenceDf(parameter_infl, signal$metric)
+    PlotInfluence(influence_df, signals=list(signal), ...)
 }

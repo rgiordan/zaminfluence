@@ -4,6 +4,9 @@
 The code is organized into a hierarchy of objects, which I try to refer
 to using common variable names.
 
+TODO: Define rerun objects, too.
+
+
 - **Model Gradients** objects (`model_grads`).  They contain information for an
 entire model, including all the information needed to re-run it, and all the
 gradients that will be needed to compute influence functions.
