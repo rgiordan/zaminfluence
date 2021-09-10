@@ -4,23 +4,26 @@
 The code is organized into a hierarchy of objects, which I try to refer
 to using common variable names.
 
-- Model Gradients (`model_grads`).  They contain information for an
+- **Model Gradients** objects (`model_grads`).  They contain information for an
 entire model, including all the information needed to re-run it, and all the
 gradients that will be needed to compute influence functions.
 A Model Gradients object will typically
 contain a number of Parameter Influence objects.
-- Parameter Influence (`param_infl`).  A parameter influence object
+- **Parameter Influence**  objects (`param_infl`).  A parameter influence object
 stores a number of quantities of interest and their influence functions for
 a particular parameter in the model.
 A Parameter Influence object will contain a number of
-Quantity of Interest objects.
-- Quantity of Interest (QOI) object (`qoi`).  This contains all information about a
+Quantity of Interest objects.  Currently library, the three
+quantities of interest stored for each parameter are its point estimate
+and the two ends of a confidence interval.
+- **Quantity of Interest (QOI)** objects (`qoi`).  This contains
+information about a
 particular quantity of interest, including sorted influence functions and
 the base value.  The key quantites of our paper --- the approximate
 perturbation-inducing proportion (APIP), approximate maximally influential
 set (AMIS), and approximate maximumally influential perturbation (AMIP) ---
-are computed from Quantity of Interest objects.
-- Signal objects (`signal`).  A signal object stores information about a
+are computed for and from Quantity of Interest objects.
+- **Signal** objects (`signal`).  A signal object stores information about a
 particular change in a quantity of interest, including a description of
 what the change means, the approximate
 perturbation-inducing proportion (APIP), the corresponding approximate maximally
@@ -39,11 +42,12 @@ significance, and both sign and significance are constructed and wrangled in
 - Helper functions for re-running regressions at particular weight vectors
 are in `rerun_lib.R`.
 
-# Details
+# Data Structure Details
 
 ### Model Gradients
 
-The most capacious object is a Model Gradients object.  A model is a fit
+The most capacious object is a Model Gradients object.  They are
+created with `ComputeModelInfluence`.  A model is a fit
 of a `D`-dimensional parameter using `n_obs` datapoints  It is a list and must
 have the following fields:
 - `weights`:    The original data weights (length `n_obs`)
@@ -76,19 +80,19 @@ QOI objects contain a processed influence vector for a particular scalar-valued
 quantity of interest.
 They are created with `ProcessInfluenceVector`.  Then contain
 - `base_value`:     The original value of the quantity of interest
-- `neg`, `pos`:       Sorted influence scores for the negative and positive
 - `infl`: The unsorted influence scores (in the same order as the original data)
+- `num_obs`:        The total number of observations (is this necessary?)
+- `obs_per_row`:    The number of observations per row (is this necessary?)
+- `neg`, `pos`:       Sorted influence scores for the negative and positive
 influence scores, where sorted influence scores have:
-- `infl_inds`:      Indices into the original data that sort the influence
+  - `infl_inds`:      Indices into the original data that sort the influence
 scores of the corresponding sign.  For example, `infl_inds[1]`
 for the `neg` entry is the index in the order of the original
 data of the most negative influence score.  Equivalently,
 `infl[neg$infl_inds[1]] == min(infl)`, and
 `infl[pos$infl_inds[1]] == max(infl)`.
-- `infl_cumsum`:    The cumulative sum of the sorted influences scores with
+  - `infl_cumsum`:    The cumulative sum of the sorted influences scores with
 the specified sign.
-- `num_obs`:        The total number of observations (is this necessary?)
-- `obs_per_row`:    The number of observations per row (is this necessary?)
 
 QOI objects can be maniupated using functions in `influence_lib.R`.
 
