@@ -51,11 +51,11 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs=NULL, obs_per_row=1
 GetAPIP <- function(qoi, signal) {
     # To produce a negative change, drop observations with positive influence
     # scores, and vice-versa.
-    qoi <- if (signal < 0) qois$pos else qois$neg
-    n_vec <- 1:length(qoi$infl_cumsum)
+    qoi_sign <- if (signal < 0) qoi$pos else qoi$neg
+    n_vec <- 1:length(qoi_sign$infl_cumsum)
     # TODO: do this more efficiently using your own routine, since
     # we know that infl_cumsum is increasing?
-    n_drop <- approx(x=-1 * c(0, qoi$infl_cumsum),
+    n_drop <- approx(x=-1 * c(0, qoi_sign$infl_cumsum),
                      y=c(0, n_vec),
                      xout=signal)$y %>% ceiling()
     if (is.na(n_drop)) {
@@ -63,11 +63,11 @@ GetAPIP <- function(qoi, signal) {
     } else if (n_drop == 0) {
         drop_inds <- c()
     } else {
-        drop_inds <- qoi$infl_inds[1:n_drop]
+        drop_inds <- qoi_sign$infl_inds[1:n_drop]
     }
     return(list(
         n=n_drop,
-        prop=n_drop / qoi$num_obs,
+        prop=n_drop / qoi_sign$num_obs,
         inds=drop_inds
     ))
 }

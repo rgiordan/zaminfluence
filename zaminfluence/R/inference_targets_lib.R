@@ -108,7 +108,7 @@ GetRegressionSignals <- function(param_infl) {
     for (target in c("sign", "sig", "both")) {
         signal <- signals[[target]]
         apip <- GetAPIP(
-            infl_lists=param_infl[[signal$metric]],
+            qoi=param_infl[[signal$metric]],
             signal=signal$signal)
         signals[[target]]$apip <- apip
     }
@@ -151,7 +151,7 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun) {
           num_obs=model_grads$n_obs,
           bool=TRUE)
 
-      rerun <- Rerun(model_grads$model_fit, w_bool=w_bool)
+      rerun <- RerunFun(model_grads$model_fit, w_bool=w_bool)
 
       # Save the whole rerun
       signals[[target]]$rerun <- rerun
