@@ -1,5 +1,6 @@
 
 
+#' @export
 ProcessInfluenceVector <- function(infl, base_value, num_obs, obs_per_row=1) {
     infl_pos <- infl > 0
     infl_neg <- infl < 0
@@ -26,7 +27,7 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs, obs_per_row=1) {
 }
 
 
-
+#' @export
 GetAPIP <- function(infl_lists, signal) {
     # To produce a negative change, drop observations with positive influence
     # scores, and vice-versa.
@@ -52,6 +53,7 @@ GetAPIP <- function(infl_lists, signal) {
 }
 
 
+#' @export
 GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
   if (bool) {
     w <- rep(TRUE, num_obs)
@@ -73,6 +75,7 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
 }
 
 
+#' @export
 GetAMIS <- function(infl_list, n_drop=NULL, prop_drop=NULL) {
   if (sum(c(!is.null(n_drop), !is.null(prop_drop)) == 1)) {
     stop("Exactly one of `n_drop` and `prop_drop` can be specified.")
@@ -84,6 +87,7 @@ GetAMIS <- function(infl_list, n_drop=NULL, prop_drop=NULL) {
 }
 
 
+#' @export
 GetAMIP <- function(infl_list, n_drop=NULL, prop_drop=NULL) {
   if (sum(c(!is.null(n_drop), !is.null(prop_drop)) == 1)) {
     stop("Only one of `n_drop` and `prop_drop` can be specified.")

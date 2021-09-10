@@ -635,103 +635,147 @@ ComputeModelInfluence <- function(model_fit, se_group=NULL) {
   }
 }
 
-#' Compute the gradients of the upper and lower bounds of confidence intervals
-#' from the gradients of `betahat` and `se` with respect to the weights.
-#'
-#' @param grad_df The output of [ComputeModelInfluence()]
-#' @param sig_num_ses `r docs$sig_num_ses`
-#'
-#' @return `grad_df`, augmented with the interval derivatives and attributes.
-#'
-#' @export
-AppendIntervalColumns <- function(grad_df, sig_num_ses) {
-  grad_df[["beta_pzse_grad"]] <-
-    grad_df[["beta_grad"]] + sig_num_ses * grad_df[["se_grad"]]
-  grad_df[["beta_mzse_grad"]] <-
-    grad_df[["beta_grad"]] - sig_num_ses * grad_df[["se_grad"]]
-  base_vals <- attr(grad_df, "base_vals")
-  base_vals_names <- names(base_vals)
-  base_vals <- c(base_vals,
-                 base_vals["beta"] + sig_num_ses * base_vals["se"],
-                 base_vals["beta"] - sig_num_ses * base_vals["se"])
-  names(base_vals) <- c(base_vals_names,
-                        "beta_pzse",
-                        "beta_mzse")
-  attr(grad_df, "base_vals") <- base_vals
-  attr(grad_df, "sig_num_ses") <- sig_num_ses
-  return(grad_df)
-}
 
-
-#' Get the influence scores for a particular regressor.
-#'
-#' @param reg_infl The gradients, e.g. as computed by [ComputeModelInfluence()].
-#' @param target_regressor The name of the regressor to target.  This should
-#' correspond to the name of a column of the `x` matrix of the original fit.
-#' @param sig_num_ses `r docs$sig_num_ses`
-#'
-#' @return A gradient dataframe for the specified coefficient with extra
-#' attributes set, suitable for passing to [SortAndAccumulate()].
-#'
-#' @export
-GetTargetRegressorGrads <- function(reg_infl, target_regressor,
-                                    sig_num_ses=qnorm(0.975)) {
+#'@export
+AppendTargetRegressorInfluence <- function(reg_infl, target_regressor,
+                                           sig_num_ses=qnorm(0.975)) {
+    if (is.null(reg_infl[["targets"]])) {
+        reg_infl$targets <- list()
+    }
     target_index <- which(reg_infl$regressor_names == target_regressor)
     if (length(target_index) != 1) {
         stop("Error finding target regressor in the regression.")
     }
 
-    # The reg_infl$*_grad columns are derivatives with respect to each
-    # observation at `weights`.  They are converted to derivatives with respect
-    # to a weight scaled to be one at inclusion and zero at exclusion by the
-    # chain rule.
-    grad_df <-
-      data.frame(
-        row=1:reg_infl$n_obs,
-        weights=reg_infl$weights,
-        se_grad=reg_infl$weights * reg_infl$se_grad[target_index,],
-        beta_grad=reg_infl$weights * reg_infl$beta_grad[target_index, ],
-        obs_per_row=1)
+    se_grad <- reg_infl$weights * reg_infl$se_grad[target_index,]
+    beta_grad <- reg_infl$weights * reg_infl$beta_grad[target_index, ]
+    betahat <- reg_infl$betahat[target_index]
+    sehat <- reg_infl$se[target_index]
+    n_obs <- reg_infl$n_obs
 
-    attr(grad_df, "n_obs") <- reg_infl$n_obs
-    attr(grad_df, "n_grad_rows") <- reg_infl$n_obs
-    attr(grad_df, "obs_per_row_col") <- "obs_per_row"
-    base_vals <- c(
-        reg_infl$betahat[target_index],
-        reg_infl$se[target_index])
-    names(base_vals) <- c("beta", "se")
-    attr(grad_df, "base_vals") <- base_vals
-    attr(grad_df, "target_regressor") <- target_regressor
-    attr(grad_df, "target_index") <- target_index
-    attr(grad_df, "data_row_cols") <- "row"
+    target_list <- list(
+        target_index=target_index,
+        beta=ProcessInfluenceVector(
+            infl=beta_grad,
+            base_value=betahat,
+            num_obs=n_obs),
+        beta_mzse=ProcessInfluenceVector(
+            infl=beta_grad - sig_num_ses * se_grad,
+            base_value=betahat - sig_num_ses * sehat,
+            num_obs=n_obs),
+        beta_pzse=ProcessInfluenceVector(
+            infl=beta_grad + sig_num_ses * se_grad,
+            base_value=betahat + sig_num_ses * sehat,
+            num_obs=n_obs),
+        sig_num_ses=sig_num_ses
+    )
 
-    grad_df <- AppendIntervalColumns(grad_df, sig_num_ses=sig_num_ses)
-
-    return(grad_df)
+    reg_infl$targets[[target_regressor]] <- target_list
+    return(reg_infl)
 }
 
 
-#' Copy the attributes needed for sorting.
-#'
-#' Sometimes if you copy or modify the gradient dataframe returned by
-#' [GetTargetRegressorGrads()], e.g. by merging with another data source,
-#' the attributes required for running [SortAndAccumulate()] are lost.
-#' This function copies the required attributes over from the original
-#' dataframe.
-#'
-#' @param new_df The dataframe to receive the attributes
-#' @param grad_df `r docs$grad_df`
-#'
-#' @return `new_df`, but with the needed attributes of `grad_df` set.
-#'
 #' @export
-CopyGradAttributes <- function(
-    new_df, grad_df,
-    attrs=c("n_obs", "obs_per_row_col", "base_vals",
-            "target_regressor", "target_index",
-            "sig_num_ses", "data_row_cols", "n_grad_rows")) {
-    for (a in attrs) {
-        attr(new_df, a) <- attr(grad_df, a)
+GetRegressionSignals <- function(estimator_infl) {
+    betahat <- estimator_infl$beta$base_value
+    beta_mzse <- estimator_infl$beta_mzse$base_value
+    beta_pzse <- estimator_infl$beta_pzse$base_value
+
+    sign_label <- "sign"
+    sig_label <- "significance"
+    both_label <- "sign and significance"
+
+    signals <- list()
+    signals$target_index <- estimator_infl$target_index
+    signals$sig_num_ses <- estimator_infl$sig_num_ses
+    signals$sign <- list(metric="beta", signal=-1 * betahat, change=sign_label)
+
+    is_significant <- sign(beta_mzse) == sign(beta_mzse)
+    if (is_significant) {
+        if (beta_mzse >= 0) { # then beta_pzse > 0 too because significant
+            signals$sig <- list(
+              metric="beta_mzse", signal=-1 * beta_mzse, change=sig_label)
+            signals$both <- list(
+              metric="beta_pzse", signal=-1 * beta_pzse, change=both_label)
+        } else if (beta_pzse < 0) { # then beta_mzse < 0 too because significant
+            signals$sig <- list(
+              metric="beta_pzse", signal=-1 * beta_pzse, change=sig_label)
+            signals$both <- list(
+              metric="beta_mzse", signal=-1 * beta_mzse, change=both_label)
+        } else {
+            stop("Impossible for a significant result")
+        }
+    } else { # Not significant.  Choose to change the interval endpoint which
+             # is closer.
+        if (abs(beta_mzse) >= abs(beta_pzse)) {
+            signals$sig <- list(
+              metric="beta_pzse", signal=-1 * beta_pzse, change=sig_label)
+        } else  {
+            signals$sig <- list(
+              metric="beta_mzse", signal=-1 * beta_mzse, change=sig_label)
+        }
+
+        if (betahat >= 0) {
+            signals$both <- list(
+              metric="beta_pzse", signal=-1 * beta_pzse, change=both_label)
+        } else {
+            signals$both <- list(
+              metric="beta_mzse", signal=-1 * beta_mzse, change=both_label)
+        }
     }
-    return(new_df)
+
+    # Get the APIP
+    for (target in names(signals)) {
+        reg_signal <- signals[[target]]
+        apip <- GetAPIP(
+            infl_lists=estimator_infl[[reg_signal$metric]],
+            signal=reg_signal$signal)
+        signals[[target]]$apip <- apip
+    }
+
+    return(signals)
+}
+
+
+#' @export
+GetSignalDataFrame <- function(reg_signal) {
+    data.frame(
+        metric=reg_signal$metric,
+        change=reg_signal$change,
+        signal=reg_signal$signal,
+        num_removed=reg_signal$apip$n,
+        prop_removed=reg_signal$apip$prop)
+}
+
+
+#' @export
+RerunForTargetChanges <- function(signals, reg_infl) {
+  for (target in names(signals)) {
+      reg_signal <- signals[[target]]
+      w_bool <- GetWeightVector(
+          drop_inds=reg_signal$apip$inds,
+          num_obs=reg_infl$n_obs,
+          bool=TRUE)
+
+      rerun <- RerunRegression(reg_infl$model_fit, w_bool=w_bool)
+
+      # Save the whole rerun
+      signals[[target]]$rerun <- rerun
+
+      # Make a nice dataframe with the targeted regressor
+      betahat <- rerun$betahat[[signals$target_index]]
+      sehat <- rerun$se[[signals$target_index]]
+      sig_num_ses <- signals$sig_num_ses
+
+      signals[[target]]$rerun_df <-
+          GetSignalDataFrame(reg_signal) %>%
+              mutate(
+                  betahat_refit=betahat,
+                  beta_mzse_refit=betahat - sig_num_ses * sehat,
+                  beta_pzse_refit=betahat + sig_num_ses * sehat,
+                  betahat_orig=estimator_infl$beta$base_value,
+                  beta_mzse_orig=estimator_infl$beta_mzse$base_value,
+                  beta_pzse_orig=estimator_infl$beta_pzse$base_value)
+  }
+  return(signals)
 }
