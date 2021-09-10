@@ -11,8 +11,11 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs, obs_per_row=1) {
     ordered_inds_pos <- inds_pos[order(-1 * infl[infl_pos])]
     ordered_inds_neg <- inds_neg[order(infl[infl_neg])]
 
-    infl_cumsum_pos <- cumsum(infl[ordered_inds_pos])
-    infl_cumsum_neg <- cumsum(infl[ordered_inds_neg])
+    infl_pos <- infl[ordered_inds_pos]
+    infl_cumsum_pos <- cumsum(infl_pos)
+
+    infl_neg <- infl[ordered_inds_neg]
+    infl_cumsum_neg <- cumsum(infl_neg)
     return(list(
         neg=list(infl_inds=ordered_inds_neg,
                  infl_cumsum=infl_cumsum_neg,
@@ -22,7 +25,8 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs, obs_per_row=1) {
                  infl_cumsum=infl_cumsum_pos,
                  num_obs=num_obs,
                  obs_per_row=obs_per_row),
-        base_value=base_value
+        base_value=base_value,
+        infl=infl  # In the original order
         ))
 }
 

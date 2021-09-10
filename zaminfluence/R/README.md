@@ -16,8 +16,10 @@
 # It has a:
 # - target_index:   The index into betahat
 # - sig_num_ses:    The number of ses that form a confidence interval
-# - beta, beta_mzse, beta_pzse:  Influence summary objects (quantity of interest objects?)
+# - beta, beta_mzse, beta_pzse:
+# Influence summary objects (quantity of interest objects?)
 
+# QOI influence
 # Influence summary objects contain an processed influence vector.
 # (Quantity of interest objects?)
 # They are the influence scores for a single quantity of interest.
@@ -32,7 +34,7 @@
 #                   influence score.
 # - infl_cumsum:    The cumulative sum of the sorted influences scores with
 #                   the specified sign.
-# - num_obs:        The total number of observations (is this necessary?)
+# - num_obs:        The total number of observations (is this necessary?  As of now, #                   yes, for plotting.)
 # - obs_per_row:    The number of observations per row (is this necessary?)
 
 
