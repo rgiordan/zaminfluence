@@ -33,6 +33,135 @@ git_repo_dir <- "/home/rgiordan/Documents/git_repos/zaminfluence"
 
 
 
+
+
+#!/usr/bin/env Rscript
+#
+# Test the manual derivatives using numerical differentiation.
+# Effectively, this tests GetIVSEDerivs and GetRegressionSEDerivs with
+# both grouped and ungrouped standard errors.
+
+library(AER)
+library(zaminfluence)
+library(numDeriv)
+library(sandwich)
+library(testthat)
+library(tidyverse)
+
+context("zaminfluence")
+
+
+GenerateTestInstance <- function(do_iv, do_grouping) {
+    x_dim <- 3
+    beta_true <- runif(x_dim)
+    num_obs <- 500
+    
+    GenerateFun <- if (do_iv) GenerateIVRegressionData else GenerateRegressionData
+    if (do_grouping) {
+        df <- GenerateFun(num_obs, beta_true, num_groups=5)
+    } else {
+        df <- GenerateFun(num_obs, beta_true)
+    }
+    
+    df$weights <- runif(nrow(df)) + 1
+    
+    # Fit a model.
+    if (do_iv) {
+        # IV:
+        x_names <- sprintf("x%d", 1:x_dim)
+        z_names <- sprintf("z%d", 1:x_dim)
+        reg_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
+                                    paste(x_names, collapse=" + "),
+                                    paste(z_names, collapse=" + ")))
+        model_fit <- ivreg(data=df, formula = reg_form,
+                           x=TRUE, y=TRUE, weights=weights)
+    } else {
+        # Regression:
+        x_names <- sprintf("x%d", 1:x_dim)
+        reg_form <- formula(sprintf("y ~ %s - 1",
+                                    paste(x_names, collapse=" + ")))
+        model_fit <- lm(data=df, formula=reg_form,
+                        x=TRUE, y=TRUE, weights=weights)
+    }
+    
+    se_group <- if (do_grouping) df$se_group else NULL
+    
+    model_grads <-
+        ComputeModelInfluence(model_fit) %>%
+        AppendTargetRegressorInfluence("x1")
+    signals <-
+        GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
+        RerunForTargetChanges(model_grads)
+    
+    return(list(
+        model_grads=model_grads,
+        signals=signals,
+        model_fit=model_fit,
+        se_group=se_group,
+        df=df
+    ))
+}
+
+
+test_instance <- GenerateTestInstance(FALSE, FALSE)
+
+
+model_fit <- test_instance$model_fit
+model_grads <- test_instance$model_grads
+param_infl <- model_grads$param_infl_list[["x1"]]
+
+
+# Sanity check an APIP.
+# - Influence scores should match the sign
+# - Cumulative influence scores should decreas or increase according to the sign
+# - Lengths should match
+TestAPIP <- function(signal,  sign) {
+    apip <- signal[[sign]]
+    apip_infl <- signal$infl[apip$infl_inds]
+    if (sign == "pos") {
+        expect_true(all(apip_infl > 0), info="positive influence is positive")
+        expect_true(all(diff(apip$infl_cumsum) > 0), info="positive influence is increasing")
+    } else if (sign == "neg") {
+        expect_true(all(apip_infl < 0), info="negative influence is negative")
+        expect_true(all(diff(apip$infl_cumsum) < 0), info="negative influence is decreasing")
+    } else {
+        stop("Bad sign passed to test")
+    }
+    expect_true(length(apip$infl_inds) == length(apip$infl_cumsum), "Inds len == cumsum len")    
+}
+
+signal_names <- c("beta", "beta_mzse", "beta_pzse")
+for (signal_name in signal_names) {
+    for (sign in c("pos", "neg")) {
+        TestAPIP(param_infl[[signal_name]], sign)
+    }
+}
+
+
+
+# Test an approximation
+num_leave_out <- 2
+sign <- "pos"
+signal <- param_infl[[signal_name]]
+apip <- signal[[sign]]
+w_bool <- rep(TRUE, model_grads$n_obs)
+w_bool[apip$infl_inds[1:num_leave_out]] <- FALSE
+rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
+
+## .... left off here
+rerun_pred <- 
+
+
+
+
+
+
+
+
+
+
+
+
 ##########################################################
 ##########################################################
 ##########################################################

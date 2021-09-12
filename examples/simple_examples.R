@@ -122,6 +122,7 @@ testthat::expect_equivalent(
     model_grads$parameter_names, model_fit$x %>% colnames(),
     info="column names")
 
+model_fit$x$regressors
 
 
 #############################
