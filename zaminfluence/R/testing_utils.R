@@ -4,6 +4,39 @@ library(ggplot2)
 library(gridExtra)
 library(reticulate)
 library(latex2exp)
+library(testthat)
+
+
+AssertNearlyEqual <- function(x, y, tol=1e-9) {
+  diff_norm <- max(abs(x - y))
+  info_str <- sprintf("%e > %e", diff_norm, tol)
+  expect_true(diff_norm < tol, info=info_str)
+}
+
+
+AssertNearlyZero <- function(x, tol=1e-15) {
+  x_norm <- max(abs(x))
+  info_str <- sprintf("%e > %e", x_norm, tol)
+  expect_true(x_norm < tol, info=info_str)
+}
+
+
+
+# This is the version of the sandwich covariance that we compute
+vcovWrap <- function(obj, cluster=NULL) {
+  vcovCL(obj, cluster=cluster, type="HC0", cadjust=FALSE)
+}
+
+
+# Wrap vcovWrap so that se_group can be null.
+GetFitCovariance <- function(fit, se_group=NULL) {
+  if (is.null(se_group)) {
+    return(vcov(fit))
+  } else {
+    return(vcovCL(fit, cluster=se_group, type="HC0", cadjust=FALSE))
+  }
+}
+
 
 
 GenerateRandomEffects <- function(n_obs, num_groups=NULL) {

@@ -38,12 +38,13 @@ different meanings.
 The code has an organization that corresponds to the above structures.
 
 - Model Gradient objects for regression are computed in `ols_iv_grads_lib.R`.
+Most of `ols_iv_grads_lib.R` is for computing the acutal influence scores,
+the actual creation of the Model Gradient objects is in a couple thin wrappers
+at the end.
 - QOI objects are computed and wrangled in `influence_lib.R`.
 - Parameter influence and signal objects dealing with changes of sign,
 significance, and both sign and significance are constructed and wrangled in
 `inference_targets_lib.R`.
-- Helper functions for re-running regressions at particular weight vectors
-are in `rerun_lib.R`.
 
 # Data Structure Details
 
@@ -106,7 +107,7 @@ QOI objects can be maniupated using functions in `influence_lib.R`.
 A signal records a target change in a QOI.  A signal is a list and must have
 - `qoi_name`:         The name of the quantity of interest
 - `signal`:         The amount to change the quantity of interest
-- `change`:    A plain language description of what the change means
+- `description`:    A plain language description of what the change means
 - `apip`:           The APIP for this particular change, which contains
     - `n`: The number of points to remove
     - `prop`: The proportion of points to remove
@@ -119,3 +120,11 @@ Optionally, a signal may also contain:
 - `rerun`: The complete result of a re-run at the AMIS.
 - `rerun_df`: A tidy summary dataframe of the predicted and actual changes
 in the parameter and its confidence interval.
+
+
+# TODOs
+
+- Rename beta to theta everywhere
+- Consistently use "hat" or not in the names (I think no hat)
+- Document rerun objects
+- Consistently use "num" or "n" everywhere (I think num)

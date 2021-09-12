@@ -6,7 +6,7 @@ library(latex2exp)
 #' Compute the influence scores for a particular parameter.
 #' @param model_grads `r docs$model_grads`
 #' @param target_regressor The string naming a regressor (must be an
-#' entry in [model_grads$regressor_names]).
+#' entry in [model_grads$parameter_names]).
 #' @param sig_num_ses `r docs$sig_num_ses`
 #'
 #' @return The original `model_grads`, with an entry
@@ -19,7 +19,7 @@ AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
     if (is.null(model_grads[["param_infl_list"]])) {
         model_grads$param_infl_list <- list()
     }
-    target_index <- which(model_grads$regressor_names == target_regressor)
+    target_index <- which(model_grads$parameter_names == target_regressor)
     if (length(target_index) != 1) {
         stop("Error finding target regressor in the regression.")
     }

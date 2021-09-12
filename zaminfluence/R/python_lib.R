@@ -99,7 +99,7 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
   # Note that the standard errors may not match lm_result when using se_group.
   return(list(model_fit=lm_result,
               n_obs=nrow(lm_result$x),
-              regressor_names=colnames(lm_result$x),
+              parameter_names=colnames(lm_result$x),
               grad_fun="get_regression_w_grads",
 
               betahat=py_main$betahat,
@@ -148,7 +148,7 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_offset_grads(
   # Note that the standard errors may not match lm_result when using se_group.
   return(list(model_fit=lm_result,
               n_obs=nrow(lm_result$x),
-              regressor_names=colnames(lm_result$x),
+              parameter_names=colnames(lm_result$x),
               grad_fun="get_regression_offset_grads",
 
               betahat=py_main$betahat,
@@ -255,7 +255,7 @@ se, betahat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
     # Note that the standard errors may not match iv_res when using se_group.
     return(list(model_fit=iv_res,
                 n_obs=length(iv_res$y),
-                regressor_names=colnames(iv_res$x$regressors),
+                parameter_names=colnames(iv_res$x$regressors),
                 grad_fun="get_iv_regression_w_grads",
 
                 betahat=py_main$betahat,
@@ -296,7 +296,7 @@ se, betahat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
     # Note that the standard errors may not match lm_result when using se_group.
     return(list(model_fit=lm_result,
                 n_obs=nrow(lm_result$x),
-                regressor_names=colnames(lm_result$x),
+                parameter_names=colnames(lm_result$x),
                 grad_fun="get_regression_w_grads",
 
                 betahat=py_main$betahat,
@@ -326,7 +326,7 @@ se, betahat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
     # Note that the standard errors may not match iv_res when using se_group.
     return(list(model_fit=iv_res,
                 n_obs=length(iv_res$y),
-                regressor_names=colnames(iv_res$x$regressors),
+                parameter_names=colnames(iv_res$x$regressors),
                 grad_fun="get_iv_regression_w_grads",
 
                 betahat=py_main$betahat,
