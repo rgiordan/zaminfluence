@@ -706,7 +706,7 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
 #' @param model_fit `r docs$model_fit`
 #' @param se_group `r docs$se_group`
 #'
-#' @return `r docs$grad_return`
+#' @return `r docs$model_grads`
 #'
 #' @export
 ComputeModelInfluence <- function(model_fit, se_group=NULL) {

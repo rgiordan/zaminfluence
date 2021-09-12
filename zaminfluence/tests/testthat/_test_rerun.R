@@ -11,58 +11,46 @@ library(tidyverse)
 context("zaminfluence")
 
 
-vcovWrap <- function(obj, cluster=NULL) {
-  vcovCL(obj, cluster=cluster, type="HC0", cadjust=FALSE)
-}
 
-
-GetFitCovariance <- function(fit, se_group=NULL) {
-  # Get a version of the sandwich covariance that should match
-  # our computations.
-  if (is.null(se_group)) {
-    return(vcov(fit))
-  } else {
-    return(vcovCL(fit, cluster=se_group, type="HC0", cadjust=FALSE))
-  }
-}
-
-
-
-# reg_infl should be the output of ComputeRegressionInfluence
 TestConfiguration <- function(model_fit, se_group) {
-  reg_infl <- ComputeModelInfluence(model_fit, se_group)
+  model_grads <-
+    ComputeModelInfluence(model_fit, se_group)%>%
+    AppendTargetRegressorInfluence("x1")
 
-  # grad_df <- GetTargetRegressorGrads(reg_infl, "x1")
-  # influence_dfs <- SortAndAccumulate(grad_df)
+  # Test that the coefficient estimates and standard errors in model_grads
+  # match what we expect from R.
+  # testthat::expect_equivalent(model_grads$model_fit, model_fit)
+  # diff_norm <-abs(model_grads$betahat - coefficients(model_fit))
+  # tol <- 1e-9
+  # expect_true(diff_norm < tol, info=info_str)
+
+  AssertNearlyEqual(
+    model_grads$betahat, coefficients(model_fit), desc="betahat equal")
+  AssertNearlyEqual(
+    model_grads$se, GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt(),
+    desc="std error equal")
+
   #
-  # Check that the regressions match.
-  reg <- tidy(reg_infl$model_fit)
-  testthat::expect_equivalent(reg$estimate, reg_infl$betahat)
-
-  # Check that the target index is correct..
-  # target_index <- attr(grad_df, "target_index")
-  # base_vals <- attr(grad_df, "base_vals")
-  # testthat::expect_equivalent(reg$estimate[target_index], base_vals["beta"])
-
-  # Check that the standard errors match...
-  if (is.null(se_group)) {
-      se <- reg$std.error[target_index]
-  } else {
-      vcov_se_cov <- vcovCL(model_fit, cluster=se_group,
-                            type="HC0", cadjust=FALSE)
-      se <- sqrt(diag(vcov_se_cov))[target_index]
-  }
-  testthat::expect_equivalent(se, base_vals["se"])
-
-  # Check the "scale" of the influence function is correct (note that this
-  # may not match the actual standard errors for grouping).
-  n_obs <- length(model_fit$y)
-  vcov_se_cov <- vcovCL(model_fit, cluster=1:n_obs, type="HC0", cadjust=FALSE)
-  robust_se <- sqrt(diag(vcov_se_cov))[target_index]
-
-  # infl_scale <- GetInfluenceScale(grad_df$beta_grad)
-  # testthat::expect_equivalent(sqrt(n_obs) * robust_se, infl_scale)
-
+  # # grad_df <- GetTargetRegressorGrads(reg_infl, "x1")
+  # # influence_dfs <- SortAndAccumulate(grad_df)
+  # #
+  # # Check that the regressions match.
+  # reg <- tidy(reg_infl$model_fit)
+  # testthat::expect_equivalent(reg$estimate, reg_infl$betahat)
+  #
+  # # Check that the target index is correct..
+  # # target_index <- attr(grad_df, "target_index")
+  # # base_vals <- attr(grad_df, "base_vals")
+  # # testthat::expect_equivalent(reg$estimate[target_index], base_vals["beta"])
+  #
+  # # Check that the standard errors match.
+  # if (is.null(se_group)) {
+  #     se <- reg$std.error[target_index]
+  # } else {
+  #     vcov_se_cov <- GetFitCovariance(model_fit, se_group)
+  #     se <- sqrt(diag(vcov_se_cov))[target_index]
+  # }
+  # testthat::expect_equivalent(se, base_vals["se"])
 }
 
 
@@ -160,7 +148,6 @@ test_that("rerun works", {
   new_reg_vcov <- GetFitCovariance(new_reg_fit, se_group=se_group)
   AssertNearlyEqual(new_reg_fit$coefficients, zam_reg_fit$betahat, tol=1e-6)
   AssertNearlyEqual(new_reg_vcov, zam_reg_fit$se_mat)
-
 
   for (use_iv in c(TRUE, FALSE)) {
     for (use_se_group in c(TRUE, FALSE)) {

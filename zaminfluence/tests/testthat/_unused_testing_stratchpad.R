@@ -289,3 +289,15 @@ test_that("python runs", {
     }
     zaminfluence::InitializePython(venv_bin)
 })
+
+
+
+
+# Check the "scale" of the influence function is correct (note that this
+# may not match the actual standard errors for grouping).
+n_obs <- length(model_fit$y)
+vcov_se_cov <- GetFitCovariance(model_fit, cluster=1:n_obs)
+robust_se <- sqrt(diag(vcov_se_cov))[target_index]
+
+# infl_scale <- GetInfluenceScale(grad_df$beta_grad)
+# testthat::expect_equivalent(sqrt(n_obs) * robust_se, infl_scale)
