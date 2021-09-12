@@ -9,7 +9,7 @@ PlotSignal(param_infl, signal, ...)
 \arguments{
 \item{param_infl}{A parameter influence object (e.g. as produced by \link{AppendTargetRegressorInfluence}).}
 
-\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetRegressionSignals}).}
+\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetInferenceSignals}).}
 }
 \value{
 A plot for the specified signal.

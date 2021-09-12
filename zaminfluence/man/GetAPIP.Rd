@@ -9,7 +9,7 @@ GetAPIP(qoi, signal)
 \arguments{
 \item{qoi}{\verb{A quantity of interest object (e.g. as produced by [ProcessInfluenceVector]).}}
 
-\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetRegressionSignals}).}
+\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetInferenceSignals}).}
 }
 \value{
 A list containing

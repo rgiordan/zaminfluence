@@ -1,4 +1,5 @@
 library(ggplot2)
+library(purrr)
 library(latex2exp)
 
 
@@ -51,16 +52,29 @@ AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
     return(model_grads)
 }
 
+
+GetBaseValues <- function(param_infl,
+                          qoi_names=c("beta", "beta_mzse", "beta_pzse")) {
+  for (qoi_name in qoi_names) {
+    if (!(qoi_name %in% names(param_infl))) {
+      stop(sprintf("Quantity of interest %s is not in `param_infl`.", qoi_name))
+    }
+  }
+  return(map_dbl(param_infl[qoi_names], ~ .$base_value))
+}
+
 #' Compute the signals for changes to sign, significance, and both.
 #' @param param_infl `r docs$param_infl`
 #'
 #' @return A list of signals, named "sign", "sig", and "both".  Each
 #' entry is a `signal` object.
 #' @export
-GetRegressionSignals <- function(param_infl) {
-    betahat <- param_infl$beta$base_value
-    beta_mzse <- param_infl$beta_mzse$base_value
-    beta_pzse <- param_infl$beta_pzse$base_value
+GetInferenceSignals <- function(param_infl) {
+    base_values <- GetBaseValues(
+      param_infl, qoi_names=c("beta", "beta_mzse", "beta_pzse"))
+    betahat <- base_values["beta"]
+    beta_mzse <- base_values["beta_mzse"]
+    beta_pzse <- base_values["beta_pzse"]
 
     sign_label <- "sign"
     sig_label <- "significance"
@@ -70,7 +84,7 @@ GetRegressionSignals <- function(param_infl) {
     signals$target_regressor <- param_infl$target_regressor
     signals$sign <- list(metric="beta", signal=-1 * betahat, change=sign_label)
 
-    is_significant <- sign(beta_mzse) == sign(beta_mzse)
+    is_significant <- sign(beta_mzse) == sign(beta_pzse)
     if (is_significant) {
         if (beta_mzse >= 0) { # then beta_pzse > 0 too because significant
             signals$sig <- list(
@@ -134,10 +148,12 @@ GetSignalDataFrame <- function(signal) {
 
 #' Rerun the model at the AMIS for a set of signals.
 #' @param signals `A list of signal objects, "sign", "sig", "both",
-#' as produced by [GetRegressionSignals].
+#' as produced by [GetInferenceSignals].
 #' @param model_grads `r docs$model_grads`
-#' @param RerunFun A function taking as inputs `model_grads$model_fit`
-#' and a vector of weights, and return a rerun object.
+#' @param RerunFun (Optional) A function taking as inputs
+#' `model_grads$model_fit`
+#' and a vector of weights, and return a rerun object.  If unspecified,
+#' `model_grads$RerunFun` is used.
 #'
 #' @return The original `signals`, with two new fields:
 #' - rerun_df: A dataframe summarizing the rerun.

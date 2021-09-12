@@ -62,6 +62,8 @@ have the following fields:
 - `regressor_names`:    The names of the regressors
 - `model_fit`:          Everything you need to re-fit the model
 - `targets`:  An (optional) list of Parameter Influence objects.
+- `RerunFun`:  A function taking the arguments `model_fit` and a vector of
+boolean weights and returning a refit object.
 
 ### Parameter Influence
 
@@ -110,7 +112,7 @@ A signal records a target change in a QOI.  A signal is a list and must have
     - `prop`: The proportion of points to remove
     - `inds`: The indices (in the original data order) of the data dropped in the corresponding AMIS.
 
-Currently, signals are created with `GetRegressionSignals`, which defines signals
+Currently, signals are created with `GetInferenceSignals`, which defines signals
 to change the sign, significance, and both sign and significance.
 
 Optionally, a signal may also contain:

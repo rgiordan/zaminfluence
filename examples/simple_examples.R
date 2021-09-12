@@ -9,7 +9,7 @@ library(dplyr)
 library(reshape2)
 library(gridExtra)
 library(sandwich)
-library(zaminfluence)
+#library(zaminfluence)
 library(purrr)
 library(AER)
 
@@ -21,9 +21,30 @@ n_obs <- 10000
 set.seed(42)
 
 
+library(devtools)
+load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+
+RerunSummaryDf <- function(signals) {
+    # A summary comparing reruns and predictions for each signal.
+    rerun_df <-
+        signals[c("sign", "sig", "both")] %>%
+        map_dfr(~ .$rerun_df) %>%
+        mutate(summary_orig=
+                   sprintf("%f (%f, %f)", 
+                           betahat_orig, beta_mzse_orig, beta_pzse_orig),
+               summary_refit=
+                   sprintf("%f (%f, %f)",
+                           betahat_refit, beta_mzse_refit, beta_pzse_refit)) %>%
+        select(change, num_removed, summary_orig, summary_refit)
+    return(rerun_df)
+}
+
+
 #############################
 # Oridinary regression.
 
+# Generate data.
+set.seed(42)
 x_dim <- 3
 beta_true <- 0.1 * runif(x_dim)
 df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
@@ -37,23 +58,19 @@ reg_fit <- lm(data = df, formula = reg_form, x=TRUE, y=TRUE)
 model_grads <- 
     ComputeModelInfluence(reg_fit) %>%
     AppendTargetRegressorInfluence("x1")
-reg_signals <-
-    GetRegressionSignals(model_grads$targets[["x1"]]) %>%
+signals <-
+    GetInferenceSignals(model_grads$targets[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
-# A summary comparing reruns and predictions for each signal.
-rerun_df <-
-    reg_signals[c("sign", "sig", "both")] %>%
-    map_dfr(~ .$rerun_df)
-print(rerun_df)
-
-PlotSignal(model_grads$targets[["x1"]], reg_signals[["both"]], apip_max=0.03)
+# Summaries comparing reruns and predictions for each signal.
+RerunSummaryDf(signals)
+PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03)
 
 # Visualize which points are being dropped
 
 df$drop <- FALSE
-df$drop[reg_signals[["both"]]$apip$inds] <- TRUE
-df$infl <- model_grads$targets[["x1"]][[reg_signals[["both"]]$metric]]$infl
+df$drop[signals[["both"]]$apip$inds] <- TRUE
+df$infl <- model_grads$targets[["x1"]][[signals[["both"]]$metric]]$infl
 
 grid.arrange(
     ggplot(df) +
@@ -68,13 +85,12 @@ grid.arrange(
 
 
 
-
-
-
 #############################
 # Instrumental variables.
 
+
 # Generate data.
+set.seed(42)
 x_dim <- 3
 beta_true <- 0.1 * runif(x_dim)
 df <- GenerateIVRegressionData(n_obs, beta_true, num_groups=NULL)
@@ -87,16 +103,15 @@ iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                            paste(z_names, collapse=" + ")))
 iv_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
 
-# Get influence.
-iv_infl <- ComputeModelInfluence(iv_fit)
-grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
-influence_dfs <- SortAndAccumulate(grad_df)
+# Get influence and reruns.
+model_grads <- 
+    ComputeModelInfluence(iv_fit) %>%
+    AppendTargetRegressorInfluence("x1")
+signals <-
+    GetInferenceSignals(model_grads$targets[["x1"]]) %>%
+    RerunForTargetChanges(model_grads)
 
-target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
-if (FALSE) {
-    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
-}
-
-rerun_df <- RerunForTargetChanges(influence_dfs, target_change, iv_fit)
-select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+# Summaries comparing reruns and predictions for each signal.
+RerunSummaryDf(signals)
+PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03)
 

@@ -8,7 +8,7 @@ RerunForTargetChanges(signals, model_grads, RerunFun)
 }
 \arguments{
 \item{signals}{`A list of signal objects, "sign", "sig", "both",
-as produced by \link{GetRegressionSignals}.}
+as produced by \link{GetInferenceSignals}.}
 
 \item{model_grads}{A model gradient object (e.g. as produced by \link{ComputeModelInfluence})}
 
