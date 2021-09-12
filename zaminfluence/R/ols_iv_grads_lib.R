@@ -247,7 +247,10 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
     x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
     w0=reg_vars$w0, se_group=se_group)
 
-  # Note that the standard errors may not match iv_res when using se_group.
+  RerunFun <- function(model_fit, w_bool) {
+    RerunRegression(w_bool=w_bool, lm_result=model_fit, se_group=se_group)
+  }
+
   return(list(model_fit=lm_result,
               n_obs=reg_vars$num_obs,
               regressor_names=colnames(lm_result$x),
@@ -256,10 +259,12 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
               betahat=reg_vars$betahat,
               se=reg_grad_list$se,
               weights=reg_vars$w0,
+              se_group=se_group,
 
               beta_grad=reg_grad_list$dbetahat_dw,
               se_grad=reg_grad_list$dse_dw,
-              RerunFun=RerunRegression))
+
+              RerunFun=RerunFun))
 }
 
 
@@ -495,6 +500,9 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
       x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
       beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
 
+    RerunFun <- function(model_fit, w_bool) {
+      RerunIVRegression(w_bool=w_bool, iv_res=model_fit, se_group=se_group)
+    }
     # Note that the standard errors may not match iv_res when using se_group.
     return(list(model_fit=iv_res,
                 n_obs=iv_vars$num_obs,
@@ -504,11 +512,12 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
                 betahat=iv_vars$betahat,
                 se=iv_grad_list$se,
                 weights=iv_vars$w0,
+                se_group=se_group,
 
                 beta_grad=iv_grad_list$dbetahat_dw,
                 se_grad=iv_grad_list$dse_dw,
 
-                RerunFun=RerunIVRegression
+                RerunFun=RerunFun
               )
     )
 }

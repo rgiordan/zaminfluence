@@ -35,7 +35,7 @@ RerunSummaryDf <- function(signals) {
                summary_refit=
                    sprintf("%f (%f, %f)",
                            betahat_refit, beta_mzse_refit, beta_pzse_refit)) %>%
-        select(change, num_removed, summary_orig, summary_refit)
+        select(change, num_removed, prop_removed, summary_orig, summary_refit)
     return(rerun_df)
 }
 
@@ -52,7 +52,7 @@ df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
 # Fit a regression model.
 x_names <- sprintf("x%d", 1:x_dim)
 reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
-reg_fit <- lm(data = df, formula = reg_form, x=TRUE, y=TRUE)
+reg_fit <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <- 
@@ -88,7 +88,6 @@ grid.arrange(
 #############################
 # Instrumental variables.
 
-
 # Generate data.
 set.seed(42)
 x_dim <- 3
@@ -115,3 +114,47 @@ signals <-
 RerunSummaryDf(signals)
 PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03)
 
+
+
+
+#############################
+# Grouped standard errors.
+
+# Generate data.
+set.seed(42)
+x_dim <- 3
+beta_true <- 0.1 * runif(x_dim)
+num_groups <- 50
+df <- GenerateRegressionData(n_obs, beta_true, num_groups=num_groups)
+
+# se_group is zero-indexed group indicator with no missing entries.
+table(df$se_group)
+
+# Fit a regression model.
+x_names <- sprintf("x%d", 1:x_dim)
+reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
+reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE)
+
+# Get influence and reruns.
+model_grads <- 
+    ComputeModelInfluence(reg_fit) %>%
+    AppendTargetRegressorInfluence("x1")
+
+signals <-
+    GetInferenceSignals(model_grads$targets[["x1"]]) %>%
+    RerunForTargetChanges(model_grads)
+
+# Summaries comparing reruns and predictions for each signal.
+RerunSummaryDf(signals)
+grid.arrange(
+    PlotSignal(model_grads$targets[["x1"]], signals[["sign"]], apip_max=0.03),
+    PlotSignal(model_grads$targets[["x1"]], signals[["sig"]], apip_max=0.03),
+    PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03),
+    ncol=3
+)
+
+
+#############################
+# Pairing
+
+# In the current version of the refactor, pairing is not yet supported.
