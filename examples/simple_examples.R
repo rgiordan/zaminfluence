@@ -52,11 +52,11 @@ df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
 # Fit a regression model.
 x_names <- sprintf("x%d", 1:x_dim)
 reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
-reg_fit <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
+model_fit <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <- 
-    ComputeModelInfluence(reg_fit) %>%
+    ComputeModelInfluence(model_fit) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
     GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
@@ -85,6 +85,8 @@ grid.arrange(
 
 
 
+
+
 #############################
 # Instrumental variables.
 
@@ -100,11 +102,11 @@ z_names <- sprintf("z%d", 1:x_dim)
 iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                            paste(x_names, collapse=" + "),
                            paste(z_names, collapse=" + ")))
-iv_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
+model_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <- 
-    ComputeModelInfluence(iv_fit) %>%
+    ComputeModelInfluence(model_fit) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
     GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
@@ -114,6 +116,11 @@ signals <-
 RerunSummaryDf(signals)
 PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03)
 
+
+
+testthat::expect_equivalent(
+    model_grads$parameter_names, model_fit$x %>% colnames(),
+    info="column names")
 
 
 
@@ -133,11 +140,11 @@ table(df$se_group)
 # Fit a regression model.
 x_names <- sprintf("x%d", 1:x_dim)
 reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
-reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE)
+model_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <- 
-    ComputeModelInfluence(reg_fit) %>%
+    ComputeModelInfluence(model_fit) %>%
     AppendTargetRegressorInfluence("x1")
 
 signals <-

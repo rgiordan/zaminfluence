@@ -60,7 +60,7 @@ have the following fields:
 - `n_obs`:      The original number of observations
 - `beta_grad`:  A matrix (`n_obs` x `D`) of gradients of the point estimates
 - `se_grad`:    A matrix (`n_obs` x `D`) of gradients of the standard errors
-- `regressor_names`:    The names of the regressors
+- `parameter_names`:    The names of the parameters
 - `model_fit`:          Everything you need to re-fit the model
 - `param_infl_list`:  An (optional) list of Parameter Influence objects.
 - `RerunFun`:  A function taking the arguments `model_fit` and a vector of

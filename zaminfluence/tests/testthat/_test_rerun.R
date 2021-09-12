@@ -19,38 +19,46 @@ TestConfiguration <- function(model_fit, se_group) {
 
   # Test that the coefficient estimates and standard errors in model_grads
   # match what we expect from R.
-  # testthat::expect_equivalent(model_grads$model_fit, model_fit)
-  # diff_norm <-abs(model_grads$betahat - coefficients(model_fit))
-  # tol <- 1e-9
-  # expect_true(diff_norm < tol, info=info_str)
-
   AssertNearlyEqual(
     model_grads$betahat, coefficients(model_fit), desc="betahat equal")
+  se_r <- GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt()
   AssertNearlyEqual(
-    model_grads$se, GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt(),
-    desc="std error equal")
+    model_grads$se, se_r, desc="std error equal")
+  testthat::expect_equivalent(
+    model_grads$n_obs, length(model_fit$y), info="num obs")
+  # testthat::expect_equivalent(
+  #   model_grads$weights, model_fit$weights, info="weights")
+  testthat::expect_equivalent(
+    model_grads$parameter_names, names(coefficients(model_fit)),
+    info="column names")
 
-  #
-  # # grad_df <- GetTargetRegressorGrads(reg_infl, "x1")
-  # # influence_dfs <- SortAndAccumulate(grad_df)
-  # #
-  # # Check that the regressions match.
-  # reg <- tidy(reg_infl$model_fit)
-  # testthat::expect_equivalent(reg$estimate, reg_infl$betahat)
-  #
-  # # Check that the target index is correct..
-  # # target_index <- attr(grad_df, "target_index")
-  # # base_vals <- attr(grad_df, "base_vals")
-  # # testthat::expect_equivalent(reg$estimate[target_index], base_vals["beta"])
-  #
-  # # Check that the standard errors match.
-  # if (is.null(se_group)) {
-  #     se <- reg$std.error[target_index]
-  # } else {
-  #     vcov_se_cov <- GetFitCovariance(model_fit, se_group)
-  #     se <- sqrt(diag(vcov_se_cov))[target_index]
-  # }
-  # testthat::expect_equivalent(se, base_vals["se"])
+  # Test that the base values in param_infl are correct.
+  param_infl <- model_grads$param_infl_list[["x1"]]
+  target_index <- param_infl$target_index
+  testthat::expect_equivalent(
+    "x1", names(coefficients(model_fit))[target_index], info="target index")
+  testthat::expect_equivalent(
+    param_infl$beta$base_value,
+    coefficients(model_fit)[target_index],
+    info="beta base value")
+  testthat::expect_equivalent(
+    param_infl$beta_pzse$base_value,
+    coefficients(model_fit)[target_index] +
+      param_infl$sig_num_ses * se_r[target_index],
+    info="beta_pzse base value")
+  testthat::expect_equivalent(
+    param_infl$beta_mzse$base_value,
+    coefficients(model_fit)[target_index] -
+      param_infl$sig_num_ses * se_r[target_index],
+    info="beta_mzse base value")
+
+  # Test that if we re-run we get the same answer.
+  w_bool <- rep(TRUE, model_grads$n_obs)
+  rerun <- model_grads$RerunFun(model_fit, w_bool)
+  AssertNearlyEqual(
+    rerun$betahat, coefficients(model_fit), desc="rerun betahat equal")
+  AssertNearlyEqual(
+    rerun$se, se_r, desc="rerun std error equal")
 }
 
 
