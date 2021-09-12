@@ -7,5 +7,5 @@ library(testthat)
 library(zaminfluence)
 
 #test_check("zaminfluence", reporter="summary")
-#test_file("testthat/test_derivs.R")
-test_file("testthat/_test_rerun.R")
+test_file("testthat/test_derivs.R")
+test_file("testthat/test_base_valuse.R")

@@ -11,7 +11,8 @@ library(tidyverse)
 context("zaminfluence")
 
 
-
+# Test that ComputeModelInfluence, AppendTargetRegressorInfluence, and
+# RerunFun give the same answers as R on the original data.
 TestConfiguration <- function(model_fit, se_group) {
   model_grads <-
     ComputeModelInfluence(model_fit, se_group)%>%
@@ -60,9 +61,6 @@ TestConfiguration <- function(model_fit, se_group) {
   AssertNearlyEqual(
     rerun$se, se_r, desc="rerun std error equal")
 }
-
-
-
 
 
 
@@ -121,7 +119,9 @@ test_that("se groups can be non-ordered", {
 })
 
 
+# Check that rerun matches R with left-out observations.
 test_that("rerun works", {
+  # Generate base data.
   num_obs <- 100
   df <- GenerateIVRegressionData(num_obs, 0.5, num_groups=10)
   df$w <- runif(num_obs) + 0.5
@@ -129,6 +129,9 @@ test_that("rerun works", {
   iv_fit <- ivreg(y ~ x1 + 1 | z1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
   reg_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
 
+  # Use Rerun to get fits using our code.  Check that our results
+  # match R's results.  (Note that this is only an extra sanity check
+  # here --- this is principally tested above in TestConfiguration)
   zam_iv_fit <- RerunIVRegression(rep(TRUE, num_obs), iv_fit, se_group=df$se_group)
   iv_vcov <- GetFitCovariance(iv_fit, se_group=df$se_group)
   AssertNearlyEqual(iv_fit$coefficients, zam_iv_fit$betahat)
@@ -139,24 +142,22 @@ test_that("rerun works", {
   AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$betahat)
   AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)
 
-
+  # Test that rerun works with left-out observations.  Generate a weight
+  # vector with randomly left-out observations.
   w_bool <- rep(TRUE, num_obs)
   w_bool[sample(100, 10)] <- FALSE
   new_w <- df$w
-  # Note that this will fail if the weights are exactly zero,
+
+  # Note that this test will fail if the weights are exactly zero,
   # since vcovCL is actually discontinuous when weights are set
-  # to exactly zero.
+  # to exactly zero.  To avoid this, make the weights very small instead.
   new_w[!w_bool] <- 1e-6
+
   # Make sure all the groups are still present
   stopifnot(length(unique(df$se_group[w_bool])) == length(unique(df$se_group)))
-  se_group <- NULL
 
-  zam_reg_fit <- ComputeRegressionResults(reg_fit, new_w, se_group=se_group)
-  new_reg_fit <- lm(y ~ x1 + 1, data=df %>% mutate(w=!!new_w), weights=w)
-  new_reg_vcov <- GetFitCovariance(new_reg_fit, se_group=se_group)
-  AssertNearlyEqual(new_reg_fit$coefficients, zam_reg_fit$betahat, tol=1e-6)
-  AssertNearlyEqual(new_reg_vcov, zam_reg_fit$se_mat)
-
+  # Re-run using OLS or IV, and grouped standard errors or not, and check
+  # that our results match R.
   for (use_iv in c(TRUE, FALSE)) {
     for (use_se_group in c(TRUE, FALSE)) {
       if (use_se_group) {
