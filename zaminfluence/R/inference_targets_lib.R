@@ -10,14 +10,14 @@ library(latex2exp)
 #' @param sig_num_ses `r docs$sig_num_ses`
 #'
 #' @return The original `model_grads`, with an entry
-#' `model_grads$targets[[target_regressor]]` containing a
+#' `model_grads$param_infl_list[[target_regressor]]` containing a
 #' parameter influence object.
 #'
 #'@export
 AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
                                            sig_num_ses=qnorm(0.975)) {
-    if (is.null(model_grads[["targets"]])) {
-        model_grads$targets <- list()
+    if (is.null(model_grads[["param_infl_list"]])) {
+        model_grads$param_infl_list <- list()
     }
     target_index <- which(model_grads$regressor_names == target_regressor)
     if (length(target_index) != 1) {
@@ -48,7 +48,7 @@ AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
         sig_num_ses=sig_num_ses
     )
 
-    model_grads$targets[[target_regressor]] <- target_list
+    model_grads$param_infl_list[[target_regressor]] <- target_list
     return(model_grads)
 }
 
@@ -82,20 +82,20 @@ GetInferenceSignals <- function(param_infl) {
 
     signals <- list()
     signals$target_regressor <- param_infl$target_regressor
-    signals$sign <- list(metric="beta", signal=-1 * betahat, change=sign_label)
+    signals$sign <- list(qoi_name="beta", signal=-1 * betahat, description=sign_label)
 
     is_significant <- sign(beta_mzse) == sign(beta_pzse)
     if (is_significant) {
         if (beta_mzse >= 0) { # then beta_pzse > 0 too because significant
             signals$sig <- list(
-              metric="beta_mzse", signal=-1 * beta_mzse, change=sig_label)
+              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=sig_label)
             signals$both <- list(
-              metric="beta_pzse", signal=-1 * beta_pzse, change=both_label)
+              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=both_label)
         } else if (beta_pzse < 0) { # then beta_mzse < 0 too because significant
             signals$sig <- list(
-              metric="beta_pzse", signal=-1 * beta_pzse, change=sig_label)
+              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=sig_label)
             signals$both <- list(
-              metric="beta_mzse", signal=-1 * beta_mzse, change=both_label)
+              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=both_label)
         } else {
             stop("Impossible for a significant result")
         }
@@ -103,18 +103,18 @@ GetInferenceSignals <- function(param_infl) {
              # is closer.
         if (abs(beta_mzse) >= abs(beta_pzse)) {
             signals$sig <- list(
-              metric="beta_pzse", signal=-1 * beta_pzse, change=sig_label)
+              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=sig_label)
         } else  {
             signals$sig <- list(
-              metric="beta_mzse", signal=-1 * beta_mzse, change=sig_label)
+              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=sig_label)
         }
 
         if (betahat >= 0) {
             signals$both <- list(
-              metric="beta_pzse", signal=-1 * beta_pzse, change=both_label)
+              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=both_label)
         } else {
             signals$both <- list(
-              metric="beta_mzse", signal=-1 * beta_mzse, change=both_label)
+              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=both_label)
         }
     }
 
@@ -122,7 +122,7 @@ GetInferenceSignals <- function(param_infl) {
     for (target in c("sign", "sig", "both")) {
         signal <- signals[[target]]
         apip <- GetAPIP(
-            qoi=param_infl[[signal$metric]],
+            qoi=param_infl[[signal$qoi_name]],
             signal=signal$signal)
         signals[[target]]$apip <- apip
     }
@@ -138,8 +138,8 @@ GetInferenceSignals <- function(param_infl) {
 #' @export
 GetSignalDataFrame <- function(signal) {
     data.frame(
-        metric=signal$metric,
-        change=signal$change,
+        qoi_name=signal$qoi_name,
+        description=signal$description,
         signal=signal$signal,
         num_removed=signal$apip$n,
         prop_removed=signal$apip$prop)
@@ -176,7 +176,7 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
       # Save the whole rerun
       signals[[target]]$rerun <- rerun
 
-      regressor_infl <- model_grads$targets[[signals$target_regressor]]
+      regressor_infl <- model_grads$param_infl_list[[signals$target_regressor]]
       # Make a nice dataframe with the targeted regressor
       betahat <- rerun$betahat[[regressor_infl$target_index]]
       sehat <- rerun$se[[regressor_infl$target_index]]
@@ -263,7 +263,7 @@ PlotInfluence <- function(influence_df,
         alpha <- signal$apip[[alpha_type]]
         if (is.null(apip_max) || (!is.null(apip_max) && alpha <= apip_max)) {
             plot <- plot + geom_vline(aes(xintercept=!!alpha,
-                                          linetype=!!signal$change))
+                                          linetype=!!signal$description))
             if (!is.null(signal$rerun_df)) {
                 rerun_df <- signal$rerun_df
                 stopifnot(nrow(rerun_df) == 1)
@@ -332,6 +332,6 @@ PlotInfluence <- function(influence_df,
 #' @return A plot for the specified signal.
 #'@export
 PlotSignal <- function(param_infl, signal, ...) {
-    influence_df <- GetSortedInfluenceDf(param_infl, signal$metric)
+    influence_df <- GetSortedInfluenceDf(param_infl, signal$qoi_name)
     PlotInfluence(influence_df, signals=list(signal), ...)
 }

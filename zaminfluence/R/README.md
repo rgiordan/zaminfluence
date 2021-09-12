@@ -61,7 +61,7 @@ have the following fields:
 - `se_grad`:    A matrix (`n_obs` x `D`) of gradients of the standard errors
 - `regressor_names`:    The names of the regressors
 - `model_fit`:          Everything you need to re-fit the model
-- `targets`:  An (optional) list of Parameter Influence objects.
+- `param_infl_list`:  An (optional) list of Parameter Influence objects.
 - `RerunFun`:  A function taking the arguments `model_fit` and a vector of
 boolean weights and returning a refit object.
 
@@ -104,7 +104,7 @@ QOI objects can be maniupated using functions in `influence_lib.R`.
 ### Signal
 
 A signal records a target change in a QOI.  A signal is a list and must have
-- `metric`:         The name of the quantity of interest
+- `qoi_name`:         The name of the quantity of interest
 - `signal`:         The amount to change the quantity of interest
 - `change`:    A plain language description of what the change means
 - `apip`:           The APIP for this particular change, which contains

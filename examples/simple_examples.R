@@ -35,7 +35,7 @@ RerunSummaryDf <- function(signals) {
                summary_refit=
                    sprintf("%f (%f, %f)",
                            betahat_refit, beta_mzse_refit, beta_pzse_refit)) %>%
-        select(change, num_removed, prop_removed, summary_orig, summary_refit)
+        select(description, num_removed, prop_removed, summary_orig, summary_refit)
     return(rerun_df)
 }
 
@@ -59,18 +59,18 @@ model_grads <-
     ComputeModelInfluence(reg_fit) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
-    GetInferenceSignals(model_grads$targets[["x1"]]) %>%
+    GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
-PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03)
+PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03)
 
 # Visualize which points are being dropped
 
 df$drop <- FALSE
 df$drop[signals[["both"]]$apip$inds] <- TRUE
-df$infl <- model_grads$targets[["x1"]][[signals[["both"]]$metric]]$infl
+df$infl <- model_grads$param_infl_list[["x1"]][[signals[["both"]]$qoi_name]]$infl
 
 grid.arrange(
     ggplot(df) +
@@ -107,12 +107,12 @@ model_grads <-
     ComputeModelInfluence(iv_fit) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
-    GetInferenceSignals(model_grads$targets[["x1"]]) %>%
+    GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
-PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03)
+PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03)
 
 
 
@@ -141,15 +141,15 @@ model_grads <-
     AppendTargetRegressorInfluence("x1")
 
 signals <-
-    GetInferenceSignals(model_grads$targets[["x1"]]) %>%
+    GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
 grid.arrange(
-    PlotSignal(model_grads$targets[["x1"]], signals[["sign"]], apip_max=0.03),
-    PlotSignal(model_grads$targets[["x1"]], signals[["sig"]], apip_max=0.03),
-    PlotSignal(model_grads$targets[["x1"]], signals[["both"]], apip_max=0.03),
+    PlotSignal(model_grads$param_infl_list[["x1"]], signals[["sign"]], apip_max=0.03),
+    PlotSignal(model_grads$param_infl_list[["x1"]], signals[["sig"]], apip_max=0.03),
+    PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03),
     ncol=3
 )
 
