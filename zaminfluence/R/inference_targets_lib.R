@@ -143,7 +143,11 @@ GetSignalDataFrame <- function(signal) {
 #' - rerun_df: A dataframe summarizing the rerun.
 #' - rerun: The complete rerun result.
 #' @export
-RerunForTargetChanges <- function(signals, model_grads, RerunFun) {
+RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
+
+  if (is.null(RerunFun)) {
+    RerunFun <- model_grads$RerunFun
+  }
   for (target in c("sign", "sig", "both")) {
       signal <- signals[[target]]
       w_bool <- GetWeightVector(

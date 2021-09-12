@@ -10,6 +10,7 @@ library(reshape2)
 library(gridExtra)
 library(sandwich)
 library(zaminfluence)
+library(purrr)
 library(AER)
 
 compare <- function(x, y) { return(max(abs(x - y))) }
@@ -38,12 +39,13 @@ model_grads <-
     AppendTargetRegressorInfluence("x1")
 reg_signals <-
     GetRegressionSignals(model_grads$targets[["x1"]]) %>%
-    RerunForTargetChanges(model_grads, RerunFun=RerunRegression)
+    RerunForTargetChanges(model_grads)
 
-rerun_df <- 
-    lapply(c("sign", "sig", "both"), 
-           function(x) { reg_signals[[x]]$rerun_df }) %>%
-    do.call(bind_rows, .)
+# A summary comparing reruns and predictions for each signal.
+rerun_df <-
+    reg_signals[c("sign", "sig", "both")] %>%
+    map_dfr(~ .$rerun_df)
+print(rerun_df)
 
 PlotSignal(model_grads$targets[["x1"]], reg_signals[["both"]], apip_max=0.03)
 
@@ -62,3 +64,39 @@ grid.arrange(
         geom_point(aes(x=x1, y=x2, color=drop)),
     ncol=3
 )
+
+
+
+
+
+
+
+#############################
+# Instrumental variables.
+
+# Generate data.
+x_dim <- 3
+beta_true <- 0.1 * runif(x_dim)
+df <- GenerateIVRegressionData(n_obs, beta_true, num_groups=NULL)
+
+# Fit an IV model.
+x_names <- sprintf("x%d", 1:x_dim)
+z_names <- sprintf("z%d", 1:x_dim)
+iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
+                           paste(x_names, collapse=" + "),
+                           paste(z_names, collapse=" + ")))
+iv_fit <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
+
+# Get influence.
+iv_infl <- ComputeModelInfluence(iv_fit)
+grad_df <- GetTargetRegressorGrads(iv_infl, "x1")
+influence_dfs <- SortAndAccumulate(grad_df)
+
+target_change <- GetRegressionTargetChange(influence_dfs, "prop_removed")
+if (FALSE) {
+    PlotInfluence(influence_dfs$sign, "prop_removed", 0.01, target_change)
+}
+
+rerun_df <- RerunForTargetChanges(influence_dfs, target_change, iv_fit)
+select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+

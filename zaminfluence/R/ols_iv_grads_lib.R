@@ -258,8 +258,8 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
               weights=reg_vars$w0,
 
               beta_grad=reg_grad_list$dbetahat_dw,
-              se_grad=reg_grad_list$dse_dw)
-  )
+              se_grad=reg_grad_list$dse_dw,
+              RerunFun=RerunRegression))
 }
 
 
@@ -506,7 +506,10 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
                 weights=iv_vars$w0,
 
                 beta_grad=iv_grad_list$dbetahat_dw,
-                se_grad=iv_grad_list$dse_dw)
+                se_grad=iv_grad_list$dse_dw,
+
+                RerunFun=RerunIVRegression
+              )
     )
 }
 
