@@ -146,56 +146,6 @@ GetSignalDataFrame <- function(signal) {
 }
 
 
-#' Rerun the model at the AMIS for a set of signals.
-#' @param signals `A list of signal objects, "sign", "sig", "both",
-#' as produced by [GetInferenceSignals].
-#' @param model_grads `r docs$model_grads`
-#' @param RerunFun (Optional) A function taking as inputs
-#' `model_grads$model_fit`
-#' and a vector of weights, and return a rerun object.  If unspecified,
-#' `model_grads$RerunFun` is used.
-#'
-#' @return The original `signals`, with two new fields:
-#' - rerun_df: A dataframe summarizing the rerun.
-#' - rerun: The complete rerun result.
-#' @export
-RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
-
-  if (is.null(RerunFun)) {
-    RerunFun <- model_grads$RerunFun
-  }
-  for (target in c("sign", "sig", "both")) {
-      signal <- signals[[target]]
-      w_bool <- GetWeightVector(
-          drop_inds=signal$apip$inds,
-          num_obs=model_grads$n_obs,
-          bool=TRUE)
-
-      rerun <- RerunFun(model_grads$model_fit, w_bool=w_bool)
-
-      # Save the whole rerun
-      signals[[target]]$rerun <- rerun
-
-      regressor_infl <- model_grads$param_infl_list[[signals$target_regressor]]
-      # Make a nice dataframe with the targeted regressor
-      betahat <- rerun$betahat[[regressor_infl$target_index]]
-      sehat <- rerun$se[[regressor_infl$target_index]]
-      sig_num_ses <- regressor_infl$sig_num_ses
-
-      signals[[target]]$rerun_df <-
-          GetSignalDataFrame(signal) %>%
-              mutate(
-                  betahat_refit=betahat,
-                  beta_mzse_refit=betahat - sig_num_ses * sehat,
-                  beta_pzse_refit=betahat + sig_num_ses * sehat,
-                  betahat_orig=regressor_infl$beta$base_value,
-                  beta_mzse_orig=regressor_infl$beta_mzse$base_value,
-                  beta_pzse_orig=regressor_infl$beta_pzse$base_value)
-  }
-  return(signals)
-}
-
-
 ################################################################################
 # Plotting and visualization functions
 

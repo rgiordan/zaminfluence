@@ -163,5 +163,5 @@ GetAMIP <- function(qoi, n_drop=NULL, prop_drop=NULL) {
 #' observations.
 #'@export
 PredictChange <- function(qoi, drop_inds) {
-    return(sum(qoi$infl[drop_inds]))
+    return(-1 * sum(qoi$infl[drop_inds]))
 }

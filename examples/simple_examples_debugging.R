@@ -9,7 +9,9 @@ library(dplyr)
 library(reshape2)
 library(gridExtra)
 library(sandwich)
-library(zaminfluence)
+library(testthat)
+
+#library(zaminfluence)
 library(AER)
 
 compare <- function(x, y) { return(max(abs(x - y))) }
@@ -21,34 +23,10 @@ set.seed(42)
 
 git_repo_dir <- "/home/rgiordan/Documents/git_repos/zaminfluence"
 
+library(devtools)
+load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+
 #source(file.path(git_repo_dir, "zaminfluence/R/influence_lib.R"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-#!/usr/bin/env Rscript
-#
-# Test the manual derivatives using numerical differentiation.
-# Effectively, this tests GetIVSEDerivs and GetRegressionSEDerivs with
-# both grouped and ungrouped standard errors.
-
-library(AER)
-library(zaminfluence)
-library(numDeriv)
-library(sandwich)
-library(testthat)
-library(tidyverse)
-
-context("zaminfluence")
 
 
 GenerateTestInstance <- function(do_iv, do_grouping) {
@@ -130,30 +108,46 @@ TestAPIP <- function(signal,  sign) {
     expect_true(length(apip$infl_inds) == length(apip$infl_cumsum), "Inds len == cumsum len")    
 }
 
-signal_names <- c("beta", "beta_mzse", "beta_pzse")
-for (signal_name in signal_names) {
+
+# Check the validity of a prediction when leaving out a small number of influential points.
+# We check that the relative error in the difference is less than 100 * tol %.
+TestPredictions <- function(param_infl, signal_name, num_leave_out=2, tol=0.03) {
     for (sign in c("pos", "neg")) {
-        TestAPIP(param_infl[[signal_name]], sign)
+        # Get the indices to drop.
+        signal <- param_infl[[signal_name]]
+        apip <- signal[[sign]]
+        drop_inds <- apip$infl_inds[1:num_leave_out]
+        w_bool <- GetWeightVector(drop_inds, num_obs=model_grads$n_obs, bool=TRUE)
+        
+        # The original values
+        base_values <- GetBaseValues(param_infl)
+
+        # Rerun
+        rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
+        rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
+        diff_rerun <- rerun_base_values - base_values
+        
+        # Prediction
+        diff_pred <- 
+            map_dbl(names(base_values), 
+                    ~ PredictChange(param_infl[[.]], drop_inds))
+        
+        # Check the maximum relative error amongst beta, beta_mzse, and beta_pzse
+        max_rel_err <- max(abs((diff_pred - diff_rerun) / diff_rerun))
+        expect_true(max_rel_err < tol, 
+                    info=sprintf("%s %s prediction error: %f", 
+                                 signal_name, sign, max_rel_err))
     }
 }
 
 
-
-# Test an approximation
-num_leave_out <- 2
-sign <- "pos"
-signal <- param_infl[[signal_name]]
-apip <- signal[[sign]]
-w_bool <- rep(TRUE, model_grads$n_obs)
-w_bool[apip$infl_inds[1:num_leave_out]] <- FALSE
-rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
-
-## .... left off here
-rerun_pred <- 
-
-
-
-
+signal_names <- c("beta", "beta_mzse", "beta_pzse")
+for (signal_name in signal_names) {
+    for (sign in c("pos", "neg")) {
+        TestAPIP(param_infl[[signal_name]], sign)
+        TestPredictions(param_infl, signal_name)
+    }
+}
 
 
 
