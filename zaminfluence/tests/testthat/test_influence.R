@@ -16,8 +16,8 @@ context("zaminfluence")
 
 
 GenerateTestInstance <- function(do_iv, do_grouping) {
-    x_dim <- 3
-    beta_true <- runif(x_dim)
+    x_dim <- 1
+    beta_true <- 0.1
     num_obs <- 500
 
     GenerateFun <- if (do_iv)
@@ -133,15 +133,20 @@ TestSignalPrediction <- function(param_infl, signals, signal_name) {
 
     # Form the prediction
     drop_inds <- signal$apip$inds
+    if (is.na(drop_inds[1])) {
+      # There is nothing to test.
+      return()
+    }
     base_value <- GetBaseValues(param_infl)[qoi_name]
     pred_diff <- PredictChange(param_infl[[qoi_name]], drop_inds)
     pred_value <- base_value + pred_diff
 
     # Assert that a sign change took place.
     # Everything we look for is a sign change.
+    # cat(signal_name, ": ", base_value, " ", pred_value, "\n")
     expect_true(
         sign(base_value) != sign(pred_value),
-        sprintf("%s predicted to acheive sign change",
+        sprintf("%s predicted to achieve sign change",
                 signal_name))
 
     if (length(drop_inds) > 1) {
@@ -157,6 +162,31 @@ TestSignalPrediction <- function(param_infl, signals, signal_name) {
 }
 
 
+# Basic sanity checks on the number of points returned by GetAMIS
+TestGetAMIS <- function(qoi) {
+  n_drops <- c(0, 0.5, 1, 10, 10000)
+  for (sign in c("pos", "neg")) {
+      for (n_drop in n_drops) {
+          suppressWarnings(amis <- GetAMIS(qoi, sign=sign, n_drop=n_drop))
+          if (n_drop == 0) {
+              expect_equivalent(amis, NULL)
+          } else if (n_drop == 0.5) {
+              expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
+          } else if (n_drop == 1) {
+              expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
+          } else if (n_drop == 10) {
+              expect_equivalent(amis, qoi[[sign]]$infl_inds[1:10])
+          } else if (n_drop == 10000) {
+              expect_equivalent(amis, qoi[[sign]]$infl_inds)
+          } else {
+              stop(sprintf("Bad number of drops: %d", n_drop))
+          }
+      }
+  }
+}
+
+
+# Run all tests on a particular test instance.
 TestInfluence <- function(test_instance) {
   model_fit <- test_instance$model_fit
   model_grads <- test_instance$model_grads
@@ -181,34 +211,18 @@ TestInfluence <- function(test_instance) {
       GetSignalDataFrame(signals[[signal_name]])
   }
 
-
   # Test GetAMIS for a single QOI
-  qoi <- param_infl$beta_mzse
-  n_drops <- c(0, 0.5, 1, 10, 10000)
-  for (sign in c("pos", "neg")) {
-      for (n_drop in n_drops) {
-          suppressWarnings(amis <- GetAMIS(qoi, sign=sign, n_drop=n_drop))
-          if (n_drop == 0) {
-              expect_equivalent(amis, NULL)
-          } else if (n_drop == 0.5) {
-              expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
-          } else if (n_drop == 1) {
-              expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
-          } else if (n_drop == 10) {
-              expect_equivalent(amis, qoi[[sign]]$infl_inds[1:10])
-          } else if (n_drop == 10000) {
-              expect_equivalent(amis, qoi[[sign]]$infl_inds)
-          } else {
-              stop(sprintf("Bad number of drops: %d", n_drop))
-          }
-      }
-  }
+  TestGetAMIS(param_infl$beta_mzse)
 }
 
 
 test_that("influence_computations_correct", {
+  set.seed(42)
   for (do_iv in c(TRUE, FALSE)) {
     for (do_grouping in c(TRUE, FALSE)) {
+      sprintf("Running %s %s",
+          if (do_iv) "IV" else "OLS",
+          if (do_grouping) "grouped" else "ungrouped", "\n") %>% cat()
       GenerateTestInstance(do_iv, do_grouping) %>%
         TestInfluence()
     }
