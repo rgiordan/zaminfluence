@@ -108,22 +108,17 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
 #' Compute the approximate maximally-influential set (AMIS).
 #' @param qoi ``r docs$qoi``
 #' @param n_drop The number of points to drop (we will round up).
-#' Exactly one of `n_drop` and `prop_drop` must be specified.
-#' @param prop_drop The proportion of points to drop (we will round up).
-#' Exactly one of `n_drop` and `prop_drop` must be specified.
 #'
 #' @return `r docs$drop_inds`
 #' @export
-GetAMIS <- function(qoi, sign, n_drop=NULL, prop_drop=NULL) {
+GetAMIS <- function(qoi, sign, n_drop) {
   if (!(sign %in% c("pos", "neg"))) {
     stop("Sign must be either `pos` or `neg`.")
   }
-  if (sum(c(!is.null(n_drop), !is.null(prop_drop))) != 1) {
-    stop("Exactly one of `n_drop` and `prop_drop` must be specified.")
+  if (n_drop < 0) {
+    stop("`n_drop` must be non-negative.")
   }
-  if (!is.null(prop_drop)) {
-    n_drop <- ceiling(prop_drop * qoi$num_obs)
-  }
+  n_drop <- ceiling(n_drop)
   n_scores <- length(qoi[[sign]]$infl_inds)
   if (n_drop > n_scores) {
     warning(sprintf(paste0(
@@ -143,29 +138,16 @@ GetAMIS <- function(qoi, sign, n_drop=NULL, prop_drop=NULL) {
 #' Compute the approximate maximum influence perturbation (AMIP).
 #' @param qoi ``r docs$qoi``
 #' @param n_drop The number of points to drop (we will round up).
-#' Exactly one of `n_drop` and `prop_drop` must be specified.
-#' @param prop_drop The proportion of points to drop (we will round up).
-#' Exactly one of `n_drop` and `prop_drop` must be specified.
 #'
 #' @return The approximate largest change that can be produced by dropping
 #' the specified number of points.
 #' @export
-GetAMIP <- function(qoi, n_drop=NULL, prop_drop=NULL) {
-  if (sum(c(!is.null(n_drop), !is.null(prop_drop)) == 1)) {
-    stop("Only one of `n_drop` and `prop_drop` can be specified.")
-  }
-  if (!is.null(prop_drop)) {
-    n_drop <- ceiling(prop_drop * qoi$num_obs)
-  }
+GetAMIP <- function(qoi, sign, n_drop) {
   if (n_drop == 0) {
     return(0)
-  } else if (n_drop > qoi$num_obs){
-    stop(sprintf(
-      paste0("The number of observations to drop (%d) must be no greater ",
-             "than the total number of observations (%d)."),
-      n_drop, qoi$num_obs))
   }
-  return(sum(qoi$infl_cumsum[n_drop]))
+  amis <- GetAMIS(qoi, sign, n_drop)
+  return(PredictChange(qoi, amis))
 }
 
 #' Predict the effect of dropping points.

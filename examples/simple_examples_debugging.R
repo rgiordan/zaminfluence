@@ -195,12 +195,14 @@ load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Test GetAMIS
 qoi <- param_infl$beta_mzse
-n_drops <- c(0, 1, 10, 10000)
+n_drops <- c(0, 0.5, 1, 10, 10000)
 for (sign in c("pos", "neg")) {
     for (n_drop in n_drops) {
         suppressWarnings(amis <- GetAMIS(qoi, sign=sign, n_drop=n_drop))
         if (n_drop == 0) {
             expect_equivalent(amis, NULL)        
+        } else if (n_drop == 0.5) {
+            expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
         } else if (n_drop == 1) {
             expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
         } else if (n_drop == 10) {
