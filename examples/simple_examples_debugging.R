@@ -29,19 +29,6 @@ load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 source(file.path(git_repo_dir, "zaminfluence/tests/testthat/test_influence.R"))
 
-set.seed(42)
-test_instance <- GenerateTestInstance(TRUE, TRUE)
-
-model_fit <- test_instance$model_fit
-model_grads <- test_instance$model_grads
-param_infl <- model_grads$param_infl_list[["x1"]]
-
-signals <- GetInferenceSignals(param_infl)
-for (signal_name in c("sign", "sig", "both")) {
-    TestSignalPrediction(param_infl, signals, signal_name)
-}
-
-
 
 
 ##########################################################

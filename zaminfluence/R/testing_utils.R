@@ -25,7 +25,7 @@ AssertNearlyZero <- function(x, tol=1e-15, desc=NULL) {
   } else {
     info_str <- sprintf("%s: %e > %e", desc, x_norm, tol)
   }
-  expect_true(x_norm < tol, info=info_str, ...)
+  expect_true(x_norm < tol, info=info_str)
 }
 
 
