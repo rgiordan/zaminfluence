@@ -105,8 +105,6 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
 }
 
 
-
-
 #' Compute the approximate maximally-influential set (AMIS).
 #' @param qoi ``r docs$qoi``
 #' @param n_drop The number of points to drop (we will round up).
@@ -116,14 +114,29 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
 #'
 #' @return `r docs$drop_inds`
 #' @export
-GetAMIS <- function(qoi, n_drop=NULL, prop_drop=NULL) {
-  if (sum(c(!is.null(n_drop), !is.null(prop_drop)) == 1)) {
-    stop("Exactly one of `n_drop` and `prop_drop` can be specified.")
+GetAMIS <- function(qoi, sign, n_drop=NULL, prop_drop=NULL) {
+  if (!(sign %in% c("pos", "neg"))) {
+    stop("Sign must be either `pos` or `neg`.")
+  }
+  if (sum(c(!is.null(n_drop), !is.null(prop_drop))) != 1) {
+    stop("Exactly one of `n_drop` and `prop_drop` must be specified.")
   }
   if (!is.null(prop_drop)) {
     n_drop <- ceiling(prop_drop * qoi$num_obs)
   }
-  return(qoi$inds[1:n_drop])
+  n_scores <- length(qoi[[sign]]$infl_inds)
+  if (n_drop > n_scores) {
+    warning(sprintf(paste0(
+      "More dropped observations were requested than influence scores",
+      "present (%d > %d).  Returning all influence scores ",
+      "of the specified sign."), n_drop, n_scores))
+      return(qoi[[sign]]$infl_inds)
+  }
+  if (n_drop > 0) {
+    return(qoi[[sign]]$infl_inds[1:n_drop])
+  } else {
+    return(c())
+  }
 }
 
 

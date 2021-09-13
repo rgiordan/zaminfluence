@@ -93,9 +93,9 @@ param_infl <- model_grads$param_infl_list[["x1"]]
 # - Influence scores should match the sign
 # - Cumulative influence scores should decreas or increase according to the sign
 # - Lengths should match
-TestAPIP <- function(signal,  sign) {
-    apip <- signal[[sign]]
-    apip_infl <- signal$infl[apip$infl_inds]
+TestAPIP <- function(qoi,  sign) {
+    apip <- qoi[[sign]]
+    apip_infl <- qoi$infl[apip$infl_inds]
     if (sign == "pos") {
         expect_true(all(apip_infl > 0), info="positive influence is positive")
         expect_true(all(diff(apip$infl_cumsum) > 0), info="positive influence is increasing")
@@ -111,49 +111,107 @@ TestAPIP <- function(signal,  sign) {
 
 # Check the validity of a prediction when leaving out a small number of influential points.
 # We check that the relative error in the difference is less than 100 * tol %.
-TestPredictions <- function(param_infl, signal_name, num_leave_out=2, tol=0.03) {
-    for (sign in c("pos", "neg")) {
-        # Get the indices to drop.
-        signal <- param_infl[[signal_name]]
-        apip <- signal[[sign]]
-        drop_inds <- apip$infl_inds[1:num_leave_out]
-        w_bool <- GetWeightVector(drop_inds, num_obs=model_grads$n_obs, bool=TRUE)
-        
-        # The original values
-        base_values <- GetBaseValues(param_infl)
+TestPredictions <- function(param_infl, qoi_name, sign, num_leave_out=2, tol=0.03) {
+    # Get the indices to drop.
+    qoi <- param_infl[[qoi_name]]
+    apip <- qoi[[sign]]
+    drop_inds <- apip$infl_inds[1:num_leave_out]
+    w_bool <- GetWeightVector(drop_inds, num_obs=model_grads$n_obs, bool=TRUE)
+    
+    # The original values
+    base_values <- GetBaseValues(param_infl)
 
-        # Rerun
-        rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
-        rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
-        diff_rerun <- rerun_base_values - base_values
+    # Rerun
+    rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
+    rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
+    diff_rerun <- rerun_base_values - base_values
+    
+    # Prediction
+    diff_pred <- 
+        map_dbl(names(base_values), 
+                ~ PredictChange(param_infl[[.]], drop_inds))
+    
+    # Check the maximum relative error amongst beta, beta_mzse, and beta_pzse
+    max_rel_err <- max(abs((diff_pred - diff_rerun) / diff_rerun))
+    expect_true(max_rel_err < tol, 
+                info=sprintf("%s %s prediction error: %f", 
+                             qoi_name, sign, max_rel_err))
+}
+
+
+TestSignalPrediction <- function(param_infl, signal_name) {
+    signal <- signals[[signal_name]]
+    qoi_name <- signal$qoi_name
+    
+    # Form the prediction
+    drop_inds <- signal$apip$inds
+    base_value <- GetBaseValues(param_infl)[qoi_name]
+    pred_diff <- PredictChange(param_infl[[qoi_name]], drop_inds)
+    pred_value <- base_value + pred_diff
+    
+    # Assert that a sign change took place.
+    # Everything we look for is a sign change.
+    expect_true(
+        sign(base_value) != sign(pred_value),
+        sprintf("%s predicted to acheive sign change",
+                signal_name))
+    
+    if (length(drop_inds) > 1) {
+        pred_diff <- PredictChange(param_infl[[qoi_name]], 
+                                   drop_inds[1:(length(drop_inds) - 1)])
+        pred_value <- base_value + pred_diff
+        expect_true(
+            sign(base_value) == sign(base_value + pred_diff),
+            sprintf("%s predicted to fail to sign change with one fewer point",
+                    signal_name))
         
-        # Prediction
-        diff_pred <- 
-            map_dbl(names(base_values), 
-                    ~ PredictChange(param_infl[[.]], drop_inds))
-        
-        # Check the maximum relative error amongst beta, beta_mzse, and beta_pzse
-        max_rel_err <- max(abs((diff_pred - diff_rerun) / diff_rerun))
-        expect_true(max_rel_err < tol, 
-                    info=sprintf("%s %s prediction error: %f", 
-                                 signal_name, sign, max_rel_err))
     }
 }
 
 
-signal_names <- c("beta", "beta_mzse", "beta_pzse")
-for (signal_name in signal_names) {
+
+# Check the validity of the influence scores.
+qoi_names <- c("beta", "beta_mzse", "beta_pzse")
+for (qoi_name in qoi_names) {
     for (sign in c("pos", "neg")) {
-        TestAPIP(param_infl[[signal_name]], sign)
-        TestPredictions(param_infl, signal_name)
+        TestAPIP(param_infl[[qoi_name]], sign)
+        TestPredictions(param_infl, qoi_name, sign)
     }
+}
+
+# Check that the APIP predicts the appropriate change, and that
+# one fewer point does not.
+signals <- GetInferenceSignals(param_infl)
+for (signal_name in c("sign", "sig", "both")) {
+    TestSignalPrediction(param_infl, signal_name)
+
+    # Just test that this runs.
+    GetSignalDataFrame(signals[[signal_name]])
 }
 
 
 
+load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
-
-
+# Test GetAMIS
+qoi <- param_infl$beta_mzse
+n_drops <- c(0, 1, 10, 10000)
+for (sign in c("pos", "neg")) {
+    for (n_drop in n_drops) {
+        suppressWarnings(amis <- GetAMIS(qoi, sign=sign, n_drop=n_drop))
+        if (n_drop == 0) {
+            expect_equivalent(amis, NULL)        
+        } else if (n_drop == 1) {
+            expect_equivalent(amis, qoi[[sign]]$infl_inds[1])
+        } else if (n_drop == 10) {
+            expect_equivalent(amis, qoi[[sign]]$infl_inds[1:10])
+        } else if (n_drop == 10000) {
+            expect_equivalent(amis, qoi[[sign]]$infl_inds)
+        } else {
+            stop(sprintf("Bad number of drops: %d", n_drop))
+        }
+    }
+}
 
 
 ##########################################################
