@@ -7,8 +7,8 @@
 GetRerunBaseValues <- function(rerun, param_infl) {
     target_index <- param_infl$target_index
     sig_num_ses <- param_infl$sig_num_ses
-    beta <- rerun$betahat[target_index]
-    se <- rerun$se[target_index]
+    beta <- as.numeric(rerun$betahat[target_index])
+    se <- as.numeric(rerun$se[target_index])
     base_values <-
         c("beta"=beta,
           "beta_mzse"=beta - sig_num_ses * se,

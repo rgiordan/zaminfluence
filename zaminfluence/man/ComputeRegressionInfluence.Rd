@@ -16,7 +16,7 @@ A list containing the sensitivity of the coefficients and standard errors to dat
 \describe{
 \item{model_fit}{The original fit as returned by the fitting function}
 \item{n_obs}{The number of observations given weights}
-\item{regressor_names}{The names of the regressors as strings}
+\item{parameter_names}{The names of the regressors as strings}
 \item{grad_fun}{The function used to compute the derivatives}
 \item{betahat}{The estimated regression coefficient at the original weights}
 \item{se}{The standard errors at the original weights}

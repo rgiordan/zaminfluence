@@ -4,16 +4,12 @@
 \alias{GetAMIP}
 \title{Compute the approximate maximum influence perturbation (AMIP).}
 \usage{
-GetAMIP(qoi, n_drop = NULL, prop_drop = NULL)
+GetAMIP(qoi, sign, n_drop)
 }
 \arguments{
 \item{qoi}{\verb{A quantity of interest object (e.g. as produced by [ProcessInfluenceVector]).}}
 
-\item{n_drop}{The number of points to drop (we will round up).
-Exactly one of \code{n_drop} and \code{prop_drop} must be specified.}
-
-\item{prop_drop}{The proportion of points to drop (we will round up).
-Exactly one of \code{n_drop} and \code{prop_drop} must be specified.}
+\item{n_drop}{The number of points to drop (we will round up).}
 }
 \value{
 The approximate largest change that can be produced by dropping

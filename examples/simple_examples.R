@@ -9,7 +9,7 @@ library(dplyr)
 library(reshape2)
 library(gridExtra)
 library(sandwich)
-#library(zaminfluence)
+library(zaminfluence)
 library(purrr)
 library(AER)
 
@@ -19,10 +19,6 @@ check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 n_obs <- 10000
 
 set.seed(42)
-
-
-library(devtools)
-load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 RerunSummaryDf <- function(signals) {
     # A summary comparing reruns and predictions for each signal.

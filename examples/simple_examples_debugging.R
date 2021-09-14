@@ -27,7 +27,7 @@ library(devtools)
 load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 
-source(file.path(git_repo_dir, "zaminfluence/tests/testthat/test_influence.R"))
+source(file.path(git_repo_dir, "zaminfluence/tests/testthat/test_derivs.R"))
 
 
 
