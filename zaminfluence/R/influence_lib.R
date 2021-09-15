@@ -85,6 +85,14 @@ GetAPIP <- function(qoi, signal) {
 #' @return A vector of weights in the order of the original data.
 #' @export
 GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
+  if (!is.null(num_obs)) {
+    stop("`num_obs` must be specified")
+  }
+  if (max(drop_inds) > num_obs) {
+    stop(sprintf(paste0(
+      "The maximum index to drop must be no greater than `num_obs1.  ",
+      "max(drop_inds) = %d > %d = num_obs", max(drop_inds, num_obs))))
+  }
   if (bool) {
     w <- rep(TRUE, num_obs)
     w[drop_inds] <- FALSE

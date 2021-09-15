@@ -7,12 +7,12 @@
 GetRerunBaseValues <- function(rerun, param_infl) {
     target_index <- param_infl$target_index
     sig_num_ses <- param_infl$sig_num_ses
-    beta <- as.numeric(rerun$betahat[target_index])
-    se <- as.numeric(rerun$se[target_index])
+    beta <- rerun$betahat[target_index]
     base_values <-
-        c("beta"=beta,
-          "beta_mzse"=beta - sig_num_ses * se,
-          "beta_pzse"=beta + sig_num_ses * se)
+        c(beta,
+          beta - sig_num_ses * se,
+          beta + sig_num_ses * se)
+    names(base_values) <- c("beta", "beta_mzse", "beta_pzse")
     return(base_values)
 }
 
@@ -49,20 +49,25 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
       signals[[target]]$rerun <- rerun
 
       param_infl <- model_grads$param_infl_list[[signals$target_regressor]]
-      # Make a nice dataframe with the targeted regressor
-      # betahat <- rerun$betahat[[param_infl$target_index]]
-      # sehat <- rerun$se[[param_infl$target_index]]
-      # sig_num_ses <- param_infl$sig_num_ses
 
+      # Make a nice dataframe with the targeted regressor
       orig_base_values <- GetBaseValues(param_infl)
       rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
+
+      # The standard error is not a QOI, but it is convenient to
+      # report it.
+      se_orig <- model_grads$se[param_infl$target_index]
+      se_refit <- rerun$se[param_infl$target_index]
+
       signals[[target]]$rerun_df <-
           GetSignalDataFrame(signal) %>%
               mutate(
                   betahat_refit=rerun_base_values["beta"],
+                  se_refit=rerun_base_values["se"],
                   beta_mzse_refit=rerun_base_values["beta_mzse"],
                   beta_pzse_refit=rerun_base_values["beta_pzse"],
                   betahat_orig=orig_base_values["beta"],
+                  se_orig=se_orig,
                   beta_mzse_orig=orig_base_values["beta_mzse"],
                   beta_pzse_orig=orig_base_values["beta_pzse"])
   }

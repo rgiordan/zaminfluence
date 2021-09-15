@@ -63,6 +63,7 @@ GetBaseValues <- function(param_infl,
   return(map_dbl(param_infl[qoi_names], ~ .$base_value))
 }
 
+
 #' Compute the signals for changes to sign, significance, and both.
 #' @param param_infl `r docs$param_infl`
 #'
@@ -71,7 +72,8 @@ GetBaseValues <- function(param_infl,
 #' @export
 GetInferenceSignals <- function(param_infl) {
     base_values <- GetBaseValues(
-      param_infl, qoi_names=c("beta", "beta_mzse", "beta_pzse"))
+      param_infl,
+      qoi_names=c("beta", "beta_mzse", "beta_pzse"))
     betahat <- base_values["beta"]
     beta_mzse <- base_values["beta_mzse"]
     beta_pzse <- base_values["beta_pzse"]
@@ -82,7 +84,8 @@ GetInferenceSignals <- function(param_infl) {
 
     signals <- list()
     signals$target_regressor <- param_infl$target_regressor
-    signals$sign <- list(qoi_name="beta", signal=-1 * betahat, description=sign_label)
+    signals$sign <-
+      list(qoi_name="beta", signal=-1 * betahat, description=sign_label)
 
     is_significant <- sign(beta_mzse) == sign(beta_pzse)
     if (is_significant) {
@@ -172,7 +175,8 @@ GetSortedInfluenceDf <- function(param_infl, sorting_qoi_name,
         }
         qoi_df <- data.frame(
             num_dropped=c(0, 1:length(ordered_inds))) %>%
-            mutate(prop_dropped=num_dropped / qoi_for_sorting[[infl_sign]]$num_obs,
+            mutate(prop_dropped=num_dropped /
+                       qoi_for_sorting[[infl_sign]]$num_obs,
                    sign=infl_sign)
         for (qoi_name in c("beta", "beta_mzse", "beta_pzse")) {
             base_value <- param_infl[[qoi_name]]$base_value
