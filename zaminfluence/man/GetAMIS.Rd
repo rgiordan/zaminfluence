@@ -7,7 +7,7 @@
 GetAMIS(qoi, sign, n_drop)
 }
 \arguments{
-\item{qoi}{\verb{A quantity of interest object (e.g. as produced by [ProcessInfluenceVector]).}}
+\item{qoi}{\verb{A quantity of interest object (e.g. as produced by [QOIInfluence]).}}
 
 \item{n_drop}{The number of points to drop (we will round up).}
 }

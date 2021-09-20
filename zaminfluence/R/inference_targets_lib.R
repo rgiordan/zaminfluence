@@ -33,15 +33,19 @@ AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
     target_list <- list(
         target_index=target_index,
         target_regressor=target_regressor,
-        beta=ProcessInfluenceVector(
+        se=QOIInfluence(
+            infl=se_grad,
+            base_value=sehat,
+            num_obs=n_obs),
+        beta=QOIInfluence(
             infl=beta_grad,
             base_value=betahat,
             num_obs=n_obs),
-        beta_mzse=ProcessInfluenceVector(
+        beta_mzse=QOIInfluence(
             infl=beta_grad - sig_num_ses * se_grad,
             base_value=betahat - sig_num_ses * sehat,
             num_obs=n_obs),
-        beta_pzse=ProcessInfluenceVector(
+        beta_pzse=QOIInfluence(
             infl=beta_grad + sig_num_ses * se_grad,
             base_value=betahat + sig_num_ses * sehat,
             num_obs=n_obs),
@@ -53,6 +57,7 @@ AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
 }
 
 
+#' @export
 GetBaseValues <- function(param_infl,
                           qoi_names=c("beta", "beta_mzse", "beta_pzse")) {
   for (qoi_name in qoi_names) {

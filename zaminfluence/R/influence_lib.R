@@ -1,4 +1,40 @@
 
+new_QOIInfluence <- function(
+    infl, base_value, num_obs,
+    ordered_inds_neg, infl_cumsum_neg,
+    ordered_inds_pos, infl_cumsum_pos) {
+
+    return(structure(
+      list(
+        neg=list(infl_inds=ordered_inds_neg,
+                 infl_cumsum=infl_cumsum_neg,
+                 num_obs=num_obs),
+        pos=list(infl_inds=ordered_inds_pos,
+                 infl_cumsum=infl_cumsum_pos,
+                 num_obs=num_obs),
+        base_value=base_value,
+        infl=infl  # In the original order
+      ),
+      class="QOIInfluence"))
+}
+
+
+validate_QOIInfluence <- function(qoi) {
+    stopifnot(class(qoi) == "QOIInfluence")
+    CheckSortedInfluence <- function(signed_infl, sign) {
+      stopifnot(all(signed_infl$infl_cumsum * sign > 0))
+      stopifnot(length(signed_infl$ordered_inds) ==
+                length(signed_infl$infl_cumsum))
+      stopifnot(all(
+        qoi$infl[signed_infl$ordered_inds] ==
+        diff(signed_infl$infl_cumsum)))
+    }
+    CheckSortedInfluence(qoi$pos, 1)
+    CheckSortedInfluence(qoi$neg, -1)
+    stopifnot(qoi$neg$num_obs == qoi$pos$num_obs)
+}
+
+
 #' Process a vector of influence scores to produce sorted influence scores.
 #' @param infl A vector of influence scores for a quantity of interest,
 #' in the same order as the original data.
@@ -6,7 +42,7 @@
 #'
 #' @return See "Quantity of Interest" in README.md
 #' @export
-ProcessInfluenceVector <- function(infl, base_value, num_obs=NULL, obs_per_row=1) {
+QOIInfluence <- function(infl, base_value, num_obs=NULL) {
     if (is.null(num_obs)) {
         num_obs <- length(infl)
     }
@@ -24,24 +60,17 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs=NULL, obs_per_row=1
 
     infl_neg <- infl[ordered_inds_neg]
     infl_cumsum_neg <- cumsum(infl_neg)
-    return(list(
-        neg=list(infl_inds=ordered_inds_neg,
-                 infl_cumsum=infl_cumsum_neg,
-                 num_obs=num_obs,
-                 obs_per_row=obs_per_row),
-        pos=list(infl_inds=ordered_inds_pos,
-                 infl_cumsum=infl_cumsum_pos,
-                 num_obs=num_obs,
-                 obs_per_row=obs_per_row),
-        base_value=base_value,
-        infl=infl  # In the original order
-        ))
+
+    return(new_QOIInfluence(
+      infl=infl, base_value=base_value, num_obs=num_obs,
+      ordered_inds_neg=ordered_inds_neg, infl_cumsum_neg=infl_cumsum_neg,
+      ordered_inds_pos=ordered_inds_pos, infl_cumsum_pos=infl_cumsum_pos))
 }
 
 
 #' Compute the approximate perturbation-inducing proportion (APIP).
 #' @param qoi ``r docs$qoi``
-#' @param signal `r docs$signal`
+#' @param signal The desired difference.
 #'
 #' @return A list containing
 #' `n`: The number of points to drop
@@ -49,8 +78,19 @@ ProcessInfluenceVector <- function(infl, base_value, num_obs=NULL, obs_per_row=1
 #' `inds`: `r docs$drop_inds`
 #' @export
 GetAPIP <- function(qoi, signal) {
+    stopifnot(class(qoi) == "QOIInfluence")
+    stopifnot(is.numeric(signal))
+    stopifnot(length(signal) == 1)
+
     # To produce a negative change, drop observations with positive influence
     # scores, and vice-versa.
+    if (signal == 0) {
+      return(list(
+          n=0,
+          prop=0.0,
+          inds=c()
+      ))
+    }
     qoi_sign <- if (signal < 0) qoi$pos else qoi$neg
     n_vec <- 1:length(qoi_sign$infl_cumsum)
     # TODO: do this more efficiently using your own routine, since
@@ -85,13 +125,18 @@ GetAPIP <- function(qoi, signal) {
 #' @return A vector of weights in the order of the original data.
 #' @export
 GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
-  if (!is.null(num_obs)) {
+  if (is.null(num_obs)) {
     stop("`num_obs` must be specified")
   }
-  if (max(drop_inds) > num_obs) {
-    stop(sprintf(paste0(
-      "The maximum index to drop must be no greater than `num_obs1.  ",
-      "max(drop_inds) = %d > %d = num_obs", max(drop_inds, num_obs))))
+  if (length(drop_inds) > 0) {
+    if (max(drop_inds) > num_obs) {
+      stop(sprintf(paste0(
+        "The maximum index to drop must be no greater than `num_obs1.  ",
+        "max(drop_inds) = %d > %d = num_obs", max(drop_inds, num_obs))))
+    }
+    if (min(drop_inds) < 1) {
+      stop("All drop_inds must be positive.")
+    }
   }
   if (bool) {
     w <- rep(TRUE, num_obs)
@@ -120,6 +165,7 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
 #' @return `r docs$drop_inds`
 #' @export
 GetAMIS <- function(qoi, sign, n_drop) {
+  stopifnot(class(qoi) == "QOIInfluence")
   if (!(sign %in% c("pos", "neg"))) {
     stop("Sign must be either `pos` or `neg`.")
   }
@@ -151,6 +197,7 @@ GetAMIS <- function(qoi, sign, n_drop) {
 #' the specified number of points.
 #' @export
 GetAMIP <- function(qoi, sign, n_drop) {
+  stopifnot(class(qoi) == "QOIInfluence")
   if (n_drop == 0) {
     return(0)
   }
@@ -166,5 +213,6 @@ GetAMIP <- function(qoi, sign, n_drop) {
 #' observations.
 #'@export
 PredictChange <- function(qoi, drop_inds) {
+    stopifnot(class(qoi) == "QOIInfluence")
     return(-1 * sum(qoi$infl[drop_inds]))
 }

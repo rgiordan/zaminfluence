@@ -7,9 +7,9 @@
 GetAPIP(qoi, signal)
 }
 \arguments{
-\item{qoi}{\verb{A quantity of interest object (e.g. as produced by [ProcessInfluenceVector]).}}
+\item{qoi}{\verb{A quantity of interest object (e.g. as produced by [QOIInfluence]).}}
 
-\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetInferenceSignals}).}
+\item{signal}{The desired difference.}
 }
 \value{
 A list containing

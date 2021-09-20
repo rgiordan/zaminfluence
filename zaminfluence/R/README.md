@@ -84,7 +84,7 @@ interval ("plus z standard errors").
 
 QOI objects contain a processed influence vector for a particular scalar-valued
 quantity of interest.
-They are created with `ProcessInfluenceVector`.  Then contain
+They are created with `QOIInfluence`.  Then contain
 - `base_value`:     The original value of the quantity of interest
 - `infl`: The unsorted influence scores (in the same order as the original data)
 - `num_obs`:        The total number of observations (is this necessary?)

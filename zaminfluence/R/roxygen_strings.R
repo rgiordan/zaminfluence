@@ -11,7 +11,7 @@ docs <- list(
   ),
   qoi=paste0(
     "A quantity of interest object (e.g. as produced by ",
-    "[ProcessInfluenceVector])."
+    "[QOIInfluence])."
   ),
   signal=paste0("A signal object (e.g. one of the elements of the list ",
     "produced by [GetInferenceSignals])."),

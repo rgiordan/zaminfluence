@@ -7,7 +7,7 @@
 PredictChange(qoi, drop_inds)
 }
 \arguments{
-\item{qoi}{\verb{A quantity of interest object (e.g. as produced by [ProcessInfluenceVector]).}}
+\item{qoi}{\verb{A quantity of interest object (e.g. as produced by [QOIInfluence]).}}
 
 \item{drop_inds}{\verb{The indices to drop (in the order of the original data)}}
 }
