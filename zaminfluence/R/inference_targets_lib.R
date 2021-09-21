@@ -3,23 +3,27 @@ library(purrr)
 library(latex2exp)
 
 
-#' Compute the influence scores for a particular parameter.
-#' @param model_grads `r docs$model_grads`
-#' @param target_regressor The string naming a regressor (must be an
-#' entry in [model_grads$parameter_names]).
-#' @param sig_num_ses `r docs$sig_num_ses`
-#'
-#' @return The original `model_grads`, with an entry
-#' `model_grads$param_infl_list[[target_regressor]]` containing a
-#' parameter influence object.
-#'
-#'@export
-AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
-                                           sig_num_ses=qnorm(0.975)) {
-    if (is.null(model_grads[["param_infl_list"]])) {
-        model_grads$param_infl_list <- list()
-    }
-    target_index <- which(model_grads$parameter_names == target_regressor)
+# Define an S3 ParameterInferenceInfluence object.
+
+new_ParameterInferenceInfluence <- function(
+    target_index, target_parameter, sig_num_ses,
+    se_qoi, beta_qoi, beta_mzse_qoi, beta_pzse_qoi) {
+  return(structure(
+    list(
+        target_index=target_index,
+        target_parameter=target_parameter,
+        se=se_qoi,
+        beta=beta_qoi,
+        beta_mzse=beta_mzse_qoi,
+        beta_pzse=beta_pzse_qoi,
+        sig_num_ses=sig_num_ses
+  ), class="ParameterInferenceInfluence"))
+}
+
+
+ParameterInferenceInfluence <- function(model_grads, target_parameter,
+                                        sig_num_ses=qnorm(0.975)) {
+    target_index <- which(model_grads$parameter_names == target_parameter)
     if (length(target_index) != 1) {
         stop("Error finding target regressor in the regression.")
     }
@@ -30,30 +34,52 @@ AppendTargetRegressorInfluence <- function(model_grads, target_regressor,
     sehat <- model_grads$se[target_index]
     n_obs <- model_grads$n_obs
 
-    target_list <- list(
-        target_index=target_index,
-        target_regressor=target_regressor,
-        se=QOIInfluence(
-            infl=se_grad,
-            base_value=sehat,
-            num_obs=n_obs),
-        beta=QOIInfluence(
-            infl=beta_grad,
-            base_value=betahat,
-            num_obs=n_obs),
-        beta_mzse=QOIInfluence(
-            infl=beta_grad - sig_num_ses * se_grad,
-            base_value=betahat - sig_num_ses * sehat,
-            num_obs=n_obs),
-        beta_pzse=QOIInfluence(
-            infl=beta_grad + sig_num_ses * se_grad,
-            base_value=betahat + sig_num_ses * sehat,
-            num_obs=n_obs),
-        sig_num_ses=sig_num_ses
-    )
+    return(new_ParameterInferenceInfluence(
+          target_index=target_index,
+          target_parameter=target_parameter,
+          sig_num_ses=sig_num_ses,
+          se_qoi=QOIInfluence(
+              infl=se_grad,
+              base_value=sehat,
+              num_obs=n_obs),
+          beta_qoi=QOIInfluence(
+              infl=beta_grad,
+              base_value=betahat,
+              num_obs=n_obs),
+          beta_mzse_qoi=QOIInfluence(
+              infl=beta_grad - sig_num_ses * se_grad,
+              base_value=betahat - sig_num_ses * sehat,
+              num_obs=n_obs),
+          beta_pzse_qoi=QOIInfluence(
+              infl=beta_grad + sig_num_ses * se_grad,
+              base_value=betahat + sig_num_ses * sehat,
+              num_obs=n_obs)
+    ))
+}
 
-    model_grads$param_infl_list[[target_regressor]] <- target_list
-    return(model_grads)
+
+#' Compute the influence scores for a particular parameter.
+#' @param model_grads `r docs$model_grads`
+#' @param target_parameter The string naming a regressor (must be an
+#' entry in [model_grads$parameter_names]).
+#' @param sig_num_ses `r docs$sig_num_ses`
+#'
+#' @return The original `model_grads`, with an entry
+#' `model_grads$param_infl_list[[target_parameter]]` containing a
+#' parameter influence object.
+#'
+#'@export
+AppendTargetRegressorInfluence <- function(model_grads, target_parameter,
+                                           sig_num_ses=qnorm(0.975)) {
+    if (is.null(model_grads[["param_infl_list"]])) {
+        model_grads$param_infl_list <- list()
+    }
+
+    param_infl <- ParameterInferenceInfluence(
+      model_grads, target_parameter, sig_num_ses=sig_num_ses)
+
+    model_grads$param_infl_list[[target_parameter]] <- param_infl
+    return(invisible(model_grads))
 }
 
 
@@ -88,7 +114,7 @@ GetInferenceSignals <- function(param_infl) {
     both_label <- "sign and significance"
 
     signals <- list()
-    signals$target_regressor <- param_infl$target_regressor
+    signals$target_parameter <- param_infl$target_parameter
     signals$sign <-
       list(qoi_name="beta", signal=-1 * betahat, description=sign_label)
 

@@ -68,31 +68,6 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
 }
 
 
-
-# Sanity check an APIP.
-# - Influence scores should match the sign
-# - Cumulative influence scores should decreas or increase according to the sign
-# - Lengths should match
-TestAPIP <- function(qoi,  sign) {
-    apip <- qoi[[sign]]
-    apip_infl <- qoi$infl[apip$infl_inds]
-    if (sign == "pos") {
-        expect_true(all(apip_infl > 0),
-          info="positive influence is positive")
-        expect_true(all(diff(apip$infl_cumsum) > 0),
-          info="positive influence is increasing")
-    } else if (sign == "neg") {
-        expect_true(all(apip_infl < 0), info="negative influence is negative")
-        expect_true(all(diff(apip$infl_cumsum) < 0),
-          info="negative influence is decreasing")
-    } else {
-        stop("Bad sign passed to test")
-    }
-    expect_true(length(apip$infl_inds) == length(apip$infl_cumsum),
-      info="Inds len == cumsum len")
-}
-
-
 # Check the validity of a prediction when leaving out a small number of
 # influential points.
 # We check that the relative error in the difference is less than 100 * tol %.
@@ -195,8 +170,9 @@ TestInfluence <- function(test_instance) {
   # Check the validity of the influence scores.
   qoi_names <- c("beta", "beta_mzse", "beta_pzse")
   for (qoi_name in qoi_names) {
+      validate_QOIInfluence(param_infl[[qoi_name]])
       for (sign in c("pos", "neg")) {
-          TestAPIP(param_infl[[qoi_name]], sign)
+          # TestAPIP(param_infl[[qoi_name]], sign)
           TestPredictions(model_grads, param_infl, qoi_name, sign)
       }
   }

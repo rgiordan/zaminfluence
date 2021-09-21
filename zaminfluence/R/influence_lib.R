@@ -1,4 +1,6 @@
 
+# Define a QOIInfluence S3 class
+
 new_QOIInfluence <- function(
     infl, base_value, num_obs,
     ordered_inds_neg, infl_cumsum_neg,
@@ -23,11 +25,15 @@ validate_QOIInfluence <- function(qoi) {
     stopifnot(class(qoi) == "QOIInfluence")
     CheckSortedInfluence <- function(signed_infl, sign) {
       stopifnot(all(signed_infl$infl_cumsum * sign > 0))
-      stopifnot(length(signed_infl$ordered_inds) ==
+      stopifnot(length(signed_infl$infl_inds) ==
                 length(signed_infl$infl_cumsum))
+      infl_from_diff <- diff(signed_infl$infl_cumsum)
+      # Check that the influence scores match
       stopifnot(all(
         qoi$infl[signed_infl$ordered_inds] ==
-        diff(signed_infl$infl_cumsum)))
+        infl_from_diff))
+      # Check that the influence scores are sorted
+      stopifnot(all(diff(infl_from_diff * sign) <= 0))
     }
     CheckSortedInfluence(qoi$pos, 1)
     CheckSortedInfluence(qoi$neg, -1)
