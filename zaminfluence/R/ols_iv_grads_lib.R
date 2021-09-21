@@ -645,8 +645,8 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
     x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
     w0=reg_vars$w0, se_group=se_group)
 
-  RerunFun <- function(fit_object, w_bool) {
-    RerunRegression(w_bool=w_bool, lm_result=fit_object, se_group=se_group)
+  RerunFun <- function(w_bool) {
+    RerunRegression(w_bool=w_bool, lm_result=lm_result, se_group=se_group)
   }
 
   model_fit <- ModelFit(
@@ -679,8 +679,8 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
       x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
       beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
 
-    RerunFun <- function(fit_object, w_bool) {
-      RerunIVRegression(w_bool=w_bool, iv_res=fit_object, se_group=se_group)
+    RerunFun <- function(w_bool) {
+      RerunIVRegression(w_bool=w_bool, iv_res=iv_res, se_group=se_group)
     }
 
     model_fit <- ModelFit(

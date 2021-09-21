@@ -77,13 +77,14 @@ TestPredictions <- function(
     qoi <- param_infl[[qoi_name]]
     apip <- qoi[[sign]]
     drop_inds <- apip$infl_inds[1:num_leave_out]
-    w_bool <- GetWeightVector(drop_inds, num_obs=model_grads$n_obs, bool=TRUE)
+    w_bool <- GetWeightVector(
+      drop_inds, num_obs=model_grads$model_fit$n_obs, bool=TRUE)
 
     # The original values
     base_values <- GetBaseValues(param_infl)
 
     # Rerun
-    rerun <- model_grads$RerunFun(model_grads$model_fit$fit_object, w_bool)
+    rerun <- model_grads$RerunFun(w_bool)
     rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
     diff_rerun <- rerun_base_values[names(base_values)] - base_values
     names(diff_rerun) <- names(base_values)

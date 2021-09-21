@@ -50,7 +50,7 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
           num_obs=model_grads$model_fit$n_obs,
           bool=TRUE)
 
-      rerun <- RerunFun(model_grads$model_fit, w_bool=w_bool)
+      rerun <- RerunFun(w_bool)
 
       # Save the whole rerun
       signals[[target]]$rerun <- rerun

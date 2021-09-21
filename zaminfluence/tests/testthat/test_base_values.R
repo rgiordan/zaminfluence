@@ -55,7 +55,7 @@ TestConfiguration <- function(model_fit, se_group) {
 
   # Test that if we re-run we get the same answer.
   w_bool <- rep(TRUE, model_grads$model_fit$n_obs)
-  rerun <- model_grads$RerunFun(model_fit, w_bool)
+  rerun <- model_grads$RerunFun(w_bool)
   AssertNearlyEqual(
     rerun$betahat, coefficients(model_fit), desc="rerun betahat equal")
   AssertNearlyEqual(
