@@ -50,16 +50,18 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
 ParameterInferenceInfluence <- function(model_grads, target_parameter,
                                         sig_num_ses=qnorm(0.975)) {
     stopifnot(class(model_grads) == "ModelGrads")
-    target_index <- which(model_grads$parameter_names == target_parameter)
+    target_index <- which(
+      model_grads$model_fit$parameter_names == target_parameter)
     if (length(target_index) != 1) {
         stop("Error finding target regressor in the regression.")
     }
 
-    se_grad <- model_grads$weights * model_grads$se_grad[target_index,]
-    beta_grad <- model_grads$weights * model_grads$beta_grad[target_index, ]
-    betahat <- model_grads$betahat[target_index]
-    sehat <- model_grads$se[target_index]
-    n_obs <- model_grads$n_obs
+    weights <- model_grads$model_fit$weights
+    se_grad <- weights * model_grads$se_grad[target_index,]
+    beta_grad <- weights * model_grads$beta_grad[target_index, ]
+    betahat <- model_grads$model_fit$betahat[target_index]
+    sehat <- model_grads$model_fit$se[target_index]
+    n_obs <- model_grads$model_fit$n_obs
 
     param_infl <- new_ParameterInferenceInfluence(
           target_index=target_index,
@@ -235,15 +237,14 @@ GetInferenceSignals <- function(param_infl) {
 #' Produce a tidy dataframe summarizing a signal.
 #' @param signal `r docs$signal`
 #'
-#' @return A dataframe summarizing the signal.
-#' @export
-GetSignalDataFrame <- function(signal) {
-    data.frame(
-        qoi_name=signal$qoi$name,
-        description=signal$description,
-        signal=signal$signal,
-        num_removed=signal$apip$n,
-        prop_removed=signal$apip$prop)
+#'@export
+as.data.frame.QOISignal <- function(signal) {
+  data.frame(
+      qoi_name=signal$qoi$name,
+      description=signal$description,
+      signal=signal$signal,
+      num_removed=signal$apip$n,
+      prop_removed=signal$apip$prop)
 }
 
 

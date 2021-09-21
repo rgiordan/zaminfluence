@@ -1,3 +1,7 @@
+
+
+
+
 #' Compute the "base values" (beta and the CI) for a parameter from a rerun.
 #' @param rerun `r docs$rerun`
 #' @param param_infl `r docs$param_infl`
@@ -43,7 +47,7 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
       signal <- signals[[target]]
       w_bool <- GetWeightVector(
           drop_inds=signal$apip$inds,
-          num_obs=model_grads$n_obs,
+          num_obs=model_grads$model_fit$n_obs,
           bool=TRUE)
 
       rerun <- RerunFun(model_grads$model_fit, w_bool=w_bool)
@@ -59,11 +63,11 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
 
       # The standard error is not a QOI, but it is convenient to
       # report it.
-      se_orig <- model_grads$se[param_infl$target_index]
+      se_orig <- model_grads$model_fit$se[param_infl$target_index]
       se_refit <- rerun$se[param_infl$target_index]
 
       signals[[target]]$rerun_df <-
-          GetSignalDataFrame(signal) %>%
+          as.data.frame(signal) %>%
               mutate(
                   betahat_refit=rerun_base_values["beta"],
                   se_refit=rerun_base_values["se"],

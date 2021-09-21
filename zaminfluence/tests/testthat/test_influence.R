@@ -199,7 +199,8 @@ TestInfluence <- function(test_instance) {
       TestSignalPrediction(param_infl, signals, signal_name)
 
       # Just test that this runs.
-      GetSignalDataFrame(signals[[signal_name]])
+      #as.data.frame(signals[[signal_name]])
+      as.data.frame(signals[[signal_name]])
   }
 
   # Test GetAMIS for a single QOI

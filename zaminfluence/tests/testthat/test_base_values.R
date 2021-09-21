@@ -21,16 +21,16 @@ TestConfiguration <- function(model_fit, se_group) {
   # Test that the coefficient estimates and standard errors in model_grads
   # match what we expect from R.
   AssertNearlyEqual(
-    model_grads$betahat, coefficients(model_fit), desc="betahat equal")
+    model_grads$model_fit$betahat, coefficients(model_fit), desc="betahat equal")
   se_r <- GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt()
   AssertNearlyEqual(
-    model_grads$se, se_r, desc="std error equal")
+    model_grads$model_fit$se, se_r, desc="std error equal")
   testthat::expect_equivalent(
-    model_grads$n_obs, length(model_fit$y), info="num obs")
+    model_grads$model_fit$n_obs, length(model_fit$y), info="num obs")
   # testthat::expect_equivalent(
   #   model_grads$weights, model_fit$weights, info="weights")
   testthat::expect_equivalent(
-    model_grads$parameter_names, names(coefficients(model_fit)),
+    model_grads$model_fit$parameter_names, names(coefficients(model_fit)),
     info="column names")
 
   # Test that the base values in param_infl are correct.
@@ -54,7 +54,7 @@ TestConfiguration <- function(model_fit, se_group) {
     info="beta_mzse base value")
 
   # Test that if we re-run we get the same answer.
-  w_bool <- rep(TRUE, model_grads$n_obs)
+  w_bool <- rep(TRUE, model_grads$model_fit$n_obs)
   rerun <- model_grads$RerunFun(model_fit, w_bool)
   AssertNearlyEqual(
     rerun$betahat, coefficients(model_fit), desc="rerun betahat equal")

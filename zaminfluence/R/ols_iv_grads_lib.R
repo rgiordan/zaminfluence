@@ -649,19 +649,20 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
     RerunRegression(w_bool=w_bool, lm_result=model_fit, se_group=se_group)
   }
 
-  return(ModelGrads(model_fit=lm_result,
-              n_obs=reg_vars$num_obs,
-              parameter_names=colnames(lm_result$x),
+  model_fit <- ModelFit(
+    fit_object=lm_result,
+    n_obs=reg_vars$num_obs,
+    parameter_names=colnames(lm_result$x),
+    betahat=reg_vars$betahat,
+    se=reg_grad_list$se,
+    weights=reg_vars$w0,
+    se_group=se_group)
 
-              betahat=reg_vars$betahat,
-              se=reg_grad_list$se,
-              weights=reg_vars$w0,
-              se_group=se_group,
+  return(ModelGrads(model_fit=model_fit,
+                    beta_grad=reg_grad_list$dbetahat_dw,
+                    se_grad=reg_grad_list$dse_dw,
+                    RerunFun=RerunFun))
 
-              beta_grad=reg_grad_list$dbetahat_dw,
-              se_grad=reg_grad_list$dse_dw,
-
-              RerunFun=RerunFun))
 }
 
 
@@ -682,21 +683,20 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
       RerunIVRegression(w_bool=w_bool, iv_res=model_fit, se_group=se_group)
     }
 
+    model_fit <- ModelFit(
+      fit_object=iv_res,
+      n_obs=iv_vars$num_obs,
+      parameter_names=colnames(iv_res$x$regressors),
+      betahat=iv_vars$betahat,
+      se=iv_grad_list$se,
+      weights=iv_vars$w0,
+      se_group=se_group)
+
     # Note that the standard errors may not match iv_res when using se_group.
-    return(ModelGrads(model_fit=iv_res,
-                n_obs=iv_vars$num_obs,
-                parameter_names=colnames(iv_res$x$regressors),
-
-                betahat=iv_vars$betahat,
-                se=iv_grad_list$se,
-                weights=iv_vars$w0,
-                se_group=se_group,
-
-                beta_grad=iv_grad_list$dbetahat_dw,
-                se_grad=iv_grad_list$dse_dw,
-
-                RerunFun=RerunFun
-              ))
+    return(ModelGrads(model_fit=model_fit,
+                      beta_grad=iv_grad_list$dbetahat_dw,
+                      se_grad=iv_grad_list$dse_dw,
+                      RerunFun=RerunFun))
 }
 
 
