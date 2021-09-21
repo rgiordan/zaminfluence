@@ -3,7 +3,7 @@ library(purrr)
 library(latex2exp)
 
 
-# Define an S3 ParameterInferenceInfluence object.
+# Define an ParameterInferenceInfluence S3 object.
 
 new_ParameterInferenceInfluence <- function(
     target_index, target_parameter, sig_num_ses,
@@ -121,6 +121,16 @@ GetBaseValues <- function(param_infl) {
 }
 
 
+# Define an QOISignal S3 object.
+
+new_QOISignal <- function(qoi_name, signal, description, apip) {
+  return(structure(
+    list(qoi_name=qoi_name, signal=signal, description=description, apip=apip),
+    class="QOISignal"
+  ))
+}
+
+
 #' Compute the signals for changes to sign, significance, and both.
 #' @param param_infl `r docs$param_infl`
 #'
@@ -178,12 +188,12 @@ GetInferenceSignals <- function(param_infl) {
     }
 
     # Get the APIP for all the signals
+    # TODO: we need to rearrange so this happens in one call.
     for (target in c("sign", "sig", "both")) {
         signal <- signals[[target]]
-        apip <- GetAPIP(
+        signals[[target]]$apip <- GetAPIPForQOI(
             qoi=param_infl[[signal$qoi_name]],
             signal=signal$signal)
-        signals[[target]]$apip <- apip
     }
 
     return(signals)

@@ -74,6 +74,36 @@ QOIInfluence <- function(infl, base_value, num_obs=NULL) {
 }
 
 
+# Define an APIP S3 class
+
+new_APIP <- function(n, prop, inds) {
+  return(structure(
+    list(n=n, prop=prop, inds=as.integer(inds)),
+    class="APIP"
+  ))
+}
+
+
+validate_APIP <- function(apip) {
+  stopifnot(class(apip) == "APIP")
+  StopIfNotNumericScalar(apip$n)
+  StopIfNotNumericScalar(apip$prop)
+  if (!is.null(apip$inds)) {
+    stopifnot(all(apip$inds > 0))
+  }
+  return(invisible(apip))
+}
+
+
+APIP <- function(n_drop, num_obs, inds_drop) {
+  return(validate_APIP(new_APIP(
+    n=n_drop,
+    prop=n_drop / num_obs,
+    inds=inds_drop
+  )))
+}
+
+
 #' Compute the approximate perturbation-inducing proportion (APIP).
 #' @param qoi ``r docs$qoi``
 #' @param signal The desired difference.
@@ -83,21 +113,18 @@ QOIInfluence <- function(infl, base_value, num_obs=NULL) {
 #' `prop`: The proportion of points to drop
 #' `inds`: `r docs$drop_inds`
 #' @export
-GetAPIP <- function(qoi, signal) {
+GetAPIPForQOI <- function(qoi, signal) {
     stopifnot(class(qoi) == "QOIInfluence")
     stopifnot(is.numeric(signal))
     stopifnot(length(signal) == 1)
 
+    qoi_sign <- if (signal < 0) qoi$pos else qoi$neg
+    num_obs <- qoi_sign$num_obs
     # To produce a negative change, drop observations with positive influence
     # scores, and vice-versa.
     if (signal == 0) {
-      return(list(
-          n=0,
-          prop=0.0,
-          inds=c()
-      ))
+      return(APIP(n_drop=0, num_obs=num_obs, inds_drop=c()))
     }
-    qoi_sign <- if (signal < 0) qoi$pos else qoi$neg
     n_vec <- 1:length(qoi_sign$infl_cumsum)
     # TODO: do this more efficiently using your own routine, since
     # we know that infl_cumsum is increasing?
@@ -111,11 +138,7 @@ GetAPIP <- function(qoi, signal) {
     } else {
         drop_inds <- qoi_sign$infl_inds[1:n_drop]
     }
-    return(list(
-        n=n_drop,
-        prop=n_drop / qoi_sign$num_obs,
-        inds=drop_inds
-    ))
+    return(APIP(n_drop=n_drop, num_obs=num_obs, inds_drop=drop_inds))
 }
 
 

@@ -16,7 +16,7 @@ docs <- list(
   signal=paste0("A signal object (e.g. one of the elements of the list ",
     "produced by [GetInferenceSignals])."),
   apip=paste0("An approximation perturbation inducing proportion object ",
-"(e.g. as produced by [GetAPIP])"),
+"(e.g. as produced by [GetAPIPForQOI])"),
 drop_inds="The indices to drop (in the order of the original data)",
 
   model_fit="The fit from [lm()] or [AER::ivreg()].",

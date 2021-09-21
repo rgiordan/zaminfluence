@@ -7,6 +7,12 @@ library(latex2exp)
 library(testthat)
 
 
+StopIfNotNumericScalar <- function(x) {
+  stopifnot(is.numeric(x))
+  stopifnot(length(x) == 1)
+}
+
+
 AssertNearlyEqual <- function(x, y, tol=1e-9, desc=NULL) {
   diff_norm <- max(abs(x - y))
   if (is.null(desc)) {
