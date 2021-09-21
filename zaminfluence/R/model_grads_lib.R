@@ -1,6 +1,6 @@
 
 new_ModelFit <- function(
-  fit_object, parameter_names, betahat, se, weights, se_group) {
+  fit_object, n_obs, parameter_names, betahat, se, weights, se_group) {
   return(structure(
     list(fit_object=fit_object,
          n_obs=n_obs,
@@ -27,14 +27,15 @@ validate_ModelFit <- function(model_fit) {
   }
 
   parameter_dim <- model_fit$parameter_dim
-  stopifnot(length(parameter_names) == parameter_dim)
-  stopifnot(length(betahat) == parameter_dim)
-  stopifnot(length(se) == parameter_dim)
+  stopifnot(length(model_fit$parameter_names) == parameter_dim)
+  stopifnot(length(model_fit$betahat) == parameter_dim)
+  stopifnot(length(model_fit$se) == parameter_dim)
+  return(invisible(model_fit))
 }
 
 
 #'@export
-ModelFit <- function(fit_object, betahat, se,
+ModelFit <- function(fit_object, n_obs, betahat, se,
                      parameter_names=NULL, weights=NULL, se_group=NULL) {
     if (is.null(weights)) {
         weights <- rep(1.0, n_obs)
@@ -44,13 +45,14 @@ ModelFit <- function(fit_object, betahat, se,
     }
     return(validate_ModelFit(new_ModelFit(
       fit_object=fit_object,
+      n_obs=n_obs,
       parameter_names=parameter_names,
       betahat=betahat,
       se=se,
       weights=weights,
       se_group=se_group
     )))
-)
+}
 
 
 # Define S3 class for ModelGrads

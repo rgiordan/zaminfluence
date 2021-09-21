@@ -645,8 +645,8 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
     x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
     w0=reg_vars$w0, se_group=se_group)
 
-  RerunFun <- function(model_fit, w_bool) {
-    RerunRegression(w_bool=w_bool, lm_result=model_fit, se_group=se_group)
+  RerunFun <- function(fit_object, w_bool) {
+    RerunRegression(w_bool=w_bool, lm_result=fit_object, se_group=se_group)
   }
 
   model_fit <- ModelFit(
@@ -679,8 +679,8 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
       x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
       beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
 
-    RerunFun <- function(model_fit, w_bool) {
-      RerunIVRegression(w_bool=w_bool, iv_res=model_fit, se_group=se_group)
+    RerunFun <- function(fit_object, w_bool) {
+      RerunIVRegression(w_bool=w_bool, iv_res=fit_object, se_group=se_group)
     }
 
     model_fit <- ModelFit(
@@ -707,17 +707,17 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
 #' @return `r docs$model_grads`
 #'
 #' @export
-ComputeModelInfluence <- function(model_fit, se_group=NULL) {
+ComputeModelInfluence <- function(fit_object, se_group=NULL) {
   valid_classes <- c("lm", "ivreg")
-  model_class <- class(model_fit)
+  model_class <- class(fit_object)
   if (!(model_class %in% valid_classes)) {
     stop(sprintf("The class of `model_fit` must be one of %s",
                  paste(valid_classes, collapse=", ")))
   }
   if (model_class == "lm") {
-    return(ComputeRegressionInfluence(model_fit, se_group))
+    return(ComputeRegressionInfluence(fit_object, se_group))
   } else if (model_class == "ivreg") {
-    return(ComputeIVRegressionInfluence(model_fit, se_group))
+    return(ComputeIVRegressionInfluence(fit_object, se_group))
   } else {
     # Redundant, so sue me.
     stop(sprint("Unknown model class %s", model_class))

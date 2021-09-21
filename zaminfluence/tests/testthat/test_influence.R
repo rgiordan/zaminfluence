@@ -38,21 +38,21 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
         reg_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                                     paste(x_names, collapse=" + "),
                                     paste(z_names, collapse=" + ")))
-        model_fit <- ivreg(data=df, formula = reg_form,
+        fit_object <- ivreg(data=df, formula = reg_form,
                            x=TRUE, y=TRUE, weights=weights)
     } else {
         # Regression:
         x_names <- sprintf("x%d", 1:x_dim)
         reg_form <- formula(sprintf("y ~ %s - 1",
                                     paste(x_names, collapse=" + ")))
-        model_fit <- lm(data=df, formula=reg_form,
+        fit_object <- lm(data=df, formula=reg_form,
                         x=TRUE, y=TRUE, weights=weights)
     }
 
     se_group <- if (do_grouping) df$se_group else NULL
 
     model_grads <-
-        ComputeModelInfluence(model_fit) %>%
+        ComputeModelInfluence(fit_object) %>%
         AppendTargetRegressorInfluence("x1")
     signals <-
         GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
@@ -61,7 +61,7 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
     return(list(
         model_grads=model_grads,
         signals=signals,
-        model_fit=model_fit,
+        fit_object=fit_object,
         se_group=se_group,
         df=df
     ))
@@ -83,7 +83,7 @@ TestPredictions <- function(
     base_values <- GetBaseValues(param_infl)
 
     # Rerun
-    rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
+    rerun <- model_grads$RerunFun(model_grads$model_fit$fit_object, w_bool)
     rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
     diff_rerun <- rerun_base_values[names(base_values)] - base_values
     names(diff_rerun) <- names(base_values)
