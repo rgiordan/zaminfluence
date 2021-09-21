@@ -42,11 +42,14 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
   stopifnot(is.numeric(target_index))
   stopifnot(length(target_index) == 1)
   stopifnot(target_index > 0)
+
+  return(invisible(param_infl))
 }
 
 
 ParameterInferenceInfluence <- function(model_grads, target_parameter,
                                         sig_num_ses=qnorm(0.975)) {
+    stopifnot(class(model_grads) == "ModelGrads")
     target_index <- which(model_grads$parameter_names == target_parameter)
     if (length(target_index) != 1) {
         stop("Error finding target regressor in the regression.")
@@ -98,6 +101,7 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
 #'@export
 AppendTargetRegressorInfluence <- function(model_grads, target_parameter,
                                            sig_num_ses=qnorm(0.975)) {
+    stopifnot(class(model_grads) == "ModelGrads")
     if (is.null(model_grads[["param_infl_list"]])) {
         model_grads$param_infl_list <- list()
     }

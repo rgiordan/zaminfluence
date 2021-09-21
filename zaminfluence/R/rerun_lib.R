@@ -35,7 +35,7 @@ GetRerunBaseValues <- function(rerun, param_infl) {
 #' - rerun: The complete rerun result.
 #' @export
 RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
-
+  stopifnot(class(model_grads) == "ModelGrads")
   if (is.null(RerunFun)) {
     RerunFun <- model_grads$RerunFun
   }
