@@ -10,14 +10,38 @@ new_ParameterInferenceInfluence <- function(
     se_qoi, beta_qoi, beta_mzse_qoi, beta_pzse_qoi) {
   return(structure(
     list(
-        target_index=target_index,
-        target_parameter=target_parameter,
+        target_index=as.integer(target_index),
+        target_parameter=as.character(target_parameter),
         se=se_qoi,
         beta=beta_qoi,
         beta_mzse=beta_mzse_qoi,
         beta_pzse=beta_pzse_qoi,
-        sig_num_ses=sig_num_ses
-  ), class="ParameterInferenceInfluence"))
+        sig_num_ses=sig_num_ses,
+        qoi_names=c("beta", "beta_mzse", "beta_pzse", "se")),
+    class="ParameterInferenceInfluence"))
+}
+
+
+
+validate_ParameterInferenceInfluence <- function(param_infl) {
+  stopifnot(class(param_infl) == "ParameterInferenceInfluence")
+  stopifnot(setequal(
+    param_infl$qoi_names,
+    c("beta", "beta_mzse", "beta_pzse", "se")))
+
+  for (qoi_name in param_infl$qoi_names) {
+    stopifnot(class(param_infl[[qoi_name]]) == "QOIInfluence")
+  }
+
+  sig_num_ses <- param_infl$sig_num_ses
+  stopifnot(is.numeric(sig_num_ses))
+  stopifnot(length(sig_num_ses) == 1)
+  stopifnot(sig_num_ses >= 0)
+
+  target_index <- param_infl$target_index
+  stopifnot(is.numeric(target_index))
+  stopifnot(length(target_index) == 1)
+  stopifnot(target_index > 0)
 }
 
 
@@ -34,7 +58,7 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     sehat <- model_grads$se[target_index]
     n_obs <- model_grads$n_obs
 
-    return(new_ParameterInferenceInfluence(
+    param_infl <- new_ParameterInferenceInfluence(
           target_index=target_index,
           target_parameter=target_parameter,
           sig_num_ses=sig_num_ses,
@@ -53,8 +77,11 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
           beta_pzse_qoi=QOIInfluence(
               infl=beta_grad + sig_num_ses * se_grad,
               base_value=betahat + sig_num_ses * sehat,
-              num_obs=n_obs)
-    ))
+              num_obs=n_obs))
+
+    validate_ParameterInferenceInfluence(param_infl)
+
+    return(param_infl)
 }
 
 
@@ -84,14 +111,9 @@ AppendTargetRegressorInfluence <- function(model_grads, target_parameter,
 
 
 #' @export
-GetBaseValues <- function(param_infl,
-                          qoi_names=c("beta", "beta_mzse", "beta_pzse")) {
-  for (qoi_name in qoi_names) {
-    if (!(qoi_name %in% names(param_infl))) {
-      stop(sprintf("Quantity of interest %s is not in `param_infl`.", qoi_name))
-    }
-  }
-  return(map_dbl(param_infl[qoi_names], ~ .$base_value))
+GetBaseValues <- function(param_infl) {
+  stopifnot(class(param_infl) == "ParameterInferenceInfluence")
+  return(map_dbl(param_infl[param_infl$qoi_names], ~ .$base_value))
 }
 
 
@@ -102,9 +124,8 @@ GetBaseValues <- function(param_infl,
 #' entry is a `signal` object.
 #' @export
 GetInferenceSignals <- function(param_infl) {
-    base_values <- GetBaseValues(
-      param_infl,
-      qoi_names=c("beta", "beta_mzse", "beta_pzse"))
+    stopifnot(class(param_infl) == "ParameterInferenceInfluence")
+    base_values <- GetBaseValues(param_infl)
     betahat <- base_values["beta"]
     beta_mzse <- base_values["beta_mzse"]
     beta_pzse <- base_values["beta_pzse"]
@@ -197,6 +218,8 @@ GetSignalDataFrame <- function(signal) {
 #' @export
 GetSortedInfluenceDf <- function(param_infl, sorting_qoi_name,
                                  max_num_obs=Inf) {
+    stopifnot(class(param_infl) == "ParameterInferenceInfluence")
+    stopifnot(sorting_qoi_name %in% param_infl$qoi_names)
     qoi_for_sorting <- param_infl[[sorting_qoi_name]]
 
     GetQOIDf <- function(infl_sign) {
@@ -317,6 +340,7 @@ PlotInfluence <- function(influence_df,
 #' @return A plot for the specified signal.
 #'@export
 PlotSignal <- function(param_infl, signal, ...) {
+    stopifnot(class(param_infl) == "ParameterInferenceInfluence")
     influence_df <- GetSortedInfluenceDf(param_infl, signal$qoi_name)
     PlotInfluence(influence_df, signals=list(signal), ...)
 }

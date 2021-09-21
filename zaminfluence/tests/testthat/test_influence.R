@@ -85,15 +85,30 @@ TestPredictions <- function(
     # Rerun
     rerun <- model_grads$RerunFun(model_grads$model_fit, w_bool)
     rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
-    diff_rerun <- rerun_base_values - base_values
+    diff_rerun <- rerun_base_values[names(base_values)] - base_values
+    names(diff_rerun) <- names(base_values)
 
     # Prediction
     diff_pred <-
         map_dbl(names(base_values),
                 ~ PredictChange(param_infl[[.]], drop_inds))
+    names(diff_pred) <- names(base_values)
+    rel_error <-
+      (diff_pred - diff_rerun) /
+      ifelse(abs(diff_rerun) > 1e-2, abs(diff_rerun), 1)
+
+    # cat("\n\n",
+    #   names(base_values), "\n",
+    #   diff_pred, "\n",
+    #   diff_rerun, "\n",
+    #   rel_error, "\n"
+    #   )
+    # if (max(abs(rel_error)) > tol) {
+    #   cat("\n***************************\n")
+    # }
 
     # Check the maximum relative error amongst beta, beta_mzse, and beta_pzse
-    max_rel_err <- max(abs((diff_pred - diff_rerun) / diff_rerun))
+    max_rel_err <- max(rel_error)
     expect_true(max_rel_err < tol,
                 info=sprintf("%s %s prediction error: %f",
                              qoi_name, sign, max_rel_err))

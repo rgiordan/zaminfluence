@@ -6,21 +6,21 @@
 \usage{
 AppendTargetRegressorInfluence(
   model_grads,
-  target_regressor,
+  target_parameter,
   sig_num_ses = qnorm(0.975)
 )
 }
 \arguments{
 \item{model_grads}{A model gradient object (e.g. as produced by \link{ComputeModelInfluence})}
 
-\item{target_regressor}{The string naming a regressor (must be an
+\item{target_parameter}{The string naming a regressor (must be an
 entry in \link{model_grads$parameter_names}).}
 
 \item{sig_num_ses}{How wide the confidence interval is, as a number of standard errors.}
 }
 \value{
 The original \code{model_grads}, with an entry
-\code{model_grads$param_infl_list[[target_regressor]]} containing a
+\code{model_grads$param_infl_list[[target_parameter]]} containing a
 parameter influence object.
 }
 \description{

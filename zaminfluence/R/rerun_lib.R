@@ -5,6 +5,7 @@
 #' @return A named numeric vector of base values.
 #' @export
 GetRerunBaseValues <- function(rerun, param_infl) {
+    stopifnot(class(param_infl) == "ParameterInferenceInfluence")
     target_index <- param_infl$target_index
     sig_num_ses <- param_infl$sig_num_ses
     beta <- rerun$betahat[target_index]
@@ -12,8 +13,9 @@ GetRerunBaseValues <- function(rerun, param_infl) {
     base_values <-
         c(beta,
           beta - sig_num_ses * se,
-          beta + sig_num_ses * se)
-    names(base_values) <- c("beta", "beta_mzse", "beta_pzse")
+          beta + sig_num_ses * se,
+          se)
+    names(base_values) <- c("beta", "beta_mzse", "beta_pzse", "se")
     return(base_values)
 }
 
