@@ -4,7 +4,7 @@
 \alias{QOIInfluence}
 \title{Process a vector of influence scores to produce sorted influence scores.}
 \usage{
-QOIInfluence(infl, base_value, num_obs = NULL)
+QOIInfluence(infl, base_value, name, num_obs = NULL)
 }
 \arguments{
 \item{infl}{A vector of influence scores for a quantity of interest,

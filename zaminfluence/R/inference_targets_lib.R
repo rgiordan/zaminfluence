@@ -66,18 +66,22 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
           target_parameter=target_parameter,
           sig_num_ses=sig_num_ses,
           se_qoi=QOIInfluence(
+              name="se",
               infl=se_grad,
               base_value=sehat,
               num_obs=n_obs),
           beta_qoi=QOIInfluence(
+              name="beta",
               infl=beta_grad,
               base_value=betahat,
               num_obs=n_obs),
           beta_mzse_qoi=QOIInfluence(
+              name="beta_mzse",
               infl=beta_grad - sig_num_ses * se_grad,
               base_value=betahat - sig_num_ses * sehat,
               num_obs=n_obs),
           beta_pzse_qoi=QOIInfluence(
+              name="beta_pzse",
               infl=beta_grad + sig_num_ses * se_grad,
               base_value=betahat + sig_num_ses * sehat,
               num_obs=n_obs))
@@ -123,11 +127,30 @@ GetBaseValues <- function(param_infl) {
 
 # Define an QOISignal S3 object.
 
-new_QOISignal <- function(qoi_name, signal, description, apip) {
+new_QOISignal <- function(qoi, signal, description, apip) {
   return(structure(
-    list(qoi_name=qoi_name, signal=signal, description=description, apip=apip),
+    list(qoi=qoi, signal=signal, description=description, apip=apip),
     class="QOISignal"
   ))
+}
+
+
+validate_QOISignal <- function(signal) {
+  stopifnot(class(signal) == "QOISignal")
+  stopifnot(class(signal$qoi) == "QOIInfluence")
+  stopifnot(class(signal$apip) == "APIP")
+  StopIfNotNumericScalar(signal$signal)
+  return(invisible(signal))
+}
+
+
+QOISignal <- function(qoi, signal, description) {
+  return(validate_QOISignal(new_QOISignal(
+    qoi=qoi,
+    signal=signal,
+    description=description,
+    apip=GetAPIPForQOI(qoi=qoi, signal=signal)
+  )))
 }
 
 
@@ -150,50 +173,59 @@ GetInferenceSignals <- function(param_infl) {
 
     signals <- list()
     signals$target_parameter <- param_infl$target_parameter
-    signals$sign <-
-      list(qoi_name="beta", signal=-1 * betahat, description=sign_label)
+    signals$sign <- QOISignal(
+      qoi=param_infl[["beta"]],
+      signal=-1 * betahat,
+      description=sign_label)
 
     is_significant <- sign(beta_mzse) == sign(beta_pzse)
     if (is_significant) {
         if (beta_mzse >= 0) { # then beta_pzse > 0 too because significant
-            signals$sig <- list(
-              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=sig_label)
-            signals$both <- list(
-              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=both_label)
+            signals$sig <- QOISignal(
+              qoi=param_infl[["beta_mzse"]],
+              signal=-1 * beta_mzse,
+              description=sig_label)
+            signals$both  <- QOISignal(
+              qoi=param_infl[["beta_pzse"]],
+              signal=-1 * beta_pzse,
+              description=both_label)
         } else if (beta_pzse < 0) { # then beta_mzse < 0 too because significant
-            signals$sig <- list(
-              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=sig_label)
-            signals$both <- list(
-              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=both_label)
+            signals$sig <- QOISignal(
+              qoi=param_infl[["beta_pzse"]],
+              signal=-1 * beta_pzse,
+              description=sig_label)
+            signals$both <- QOISignal(
+                qoi=param_infl[["beta_mzse"]],
+                signal=-1 * beta_mzse,
+                description=both_label)
         } else {
             stop("Impossible for a significant result")
         }
     } else { # Not significant.  Choose to change the interval endpoint which
              # is closer.
         if (abs(beta_mzse) >= abs(beta_pzse)) {
-            signals$sig <- list(
-              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=sig_label)
+            signals$sig <- QOISignal(
+              qoi=param_infl[["beta_pzse"]],
+              signal=-1 * beta_pzse,
+              description=sig_label)
         } else  {
-            signals$sig <- list(
-              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=sig_label)
+            signals$sig <- QOISignal(
+              qoi=param_infl[["beta_mzse"]],
+              signal=-1 * beta_mzse,
+              description=sig_label)
         }
 
         if (betahat >= 0) {
-            signals$both <- list(
-              qoi_name="beta_pzse", signal=-1 * beta_pzse, description=both_label)
+            signals$both <- QOISignal(
+                qoi=param_infl[["beta_mzse"]],
+                signal=-1 * beta_mzse,
+                description=both_label)
         } else {
-            signals$both <- list(
-              qoi_name="beta_mzse", signal=-1 * beta_mzse, description=both_label)
+            signals$both <- QOISignal(
+                qoi=param_infl[["beta_mzse"]],
+                signal=-1 * beta_mzse,
+                description=both_label)
         }
-    }
-
-    # Get the APIP for all the signals
-    # TODO: we need to rearrange so this happens in one call.
-    for (target in c("sign", "sig", "both")) {
-        signal <- signals[[target]]
-        signals[[target]]$apip <- GetAPIPForQOI(
-            qoi=param_infl[[signal$qoi_name]],
-            signal=signal$signal)
     }
 
     return(signals)
@@ -207,7 +239,7 @@ GetInferenceSignals <- function(param_infl) {
 #' @export
 GetSignalDataFrame <- function(signal) {
     data.frame(
-        qoi_name=signal$qoi_name,
+        qoi_name=signal$qoi$name,
         description=signal$description,
         signal=signal$signal,
         num_removed=signal$apip$n,
@@ -355,6 +387,6 @@ PlotInfluence <- function(influence_df,
 #'@export
 PlotSignal <- function(param_infl, signal, ...) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
-    influence_df <- GetSortedInfluenceDf(param_infl, signal$qoi_name)
+    influence_df <- GetSortedInfluenceDf(param_infl, signal$qoi$name)
     PlotInfluence(influence_df, signals=list(signal), ...)
 }

@@ -119,7 +119,7 @@ TestPredictions <- function(
 # the target metric.
 TestSignalPrediction <- function(param_infl, signals, signal_name) {
     signal <- signals[[signal_name]]
-    qoi_name <- signal$qoi_name
+    qoi_name <- signal$qoi$name
 
     # Form the prediction
     drop_inds <- signal$apip$inds

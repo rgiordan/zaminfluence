@@ -2,12 +2,14 @@
 # Define a QOIInfluence S3 class
 
 new_QOIInfluence <- function(
+    name=name,
     infl, base_value, num_obs,
     ordered_inds_neg, infl_cumsum_neg,
     ordered_inds_pos, infl_cumsum_pos) {
 
     return(structure(
       list(
+        name=name,
         neg=list(infl_inds=ordered_inds_neg,
                  infl_cumsum=infl_cumsum_neg,
                  num_obs=num_obs),
@@ -48,7 +50,7 @@ validate_QOIInfluence <- function(qoi) {
 #'
 #' @return See "Quantity of Interest" in README.md
 #' @export
-QOIInfluence <- function(infl, base_value, num_obs=NULL) {
+QOIInfluence <- function(infl, base_value, name, num_obs=NULL) {
     if (is.null(num_obs)) {
         num_obs <- length(infl)
     }
@@ -68,6 +70,7 @@ QOIInfluence <- function(infl, base_value, num_obs=NULL) {
     infl_cumsum_neg <- cumsum(infl_neg)
 
     return(new_QOIInfluence(
+      name=name,
       infl=infl, base_value=base_value, num_obs=num_obs,
       ordered_inds_neg=ordered_inds_neg, infl_cumsum_neg=infl_cumsum_neg,
       ordered_inds_pos=ordered_inds_pos, infl_cumsum_pos=infl_cumsum_pos))
