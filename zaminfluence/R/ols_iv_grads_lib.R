@@ -611,7 +611,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
   model_fit <- ModelFit(
     fit_object=lm_result,
     n_obs=reg_vars$num_obs,
-    parameter_names=reg_vars$paramete_names,
+    parameter_names=reg_vars$parameter_names,
     betahat=reg_vars$betahat,
     se=reg_grad_list$se,
     weights=reg_vars$w0,

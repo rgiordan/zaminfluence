@@ -52,7 +52,10 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     target_index <- which(
       model_grads$model_fit$parameter_names == target_parameter)
     if (length(target_index) != 1) {
-        stop("Error finding target regressor in the regression.")
+        stop(paste0("Target regressor ",
+           target_parameter, " not found in the parameter names (",
+           paste(model_grads$model_fit$parameter_names, collapse=", ")
+         ), ")\n")
     }
 
     weights <- model_grads$model_fit$weights
