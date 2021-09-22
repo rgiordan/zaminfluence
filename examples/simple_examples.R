@@ -67,7 +67,7 @@ signals <- GetInferenceSignals(model_grads)
 
 #############################################
 
-RerunForSignals <- function(signals, model_grads, verbose=FALSE) {
+RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) {
     stopifnot(class(model_grads) == "ModelGrads")
     stopifnot(setequal(names(signals), names(model_grads$param_infls)))
     for (param_name in names(signals)) {
@@ -76,6 +76,10 @@ RerunForSignals <- function(signals, model_grads, verbose=FALSE) {
         }
     }
 
+    if (is.null(RerunFun)) {
+        RerunFun <- model_grads$RerunFun
+    }
+    
     verbosePrint <- function(...) {
         if (verbose) cat(..., sep="")
     }
@@ -92,7 +96,7 @@ RerunForSignals <- function(signals, model_grads, verbose=FALSE) {
                 drop_inds=signal$apip$inds,
                 num_obs=model_grads$model_fit$n_obs,
                 bool=TRUE)
-            reruns[[param_name]][[signal_name]] <- model_grads$RerunFun(w_bool)
+            reruns[[param_name]][[signal_name]] <- RerunFun(w_bool)
         }
         verbosePrint("done.\n")
     }
@@ -100,6 +104,17 @@ RerunForSignals <- function(signals, model_grads, verbose=FALSE) {
 }
 
 reruns <- RerunForSignals(signals, model_grads, verbose=TRUE)
+
+
+signals[[1]][[1]]
+map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL)) %>%
+    flatten_dfr(.id="row")
+    
+library(tibble)
+map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL)) %>%
+    enframe() %>%
+    unnest_longer(value)
+
 
 
 
@@ -194,19 +209,17 @@ SignalFun <- function(param_name, signal_name, signal) {
 }
 
 
+summary_df <- data.frame()
 TraverseParamSignalList(signals, SignalFun)
-summary_df %>% mutate(fit="refit")
+refit_df <-
+    summary_df %>% mutate(fit="refit")
+base_df <-
+    GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls) %>%
+    mutate(fit="initial")
 
 
-GetSignalsAndRefitsDataframe(reruns, signals, ConstructDf) %>%
-    filter(param_name=="x1", metric=="beta")
 
 
-summary_df <-
-    bind_rows(
-        GetSignalsAndRefitsDataframe(reruns, signals, ConstructDf),
-        GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls) %>%
-            mutate(fit="initial"))
 
 
 # What is the right way to do this?
