@@ -20,7 +20,7 @@ entry in \link{model_grads$parameter_names}).}
 }
 \value{
 The original \code{model_grads}, with an entry
-\code{model_grads$param_infl_list[[target_parameter]]} containing a
+\code{model_grads$param_infls[[target_parameter]]} containing a
 parameter influence object.
 }
 \description{

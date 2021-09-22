@@ -123,21 +123,21 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
 #' @param sig_num_ses `r docs$sig_num_ses`
 #'
 #' @return The original `model_grads`, with an entry
-#' `model_grads$param_infl_list[[target_parameter]]` containing a
+#' `model_grads$param_infls[[target_parameter]]` containing a
 #' parameter influence object.
 #'
 #'@export
 AppendTargetRegressorInfluence <- function(model_grads, target_parameter,
                                            sig_num_ses=qnorm(0.975)) {
     stopifnot(class(model_grads) == "ModelGrads")
-    if (is.null(model_grads[["param_infl_list"]])) {
-        model_grads$param_infl_list <- list()
+    if (is.null(model_grads[["param_infls"]])) {
+        model_grads$param_infls <- list()
     }
 
     param_infl <- ParameterInferenceInfluence(
       model_grads, target_parameter, sig_num_ses=sig_num_ses)
 
-    model_grads$param_infl_list[[target_parameter]] <- param_infl
+    model_grads$param_infls[[target_parameter]] <- param_infl
     return(invisible(model_grads))
 }
 
@@ -178,9 +178,25 @@ QOISignal <- function(qoi, signal, description) {
 }
 
 
+#' Compute the signals for changes to sign, significance, and both.
+#' @param model_grads `r docs$model_grads`
+#'
+#' @return A list lists of of signals, one for each parameter in
+#' named model_grads$param_infls.  See the output of
+#' `GetInferenceSignalsForParameter`.
+#'
+#' @export
 GetInferenceSignals <- function(model_grads) {
-  stopifnot(class(param_infl) == "ModelGrads")
+  stopifnot(class(model_grads) == "ModelGrads")
+  signals <- list()
+  for (param_name in names(model_grads$param_infls)) {
+    signals[[param_name]] <- GetInferenceSignalsForParameter(
+      model_grads$param_infls[[param_name]]
+    )
+  }
+  return(signals)
 }
+
 
 #' Compute the signals for changes to sign, significance, and both.
 #' @param param_infl `r docs$param_infl`

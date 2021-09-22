@@ -61,7 +61,7 @@ new_ModelGrads <- function(
     model_fit,
     beta_grad,
     se_grad,
-    param_infl_list,
+    param_infls,
     RerunFun) {
   return(structure(
     list(model_fit=model_fit,
@@ -69,7 +69,7 @@ new_ModelGrads <- function(
          beta_grad=beta_grad,
          se_grad=se_grad,
 
-         param_infl_list=param_infl_list,
+         param_infls=param_infls,
 
          RerunFun=RerunFun),
     class="ModelGrads"
@@ -91,8 +91,8 @@ validate_ModelGrads <- function(model_grads) {
   CheckGradDim(model_grads$beta_grad)
   CheckGradDim(model_grads$se_grad)
 
-  stopifnot(class(model_grads$param_infl_list) == "list")
-  for (param_infl in model_grads$param_infl_list) {
+  stopifnot(class(model_grads$param_infls) == "list")
+  for (param_infl in model_grads$param_infls) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
   }
 
@@ -112,5 +112,5 @@ ModelGrads <- function(
       beta_grad=beta_grad,
       se_grad=se_grad,
       RerunFun=RerunFun,
-      param_infl_list=list())))
+      param_infls=list())))
 }

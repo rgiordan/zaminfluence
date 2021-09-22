@@ -55,7 +55,7 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
         ComputeModelInfluence(fit_object) %>%
         AppendTargetRegressorInfluence("x1")
     signals <-
-        GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]]) %>%
+        GetInferenceSignalsForParameter(model_grads$param_infls[["x1"]]) %>%
         RerunForTargetChanges(model_grads)
 
     return(list(
@@ -181,7 +181,7 @@ TestGetAMIS <- function(qoi) {
 TestInfluence <- function(test_instance) {
   model_fit <- test_instance$model_fit
   model_grads <- test_instance$model_grads
-  param_infl <- model_grads$param_infl_list[["x1"]]
+  param_infl <- model_grads$param_infls[["x1"]]
 
   # Check the validity of the influence scores.
   qoi_names <- c("beta", "beta_mzse", "beta_pzse")

@@ -54,30 +54,38 @@ fit_object <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
-signals <-
-    GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]])
+
+signals <- GetInferenceSignals(model_grads)
+
+
+
 
 #############################################
 
-names(signals)
+verbose <- TRUE
 
-model_grads$param_infl_list %>% names()
+verbosePrint <- function(...) {
+    if (verbose) cat(..., sep="")
+}
+stopifnot(setequal(names(signals), names(model_grads$param_infls)))
+reruns <- list()
+for (param_name in names(signals)) {
+    verbosePrint("Re-running for ", param_name, " signals: ")
+    reruns[[param_name]] <- list()
+    param_signals <- signals[[param_name]]
+    pram_infl <- model_grads$param_infls[[param_name]]
+    for (signal_name in names(param_signals)) {
+        verbosePrint(signal_name, "...")
+        signal <- param_signals[[signal_name]]
+        w_bool <- GetWeightVector(
+            drop_inds=signal$apip$inds,
+            num_obs=model_grads$model_fit$n_obs,
+            bool=TRUE)
+        reruns[[param_name]][[signal_name]] <- model_grads$RerunFun(w_bool)
+    }
+    verbosePrint("done.\n")
+}
 
-signal <- signals[[1]]
-RerunFun <- model_grads$RerunFun
-
-stopifnot(class(signal) == "QOISignal")
-w_bool <- GetWeightVector(
-    drop_inds=signal$apip$inds,
-    num_obs=model_grads$model_fit$n_obs,
-    bool=TRUE)
-
-rerun <- RerunFun(w_bool)
-class(rerun)
-signal$qoi$base_value
-
-signal$description
-signal$qoi
 
 
 
@@ -88,13 +96,13 @@ signal$qoi
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
-PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03)
+PlotSignal(model_grads$param_infls[["x1"]], signals[["both"]], apip_max=0.03)
 
 # Visualize which points are being dropped
 
 df$drop <- FALSE
 df$drop[signals[["both"]]$apip$inds] <- TRUE
-df$infl <- model_grads$param_infl_list[["x1"]][[signals[["both"]]$qoi_name]]$infl
+df$infl <- model_grads$param_infls[["x1"]][[signals[["both"]]$qoi_name]]$infl
 
 grid.arrange(
     ggplot(df) +
@@ -133,12 +141,12 @@ model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
-    GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]]) %>%
+    GetInferenceSignalsForParameter(model_grads$param_infls[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
-PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03)
+PlotSignal(model_grads$param_infls[["x1"]], signals[["both"]], apip_max=0.03)
 
 
 
@@ -173,15 +181,15 @@ model_grads <-
     AppendTargetRegressorInfluence("x1")
 
 signals <-
-    GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]]) %>%
+    GetInferenceSignalsForParameter(model_grads$param_infls[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
 grid.arrange(
-    PlotSignal(model_grads$param_infl_list[["x1"]], signals[["sign"]], apip_max=0.03),
-    PlotSignal(model_grads$param_infl_list[["x1"]], signals[["sig"]], apip_max=0.03),
-    PlotSignal(model_grads$param_infl_list[["x1"]], signals[["both"]], apip_max=0.03),
+    PlotSignal(model_grads$param_infls[["x1"]], signals[["sign"]], apip_max=0.03),
+    PlotSignal(model_grads$param_infls[["x1"]], signals[["sig"]], apip_max=0.03),
+    PlotSignal(model_grads$param_infls[["x1"]], signals[["both"]], apip_max=0.03),
     ncol=3
 )
 

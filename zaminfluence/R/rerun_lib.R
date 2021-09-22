@@ -56,7 +56,7 @@
 #       # Save the whole rerun
 #       signals[[target]]$rerun <- rerun
 #
-#       param_infl <- model_grads$param_infl_list[[signals$target_parameter]]
+#       param_infl <- model_grads$param_infls[[signals$target_parameter]]
 #
 #       # Make a nice dataframe with the targeted regressor
 #       orig_base_values <- GetBaseValues(param_infl)

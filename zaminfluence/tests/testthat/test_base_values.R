@@ -34,7 +34,7 @@ TestConfiguration <- function(model_fit, se_group) {
     info="column names")
 
   # Test that the base values in param_infl are correct.
-  param_infl <- model_grads$param_infl_list[["x1"]]
+  param_infl <- model_grads$param_infls[["x1"]]
   target_index <- param_infl$target_index
   testthat::expect_equivalent(
     "x1", names(coefficients(model_fit))[target_index], info="target index")

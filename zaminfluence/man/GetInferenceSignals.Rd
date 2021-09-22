@@ -4,14 +4,15 @@
 \alias{GetInferenceSignals}
 \title{Compute the signals for changes to sign, significance, and both.}
 \usage{
-GetInferenceSignals(param_infl)
+GetInferenceSignals(model_grads)
 }
 \arguments{
-\item{param_infl}{A parameter influence object (e.g. as produced by \link{AppendTargetRegressorInfluence}).}
+\item{model_grads}{A model gradient object (e.g. as produced by \link{ComputeModelInfluence})}
 }
 \value{
-A list of signals, named "sign", "sig", and "both".  Each
-entry is a \code{QOISignal} object.
+A list lists of of signals, one for each parameter in
+named model_grads$param_infls.  See the output of
+\code{GetInferenceSignalsForParameter}.
 }
 \description{
 Compute the signals for changes to sign, significance, and both.

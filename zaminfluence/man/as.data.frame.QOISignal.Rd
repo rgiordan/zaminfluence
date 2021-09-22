@@ -7,7 +7,7 @@
 \method{as.data.frame}{QOISignal}(signal)
 }
 \arguments{
-\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetInferenceSignals}).}
+\item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetInferenceSignalsForParameter}).}
 }
 \description{
 Produce a tidy dataframe summarizing a signal.
