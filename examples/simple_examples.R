@@ -13,6 +13,10 @@ library(zaminfluence)
 library(purrr)
 library(AER)
 
+
+library(devtools)
+load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
@@ -53,7 +57,8 @@ fit_object <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 # Get influence and reruns.
 model_grads <-
     ComputeModelInfluence(fit_object) %>%
-    AppendTargetRegressorInfluence("x1")
+    AppendTargetRegressorInfluence("x1") %>%
+    AppendTargetRegressorInfluence("x2")
 
 signals <- GetInferenceSignals(model_grads)
 
@@ -62,32 +67,153 @@ signals <- GetInferenceSignals(model_grads)
 
 #############################################
 
-verbose <- TRUE
-
-verbosePrint <- function(...) {
-    if (verbose) cat(..., sep="")
-}
-stopifnot(setequal(names(signals), names(model_grads$param_infls)))
-reruns <- list()
-for (param_name in names(signals)) {
-    verbosePrint("Re-running for ", param_name, " signals: ")
-    reruns[[param_name]] <- list()
-    param_signals <- signals[[param_name]]
-    pram_infl <- model_grads$param_infls[[param_name]]
-    for (signal_name in names(param_signals)) {
-        verbosePrint(signal_name, "...")
-        signal <- param_signals[[signal_name]]
-        w_bool <- GetWeightVector(
-            drop_inds=signal$apip$inds,
-            num_obs=model_grads$model_fit$n_obs,
-            bool=TRUE)
-        reruns[[param_name]][[signal_name]] <- model_grads$RerunFun(w_bool)
+RerunForSignals <- function(signals, model_grads, verbose=FALSE) {
+    stopifnot(class(model_grads) == "ModelGrads")
+    stopifnot(setequal(names(signals), names(model_grads$param_infls)))
+    for (param_name in names(signals)) {
+        for (signal in signals[[param_name]]) {
+            stopifnot(class(signal) == "QOISignal")
+        }
     }
-    verbosePrint("done.\n")
+
+    verbosePrint <- function(...) {
+        if (verbose) cat(..., sep="")
+    }
+    reruns <- list()
+    for (param_name in names(signals)) {
+        verbosePrint("Re-running for ", param_name, " signals: ")
+        reruns[[param_name]] <- list()
+        param_signals <- signals[[param_name]]
+        pram_infl <- model_grads$param_infls[[param_name]]
+        for (signal_name in names(param_signals)) {
+            verbosePrint(signal_name, "...")
+            signal <- param_signals[[signal_name]]
+            w_bool <- GetWeightVector(
+                drop_inds=signal$apip$inds,
+                num_obs=model_grads$model_fit$n_obs,
+                bool=TRUE)
+            reruns[[param_name]][[signal_name]] <- model_grads$RerunFun(w_bool)
+        }
+        verbosePrint("done.\n")
+    }
+    return(reruns)
+}
+
+reruns <- RerunForSignals(signals, model_grads, verbose=TRUE)
+
+
+
+# Summarize the values of each QOI for each parameter for a given model_fit.
+GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
+    stopifnot(class(model_fit) == "ModelFit")
+    stopifnot(all(names(param_infls) %in% model_fit$parameter_names))
+    
+    GetParameterInferenceDataframe <- function(model_fit, target_index, sig_num_ses) {
+        GetInferenceQOIs(beta=model_fit$betahat[target_index],
+                         se=model_fit$se[target_index],
+                         sig_num_ses=sig_num_ses) %>%
+            purrr::imap_dfr(~ data.frame(metric=.y, value=.x))
+    }
+    
+    summary_df <- data.frame()
+    AppendRow <- function(row) bind_rows(summary_df, row)
+    for (param_name in names(param_infls)) {
+        param_infl <- param_infls[[param_name]]
+        # We checked above that each parameter name is found.
+        target_index <- which(model_fit$parameter_names == param_name)
+        summary_df <-
+            GetParameterInferenceDataframe(
+                model_fit=model_fit,
+                target_index=target_index,
+                sig_num_ses=param_infl$sig_num_ses) %>%
+            mutate(param_name=param_name) %>%
+            AppendRow()
+    }
+    return(summary_df)
 }
 
 
 
+ConstructDf <- function(model_fit, signal) {
+    GetModelFitInferenceDataframe(model_fit, param_infls=model_grads$param_infls) %>%
+        mutate(fit="refit",
+               n_drop=signal$apip$n,
+               prop_drop=signal$apip$prop,
+               signal_description=signal$description,
+               target_metric=signal$qoi$name)
+}
+
+
+GetSignalsAndRefitsDataframe <- function(reruns, signals, ConstructDf) {
+    stopifnot(setequal(names(reruns), names(signals)))
+    summary_df <- data.frame()
+    AppendRow <- function(row) bind_rows(summary_df, row)
+    for (target_param_name in names(reruns)) {
+        param_reruns  <- reruns[[target_param_name]]
+        param_signals  <- signals[[target_param_name]]
+        stopifnot(names(param_reruns) == names(param_signals))
+        for (signal_name in names(param_reruns)) {
+            rerun <- param_reruns[[signal_name]]
+            signal <- param_signals[[signal_name]]
+            stopifnot(class(rerun) == "ModelFit")
+            stopifnot(class(signal) == "QOISignal")
+            summary_df <-
+                ConstructDf(rerun, signal) %>%
+                mutate(target_param_name=target_param_name,
+                       signal_name=signal_name) %>%
+                AppendRow()
+        }
+    }
+    return(summary_df)    
+}
+
+
+####################
+# More compact
+
+TraverseParamSignalList <- function(signals, SignalFun) {
+    for (param_name in names(signals)) {
+        param_signal <- signals[[param_name]]
+        for (signal_name in names(param_signal)) {
+            signal <- param_signal[[signal_name]]
+            SignalFun(param_name, signal_name, signal)
+        }
+    }
+}
+
+summary_df <- data.frame()
+SignalFun <- function(param_name, signal_name, signal) {
+    stopifnot(param_name %in% names(reruns))
+    rerun  <- reruns[[param_name]][[signal_name]]
+    stopifnot(class(rerun) == "ModelFit")
+    stopifnot(class(signal) == "QOISignal")
+    summary_df <<- bind_rows(
+        summary_df,
+        ConstructDf(rerun, signal)
+    )
+}
+
+
+TraverseParamSignalList(signals, SignalFun)
+summary_df %>% mutate(fit="refit")
+
+
+GetSignalsAndRefitsDataframe(reruns, signals, ConstructDf) %>%
+    filter(param_name=="x1", metric=="beta")
+
+
+summary_df <-
+    bind_rows(
+        GetSignalsAndRefitsDataframe(reruns, signals, ConstructDf),
+        GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls) %>%
+            mutate(fit="initial"))
+
+
+# What is the right way to do this?
+library(tidyr)
+summary_df %>%
+    filter(metric == "beta", param_name == "x1") %>%
+    select(fit, param_name, target_param_name, signal_name, value)
 
 #############################################
 
