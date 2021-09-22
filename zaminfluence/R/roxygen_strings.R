@@ -14,7 +14,7 @@ docs <- list(
     "[QOIInfluence])."
   ),
   signal=paste0("A signal object (e.g. one of the elements of the list ",
-    "produced by [GetInferenceSignals])."),
+    "produced by [GetInferenceSignalsForParameter])."),
   apip=paste0("An approximation perturbation inducing proportion object ",
 "(e.g. as produced by [GetAPIPForQOI])"),
 drop_inds="The indices to drop (in the order of the original data)",

@@ -55,11 +55,13 @@ model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
-    GetInferenceSignals(model_grads$param_infl_list[["x1"]])
+    GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]])
 
 #############################################
 
 names(signals)
+
+model_grads$param_infl_list %>% names()
 
 signal <- signals[[1]]
 RerunFun <- model_grads$RerunFun
@@ -72,14 +74,17 @@ w_bool <- GetWeightVector(
 
 rerun <- RerunFun(w_bool)
 class(rerun)
+signal$qoi$base_value
 
+signal$description
+signal$qoi
 
 
 
 #############################################
 
-%>%
-    RerunForTargetChanges(model_grads)
+# %>%
+#     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
 RerunSummaryDf(signals)
@@ -128,7 +133,7 @@ model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
-    GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
+    GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.
@@ -168,7 +173,7 @@ model_grads <-
     AppendTargetRegressorInfluence("x1")
 
 signals <-
-    GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
+    GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]]) %>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.

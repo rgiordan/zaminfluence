@@ -2,7 +2,7 @@
 # Define a QOIInfluence S3 class
 
 new_QOIInfluence <- function(
-    name=name,
+    name,
     infl, base_value, num_obs,
     ordered_inds_neg, infl_cumsum_neg,
     ordered_inds_pos, infl_cumsum_pos) {

@@ -46,6 +46,16 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
 }
 
 
+GetInferenceQOIs <- function(betahat, se, sig_num_ses) {
+  return(list(
+    beta=betahat,
+    se=se,
+    beta_mzse=betahat - sig_num_ses * se,
+    beta_pzse=betahat + sig_num_ses * se
+  ))
+}
+
+
 ParameterInferenceInfluence <- function(model_grads, target_parameter,
                                         sig_num_ses=qnorm(0.975)) {
     stopifnot(class(model_grads) == "ModelGrads")
@@ -61,9 +71,19 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     weights <- model_grads$model_fit$weights
     se_grad <- weights * model_grads$se_grad[target_index,]
     beta_grad <- weights * model_grads$beta_grad[target_index, ]
-    betahat <- model_grads$model_fit$betahat[target_index]
-    sehat <- model_grads$model_fit$se[target_index]
+    # betahat <- model_grads$model_fit$betahat[target_index]
+    # sehat <- model_grads$model_fit$se[target_index]
     n_obs <- model_grads$model_fit$n_obs
+
+    qoi_base_values <- GetInferenceQOIs(
+      betahat=model_grads$model_fit$betahat[target_index],
+      se=model_grads$model_fit$se[target_index],
+      sig_num_ses=sig_num_ses)
+
+    qoi_gradients <- GetInferenceQOIs(
+      betahat=beta_grad,
+      se=se_grad,
+      sig_num_ses=sig_num_ses)
 
     param_infl <- new_ParameterInferenceInfluence(
           target_index=target_index,
@@ -71,23 +91,23 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
           sig_num_ses=sig_num_ses,
           se_qoi=QOIInfluence(
               name="se",
-              infl=se_grad,
-              base_value=sehat,
+              infl=qoi_gradients$se,
+              base_value=qoi_base_values$se,
               num_obs=n_obs),
           beta_qoi=QOIInfluence(
               name="beta",
-              infl=beta_grad,
-              base_value=betahat,
+              infl=qoi_gradients$beta,
+              base_value=qoi_base_values$beta,
               num_obs=n_obs),
           beta_mzse_qoi=QOIInfluence(
               name="beta_mzse",
-              infl=beta_grad - sig_num_ses * se_grad,
-              base_value=betahat - sig_num_ses * sehat,
+              infl=qoi_gradients$beta_mzse,
+              base_value=qoi_base_values$beta_mzse,
               num_obs=n_obs),
           beta_pzse_qoi=QOIInfluence(
               name="beta_pzse",
-              infl=beta_grad + sig_num_ses * se_grad,
-              base_value=betahat + sig_num_ses * sehat,
+              infl=qoi_gradients$beta_pzse,
+              base_value=qoi_base_values$beta_pzse,
               num_obs=n_obs))
 
     validate_ParameterInferenceInfluence(param_infl)
@@ -148,6 +168,7 @@ validate_QOISignal <- function(signal) {
 
 
 QOISignal <- function(qoi, signal, description) {
+  # Note that the qoi data is not copied.
   return(validate_QOISignal(new_QOISignal(
     qoi=qoi,
     signal=signal,
@@ -157,13 +178,17 @@ QOISignal <- function(qoi, signal, description) {
 }
 
 
+GetInferenceSignals <- function(model_grads) {
+  stopifnot(class(param_infl) == "ModelGrads")
+}
+
 #' Compute the signals for changes to sign, significance, and both.
 #' @param param_infl `r docs$param_infl`
 #'
 #' @return A list of signals, named "sign", "sig", and "both".  Each
 #' entry is a `QOISignal` object.
 #' @export
-GetInferenceSignals <- function(param_infl) {
+GetInferenceSignalsForParameter <- function(param_infl) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
     base_values <- GetBaseValues(param_infl)
     betahat <- base_values["beta"]

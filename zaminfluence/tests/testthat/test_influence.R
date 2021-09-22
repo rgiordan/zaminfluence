@@ -55,7 +55,7 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
         ComputeModelInfluence(fit_object) %>%
         AppendTargetRegressorInfluence("x1")
     signals <-
-        GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
+        GetInferenceSignalsForParameter(model_grads$param_infl_list[["x1"]]) %>%
         RerunForTargetChanges(model_grads)
 
     return(list(
@@ -195,7 +195,7 @@ TestInfluence <- function(test_instance) {
 
   # Check that the APIP predicts the appropriate change, and that
   # one fewer point does not.
-  signals <- GetInferenceSignals(param_infl)
+  signals <- GetInferenceSignalsForParameter(param_infl)
   for (signal_name in c("sign", "sig", "both")) {
       TestSignalPrediction(param_infl, signals, signal_name)
 
