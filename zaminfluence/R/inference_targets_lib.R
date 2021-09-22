@@ -4,7 +4,6 @@ library(latex2exp)
 
 
 # Define an ParameterInferenceInfluence S3 object.
-
 new_ParameterInferenceInfluence <- function(
     target_index, target_parameter, sig_num_ses,
     se_qoi, beta_qoi, beta_mzse_qoi, beta_pzse_qoi) {
@@ -128,7 +127,6 @@ GetBaseValues <- function(param_infl) {
 
 
 # Define an QOISignal S3 object.
-
 new_QOISignal <- function(qoi, signal, description, apip) {
   return(structure(
     list(qoi=qoi, signal=signal, description=description, apip=apip),
@@ -160,7 +158,7 @@ QOISignal <- function(qoi, signal, description) {
 #' @param param_infl `r docs$param_infl`
 #'
 #' @return A list of signals, named "sign", "sig", and "both".  Each
-#' entry is a `signal` object.
+#' entry is a `QOISignal` object.
 #' @export
 GetInferenceSignals <- function(param_infl) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
@@ -174,7 +172,7 @@ GetInferenceSignals <- function(param_infl) {
     both_label <- "sign and significance"
 
     signals <- list()
-    signals$target_parameter <- param_infl$target_parameter
+    #signals$target_parameter <- param_infl$target_parameter
     signals$sign <- QOISignal(
       qoi=param_infl[["beta"]],
       signal=-1 * betahat,

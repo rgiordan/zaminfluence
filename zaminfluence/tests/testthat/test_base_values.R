@@ -132,12 +132,14 @@ test_that("rerun works", {
   # Use Rerun to get fits using our code.  Check that our results
   # match R's results.  (Note that this is only an extra sanity check
   # here --- this is principally tested above in TestConfiguration)
-  zam_iv_fit <- RerunIVRegression(rep(TRUE, num_obs), iv_fit, se_group=df$se_group)
+  zam_iv_fit <- ComputeIVRegressionResults(
+    iv_fit, weights=df$w, se_group=df$se_group)
   iv_vcov <- GetFitCovariance(iv_fit, se_group=df$se_group)
   AssertNearlyEqual(iv_fit$coefficients, zam_iv_fit$betahat)
   AssertNearlyEqual(iv_vcov, zam_iv_fit$se_mat)
 
-  zam_reg_fit <- RerunRegression(rep(TRUE, num_obs), reg_fit, se_group=df$se_group)
+  zam_reg_fit <- ComputeRegressionResults(
+    reg_fit, weights=df$w, se_group=df$se_group)
   reg_vcov <- GetFitCovariance(reg_fit, se_group=df$se_group)
   AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$betahat)
   AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)

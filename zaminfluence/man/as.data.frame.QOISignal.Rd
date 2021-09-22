@@ -9,9 +9,6 @@
 \arguments{
 \item{signal}{A signal object (e.g. one of the elements of the list produced by \link{GetInferenceSignals}).}
 }
-\value{
-A dataframe summarizing the signal.
-}
 \description{
 Produce a tidy dataframe summarizing a signal.
 }

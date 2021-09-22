@@ -1,5 +1,5 @@
 
-
+# TODO: have the reruns return a ModelFit object
 
 
 #' Compute the "base values" (beta and the CI) for a parameter from a rerun.
@@ -45,6 +45,7 @@ RerunForTargetChanges <- function(signals, model_grads, RerunFun=NULL) {
   }
   for (target in c("sign", "sig", "both")) {
       signal <- signals[[target]]
+      stopifnot(class(signal) == "QOISignal")
       w_bool <- GetWeightVector(
           drop_inds=signal$apip$inds,
           num_obs=model_grads$model_fit$n_obs,

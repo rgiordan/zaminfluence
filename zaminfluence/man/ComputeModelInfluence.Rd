@@ -4,12 +4,12 @@
 \alias{ComputeModelInfluence}
 \title{Compute the influence functions for all regressors given a model fit.}
 \usage{
-ComputeModelInfluence(model_fit, se_group = NULL)
+ComputeModelInfluence(fit_object, se_group = NULL)
 }
 \arguments{
-\item{model_fit}{The fit from \code{\link[=lm]{lm()}} or \code{\link[AER:ivreg]{AER::ivreg()}}.}
-
 \item{se_group}{Optional. The standard error grouping variable.}
+
+\item{model_fit}{The fit from \code{\link[=lm]{lm()}} or \code{\link[AER:ivreg]{AER::ivreg()}}.}
 }
 \value{
 A model gradient object (e.g. as produced by \link{ComputeModelInfluence})

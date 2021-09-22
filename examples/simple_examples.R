@@ -55,7 +55,30 @@ model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
 signals <-
-    GetInferenceSignals(model_grads$param_infl_list[["x1"]]) %>%
+    GetInferenceSignals(model_grads$param_infl_list[["x1"]])
+
+#############################################
+
+names(signals)
+
+signal <- signals[[1]]
+RerunFun <- model_grads$RerunFun
+
+stopifnot(class(signal) == "QOISignal")
+w_bool <- GetWeightVector(
+    drop_inds=signal$apip$inds,
+    num_obs=model_grads$model_fit$n_obs,
+    bool=TRUE)
+
+rerun <- RerunFun(w_bool)
+class(rerun)
+
+
+
+
+#############################################
+
+%>%
     RerunForTargetChanges(model_grads)
 
 # Summaries comparing reruns and predictions for each signal.

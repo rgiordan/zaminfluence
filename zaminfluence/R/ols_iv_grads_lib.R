@@ -230,7 +230,10 @@ GetRegressionVariables <- function(lm_res) {
   } else {
       w0 <- lm_res$weights
   }
-  return(list(x=x, y=y, num_obs=num_obs, w0=w0, betahat=betahat))
+  parameter_names <- colnames(lm_res$x)
+
+  return(list(x=x, y=y, num_obs=num_obs, w0=w0,
+              betahat=betahat, parameter_names=parameter_names))
 }
 
 
@@ -450,7 +453,9 @@ GetIVVariables <- function(iv_res) {
   } else {
       w0 <- iv_res$weights
   }
-  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0, betahat=betahat))
+  parameter_names <- colnames(x)
+  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0, betahat=betahat,
+              parameter_names=parameter_names))
 }
 
 
@@ -498,56 +503,31 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 }
 
 
-#' Rerun the regression with a new subset of rows.
-#'@param w_bool A boolean vector of rows to keep in the original dataframe.
-#'@param lm_result `r docs$lm_result`
-#'@param se_group `r docs$se_group`
-#'@param save_w Optional. If `TRUE`, save the new weight vector in the output.
-#'
-#'@return `r docs$rerun_return`
-#'@export
-RerunRegression <- function(w_bool, lm_result, se_group=NULL, save_w=FALSE) {
-  new_w <- rep(0.0, length(w_bool))
-  if ("weights" %in% names(lm_result)) {
-    new_w[w_bool] <- lm_result$weights[w_bool]
-  } else {
-    new_w[w_bool] <- 1.0
-  }
-
-  # Rerun using my own code; I don't want to deal with how R handles the
-  # scoping of the weight variables in the regression.
-  ret_list <-
-    ComputeRegressionResults(lm_result, weights=new_w, se_group=se_group)
-  if (save_w) {
-    ret_list$w <- new_w
-  }
-  return(ret_list)
-}
 
 
 ###############
 # IV
 
-
-#' Compute the standard error matrix for an IV regression.  Deprecated --- use
-#' [ComputeIVRegressionResults()] instead.
-#'
-#' @param iv_res `r docs$iv_res`
-#' @param se_group `r docs$se_group`
-#'
-#' @return `r docs$grad_return`
-#'
-#' @export
-ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
-  warning(paste0(
-    "ComputeIVRegressionErrorCovariance is deprecated; use the ",
-    "se_mat output of ComputeIVRegressionResults instead."))
-  iv_vars <- GetIVVariables(iv_res)
-  iv_grad_list <- GetIVSEDerivs(
-    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
-    beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
-  return(iv_grad_list$se_mat)
-}
+#
+# #' Compute the standard error matrix for an IV regression.  Deprecated --- use
+# #' [ComputeIVRegressionResults()] instead.
+# #'
+# #' @param iv_res `r docs$iv_res`
+# #' @param se_group `r docs$se_group`
+# #'
+# #' @return `r docs$grad_return`
+# #'
+# #' @export
+# ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
+#   warning(paste0(
+#     "ComputeIVRegressionErrorCovariance is deprecated; use the ",
+#     "se_mat output of ComputeIVRegressionResults instead."))
+#   iv_vars <- GetIVVariables(iv_res)
+#   iv_grad_list <- GetIVSEDerivs(
+#     x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+#     beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+#   return(iv_grad_list$se_mat)
+# }
 
 
 #' Run an IV regression using zaminfluence code.  This should be identical
@@ -591,38 +571,6 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 
 
 
-#' Rerun the regression with a new subset of rows.
-#'@param w_bool A boolean vector of rows to keep in the original dataframe.
-#'@param iv_res `r docs$iv_res`
-#'@param se_group `r docs$se_group`
-#'@param save_w Optional. If TRUE, save the new weight vector in the output.
-#'
-#'@return `r docs$rerun_return`
-#'
-#'@export
-RerunIVRegression <- function(w_bool, iv_res, se_group=NULL, save_w=FALSE) {
-  # Rerun using my own code; I don't want to deal with how R handles the
-  # scoping of the weight variables in the regression.
-  if (length(iv_res$y) != length(w_bool)) {
-    stop(paste0("``w_bool`` is not the same length as the regression data. ",
-                "Note that re-running regression with aggregated ",
-                "influence functions is not implemented."))
-  }
-
-  new_w <- rep(0.0, length(w_bool))
-  if (is.null(iv_res[["weights"]])) {
-    new_w[w_bool] <- 1.0
-  } else {
-    new_w[w_bool] <- iv_res$weights[w_bool]
-  }
-
-  ret_list <-
-    ComputeIVRegressionResults(iv_res, weights=new_w, se_group=se_group)
-  if (save_w) {
-    ret_list$w <- new_w
-  }
-  return(ret_list)
-}
 
 
 #########################################################################
@@ -646,13 +594,24 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
     w0=reg_vars$w0, se_group=se_group)
 
   RerunFun <- function(w_bool) {
-    RerunRegression(w_bool=w_bool, lm_result=lm_result, se_group=se_group)
+    new_w <- rep(0.0, length(w_bool))
+    new_w[w_bool] <- reg_vars$w0[w_bool]
+    ret_list <-
+      ComputeRegressionResults(lm_result, weights=new_w, se_group=se_group)
+    return(ModelFit(
+      fit_object=ret_list,
+      n_obs=reg_vars$num_obs,
+      betahat=ret_list$betahat,
+      se=ret_list$se,
+      parameter_names=reg_vars$parameter_names,
+      weights=new_w,
+      se_group=se_group))
   }
 
   model_fit <- ModelFit(
     fit_object=lm_result,
     n_obs=reg_vars$num_obs,
-    parameter_names=colnames(lm_result$x),
+    parameter_names=reg_vars$paramete_names,
     betahat=reg_vars$betahat,
     se=reg_grad_list$se,
     weights=reg_vars$w0,
@@ -679,14 +638,25 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
       x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
       beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
 
-    RerunFun <- function(w_bool) {
-      RerunIVRegression(w_bool=w_bool, iv_res=iv_res, se_group=se_group)
-    }
+      RerunFun <- function(w_bool) {
+        new_w <- rep(0.0, length(w_bool))
+        new_w[w_bool] <- iv_vars$w0[w_bool]
+        ret_list <-
+          ComputeIVRegressionResults(iv_res, weights=new_w, se_group=se_group)
+        return(ModelFit(
+          fit_object=ret_list,
+          n_obs=iv_vars$num_obs,
+          betahat=ret_list$betahat,
+          se=ret_list$se,
+          parameter_names=iv_vars$parameter_names,
+          weights=new_w,
+          se_group=se_group))
+      }
 
     model_fit <- ModelFit(
       fit_object=iv_res,
       n_obs=iv_vars$num_obs,
-      parameter_names=colnames(iv_res$x$regressors),
+      parameter_names=iv_vars$parameter_names,
       betahat=iv_vars$betahat,
       se=iv_grad_list$se,
       weights=iv_vars$w0,

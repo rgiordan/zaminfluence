@@ -11,7 +11,7 @@ GetInferenceSignals(param_infl)
 }
 \value{
 A list of signals, named "sign", "sig", and "both".  Each
-entry is a \code{signal} object.
+entry is a \code{QOISignal} object.
 }
 \description{
 Compute the signals for changes to sign, significance, and both.
