@@ -88,7 +88,7 @@ RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) 
         verbosePrint("Re-running for ", param_name, " signals: ")
         reruns[[param_name]] <- list()
         param_signals <- signals[[param_name]]
-        pram_infl <- model_grads$param_infls[[param_name]]
+        #pram_infl <- model_grads$param_infls[[param_name]]
         for (signal_name in names(param_signals)) {
             verbosePrint(signal_name, "...")
             signal <- param_signals[[signal_name]]
@@ -106,14 +106,60 @@ RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) 
 reruns <- RerunForSignals(signals, model_grads, verbose=TRUE)
 
 
-signals[[1]][[1]]
-map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL)) %>%
-    flatten_dfr(.id="row")
-    
 library(tibble)
-map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL)) %>%
-    enframe() 
+map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL))
 
+
+# Alternative to RerunForSignals
+RerunFun <- model_grads$RerunFun
+num_obs <- model_grads$model_fit$n_obs
+RerunSignal <- function(signal) {
+    cat("Rerunning ", signal$description, "\n", sep="")
+    w_bool <- GetWeightVector(
+        drop_inds=signal$apip$inds,
+        num_obs=num_obs,
+        bool=TRUE)
+    return(RerunFun(w_bool))
+}
+reruns_v2 <- map_depth(signals, 2, RerunSignal)
+
+names(reruns_v2)
+names(reruns)
+
+reruns_v2[[1]][[2]]$betahat
+reruns[[1]][[2]]$betahat
+
+reruns_v2[[2]][[2]]$betahat
+reruns[[2]][[2]]$betahat
+
+# A compact way to make dataframes
+reruns_dfs <- map_depth(reruns, 2, ~ GetModelFitInferenceDataframe(., model_grads$param_infls))
+
+rerun_df <- 
+    tibble(list=reruns_dfs) %>%
+    mutate(target_param_name=names(list)) %>%
+    unnest_longer(col=list, indices_to="signal") %>%
+    unnest(list)
+
+rerun_df
+
+signal_dfs <-
+    map_depth(signals, 2, ~ data.frame(
+        description=.$description, n_drop=.$apip$n, prop_drop=.$apip$prop,
+        target_qoi=.$qoi$name))
+signal_df <-
+    tibble(list=signal_dfs) %>%
+    mutate(target_param_name=names(list)) %>%
+    unnest_longer(col=list, indices_to="signal") %>%
+    unnest(list)
+
+signal_df
+
+
+inner_join(rerun_df, signal_df, by=c("target_param_name", "signal"))
+
+############################################
+# Demonstration of unnesting with indices
 
 foo <- list()
 foo[["a"]] <- list()
@@ -139,47 +185,17 @@ tibble(list=foo) %>%
     unnest_longer(list) %>%
     mutate(other_letter=names(list)) %>%
     mutate(new_df=map(list, ~ data.frame(foo=.x$z))) %>%
-    unnest(new_df)
-
-    
-foo1 <- as_tibble(foo) %>%
-    pivot_longer(cols=everything()) 
-
-foo1[["value"]][6]
-
-as_tibble(foo)
-as_tibble(foo)[["a"]]
+    unnest(new_df) %>%
+    select(-list)
 
 
 
-# Works if the list is balanced
-foo1 %>%
-    mutate(id=names(value)) %>%
-    unnest(value)
-
-foo1 %>%
-    mutate(id=names(value)) %>%
-    pull(value) %>%
-    bind_rows()
 
 
-foo1[["value"]][1]
 
-unnest_wider(col=value, names_sep="_")
 
-as_tibble(foo) %>%
-    unnest_longer(indices_to="number", indices_include=TRUE, col=a)
 
-tibble(list=foo) %>%
-    unnest_longer(indices_to="number", indices_include=TRUE, col=list) %>%
-    unnest_wider(col=list, names_sep="_")
 
-    
-    unnest_wider(col=list, names_sep="_") %>%
-    unnest_longer(indices_to="number", col=list)
-    
-    unnest_longer(indices_to="number", col=list) %>%
-    unnest_wider(col=list)
 
 # Summarize the values of each QOI for each parameter for a given model_fit.
 GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
