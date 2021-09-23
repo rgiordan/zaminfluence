@@ -46,7 +46,32 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
 }
 
 
+#'@export
+GetParameterInferenceQOIs <- function(model_fit, target_parameter,
+                                      sig_num_ses=qnorm(0.975)) {
+  stopifnot(class(model_fit) == "ModelFit")
+  target_index <- which(model_fit$parameter_names == target_parameter)
+  if (length(target_index) != 1) {
+      stop(paste0("Target parameter ",
+         target_parameter, " not found in the parameter names (",
+         paste(model_fit$parameter_names, collapse=", ")
+       ), ")\n")
+  }
+
+  betahat <- model_fit$betahat[target_index]
+  se <- model_fit$se[target_index]
+
+  values <- GetInferenceQOIs(betahat=betahat, se=se, sig_num_ses=sig_num_ses)
+  values$target_index <- target_index
+  return(values)
+}
+
+
 GetInferenceQOIs <- function(betahat, se, sig_num_ses) {
+  # Remove names so we can use unlist() and get expected names.
+  betahat <- unname(betahat)
+  se <- unname(se)
+  sig_num_ses <- unname(sig_num_ses)
   return(list(
     beta=betahat,
     se=se,
@@ -59,27 +84,17 @@ GetInferenceQOIs <- function(betahat, se, sig_num_ses) {
 ParameterInferenceInfluence <- function(model_grads, target_parameter,
                                         sig_num_ses=qnorm(0.975)) {
     stopifnot(class(model_grads) == "ModelGrads")
-    target_index <- which(
-      model_grads$model_fit$parameter_names == target_parameter)
-    if (length(target_index) != 1) {
-        stop(paste0("Target regressor ",
-           target_parameter, " not found in the parameter names (",
-           paste(model_grads$model_fit$parameter_names, collapse=", ")
-         ), ")\n")
-    }
 
     weights <- model_grads$model_fit$weights
+
+    qoi_base_values <- GetParameterInferenceQOIs(
+      model_grads$model_fit, target_parameter=target_parameter,
+      sig_num_ses=sig_num_ses)
+    target_index <- qoi_base_values$target_index
+
     se_grad <- weights * model_grads$se_grad[target_index,]
     beta_grad <- weights * model_grads$beta_grad[target_index, ]
-    # betahat <- model_grads$model_fit$betahat[target_index]
-    # sehat <- model_grads$model_fit$se[target_index]
     n_obs <- model_grads$model_fit$n_obs
-
-    qoi_base_values <- GetInferenceQOIs(
-      betahat=model_grads$model_fit$betahat[target_index],
-      se=model_grads$model_fit$se[target_index],
-      sig_num_ses=sig_num_ses)
-
     qoi_gradients <- GetInferenceQOIs(
       betahat=beta_grad,
       se=se_grad,

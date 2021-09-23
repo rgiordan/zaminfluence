@@ -54,13 +54,13 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
     model_grads <-
         ComputeModelInfluence(fit_object) %>%
         AppendTargetRegressorInfluence("x1")
-    signals <-
-        GetInferenceSignalsForParameter(model_grads$param_infls[["x1"]]) %>%
-        RerunForTargetChanges(model_grads)
+    signals <- GetInferenceSignals(model_grads)
+    #reruns <- RerunForSignals(signals, model_grads)
 
     return(list(
         model_grads=model_grads,
         signals=signals,
+        #reruns=reruns,
         fit_object=fit_object,
         se_group=se_group,
         df=df
@@ -85,14 +85,24 @@ TestPredictions <- function(
 
     # Rerun
     rerun <- model_grads$RerunFun(w_bool)
-    rerun_base_values <- GetRerunBaseValues(rerun, param_infl)
-    diff_rerun <- rerun_base_values[names(base_values)] - base_values
+    rerun_base_values <- GetParameterInferenceQOIs(
+      model_fit=rerun,
+      target_parameter=param_infl$target_parameter,
+      sig_num_ses=param_infl$sig_num_ses)
+    print("-----------------\n")
+    print(rerun_base_values)
+    diff_rerun <-
+      unlist(rerun_base_values)[names(base_values)] -
+      base_values[names(base_values)]
+    print(diff_rerun)
+    print(base_values)
     names(diff_rerun) <- names(base_values)
 
     # Prediction
     diff_pred <-
         map_dbl(names(base_values),
                 ~ PredictChange(param_infl[[.]], drop_inds))
+    print(diff_pred)
     names(diff_pred) <- names(base_values)
     rel_error <-
       (diff_pred - diff_rerun) /

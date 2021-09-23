@@ -111,17 +111,8 @@ map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL))
 
 
 # Alternative to RerunForSignals
-RerunFun <- model_grads$RerunFun
-num_obs <- model_grads$model_fit$n_obs
-RerunSignal <- function(signal) {
-    cat("Rerunning ", signal$description, "\n", sep="")
-    w_bool <- GetWeightVector(
-        drop_inds=signal$apip$inds,
-        num_obs=num_obs,
-        bool=TRUE)
-    return(RerunFun(w_bool))
-}
-reruns_v2 <- map_depth(signals, 2, RerunSignal)
+
+reruns <- RerunForSignals(signals, model_grads)
 
 names(reruns_v2)
 names(reruns)
