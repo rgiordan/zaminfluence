@@ -89,20 +89,15 @@ TestPredictions <- function(
       model_fit=rerun,
       target_parameter=param_infl$target_parameter,
       sig_num_ses=param_infl$sig_num_ses)
-    print("-----------------\n")
-    print(rerun_base_values)
     diff_rerun <-
       unlist(rerun_base_values)[names(base_values)] -
       base_values[names(base_values)]
-    print(diff_rerun)
-    print(base_values)
     names(diff_rerun) <- names(base_values)
 
     # Prediction
     diff_pred <-
         map_dbl(names(base_values),
                 ~ PredictChange(param_infl[[.]], drop_inds))
-    print(diff_pred)
     names(diff_pred) <- names(base_values)
     rel_error <-
       (diff_pred - diff_rerun) /

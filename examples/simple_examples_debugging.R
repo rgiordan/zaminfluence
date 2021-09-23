@@ -39,6 +39,38 @@ source(file.path(git_repo_dir, "zaminfluence/tests/testthat/test_derivs.R"))
 
 
 
+############################################
+# Demonstration of unnesting with indices
+
+foo <- list()
+foo[["a"]] <- list()
+foo[["b"]] <- list()
+
+foo[["a"]][["x"]] <- data.frame(x=runif(1), z=1)
+foo[["b"]][["x"]] <- data.frame(x=runif(1), z=2)
+foo[["a"]][["y"]] <- data.frame(x=runif(1), z=3)
+foo[["b"]][["y"]] <- data.frame(x=runif(1), z=4)
+foo[["a"]][["z"]] <- data.frame(x=runif(1), z=5, no=10)
+
+# This appears to work
+tibble(list=foo) %>%
+    mutate(letter=names(list)) %>%
+    unnest_longer(list) %>%
+    mutate(other_letter=names(list)) %>%
+    unnest(list)
+
+
+# This also appears to work
+tibble(list=foo) %>%
+    mutate(letter=names(list)) %>%
+    unnest_longer(list) %>%
+    mutate(other_letter=names(list)) %>%
+    mutate(new_df=map(list, ~ data.frame(foo=.x$z))) %>%
+    unnest(new_df) %>%
+    select(-list)
+
+
+
 
 
 #############################
