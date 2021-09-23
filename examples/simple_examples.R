@@ -112,11 +112,74 @@ map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL)) %>%
     
 library(tibble)
 map_depth(signals, 2, ~ data.frame(signal=.$signal, row.names=NULL)) %>%
-    enframe() %>%
-    unnest_longer(value)
+    enframe() 
+
+
+foo <- list()
+foo[["a"]] <- list()
+foo[["b"]] <- list()
+
+foo[["a"]][["x"]] <- data.frame(x=runif(1), z=1)
+foo[["b"]][["x"]] <- data.frame(x=runif(1), z=2)
+foo[["a"]][["y"]] <- data.frame(x=runif(1), z=3)
+foo[["b"]][["y"]] <- data.frame(x=runif(1), z=4)
+foo[["a"]][["z"]] <- data.frame(x=runif(1), z=5, no=10)
+
+# This appears to work
+tibble(list=foo) %>%
+    mutate(letter=names(list)) %>%
+    unnest_longer(list) %>%
+    mutate(other_letter=names(list)) %>%
+    unnest(list)
+
+
+# This also appears to work
+tibble(list=foo) %>%
+    mutate(letter=names(list)) %>%
+    unnest_longer(list) %>%
+    mutate(other_letter=names(list)) %>%
+    mutate(new_df=map(list, ~ data.frame(foo=.x$z))) %>%
+    unnest(new_df)
+
+    
+foo1 <- as_tibble(foo) %>%
+    pivot_longer(cols=everything()) 
+
+foo1[["value"]][6]
+
+as_tibble(foo)
+as_tibble(foo)[["a"]]
 
 
 
+# Works if the list is balanced
+foo1 %>%
+    mutate(id=names(value)) %>%
+    unnest(value)
+
+foo1 %>%
+    mutate(id=names(value)) %>%
+    pull(value) %>%
+    bind_rows()
+
+
+foo1[["value"]][1]
+
+unnest_wider(col=value, names_sep="_")
+
+as_tibble(foo) %>%
+    unnest_longer(indices_to="number", indices_include=TRUE, col=a)
+
+tibble(list=foo) %>%
+    unnest_longer(indices_to="number", indices_include=TRUE, col=list) %>%
+    unnest_wider(col=list, names_sep="_")
+
+    
+    unnest_wider(col=list, names_sep="_") %>%
+    unnest_longer(indices_to="number", col=list)
+    
+    unnest_longer(indices_to="number", col=list) %>%
+    unnest_wider(col=list)
 
 # Summarize the values of each QOI for each parameter for a given model_fit.
 GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
