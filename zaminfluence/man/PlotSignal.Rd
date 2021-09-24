@@ -4,7 +4,14 @@
 \alias{PlotSignal}
 \title{Plot influence scores, signals, and reruns.}
 \usage{
-PlotSignal(param_infl, signal, ...)
+PlotSignal(
+  model_grads,
+  signals,
+  parameter_name,
+  target_signal,
+  reruns = NULL,
+  ...
+)
 }
 \arguments{
 \item{param_infl}{A parameter influence object (e.g. as produced by \link{AppendTargetRegressorInfluence}).}

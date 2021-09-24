@@ -65,7 +65,10 @@ reruns <- RerunForSignals(signals, model_grads)
 reruns_df <- GetSignalsAndRerunsDataframe(signals, reruns, model_grads)
 
 
-PlotSignal(model_grads$param_infls[["x1"]], signals[["x1"]][["both"]], apip_max=0.03)
+load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+PlotSignal(model_grads, signals, "x1", "sign",
+          reruns=reruns, apip_max=0.03)
+
 
 # Visualize which points are being dropped
 

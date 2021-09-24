@@ -44,9 +44,9 @@ GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
 }
 
 
-#'@export
-GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
-  # Validate the input.
+# The signals and reruns are expected to have a matching list structure,
+# which we enforce with this function.
+ValidateSignalsAndReruns <- function(signals, reruns) {
   stopifnot(setequal(names(reruns), names(signals)))
   for (target_param_name in names(reruns)) {
       param_reruns  <- reruns[[target_param_name]]
@@ -59,6 +59,12 @@ GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
           stopifnot(class(signal) == "QOISignal")
       }
   }
+}
+
+
+#'@export
+GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
+  ValidateSignalsAndReruns(signals, reruns)
 
   reruns_dfs <- map_depth(
     reruns, 2, ~ GetModelFitInferenceDataframe(., model_grads$param_infls))
@@ -66,7 +72,7 @@ GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
   rerun_df <-
       tibble(list=reruns_dfs) %>%
       mutate(target_param_name=names(list)) %>%
-      unnest_longer(col=list, indices_to="signal") %>%
+      unnest_longer(col=list, indices_to="target_signal") %>%
       unnest(list)
 
   signal_dfs <-
@@ -76,10 +82,10 @@ GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
   signal_df <-
       tibble(list=signal_dfs) %>%
       mutate(target_param_name=names(list)) %>%
-      unnest_longer(col=list, indices_to="signal") %>%
+      unnest_longer(col=list, indices_to="target_signal") %>%
       unnest(list)
 
-  return(inner_join(rerun_df, signal_df, by=c("target_param_name", "signal")))
+  return(inner_join(rerun_df, signal_df, by=c("target_param_name", "target_signal")))
 }
 
 
@@ -126,6 +132,7 @@ GetSortedInfluenceDf <- function(param_infl, sorting_qoi_name,
 }
 
 
+
 #' Plot influence scores, signals, and reruns.
 #' @param influence_df The output of [GetSortedInfluenceDf]
 #' @param plot_num_dropped If TRUE, plot the number dropped on the x-axis.
@@ -137,39 +144,10 @@ GetSortedInfluenceDf <- function(param_infl, sorting_qoi_name,
 #' to include zero and plot a horizontal line.
 #'
 #' @return A plot.
-#' @export
-PlotInfluence <- function(influence_df,
-                          plot_num_dropped=FALSE,
-                          apip_max=NULL,
-                          signals=NULL,
-                          include_y_zero=TRUE) {
-
-    PlotRegSignal <- function(plot, signal) {
-        alpha_type <- if (plot_num_dropped) "n" else "prop"
-        alpha <- signal$apip[[alpha_type]]
-        if (is.null(apip_max) || (!is.null(apip_max) && alpha <= apip_max)) {
-            plot <- plot + geom_vline(aes(xintercept=!!alpha,
-                                          linetype=!!signal$description))
-            if (!is.null(signal$rerun_df)) {
-                rerun_df <- signal$rerun_df
-                stopifnot(nrow(rerun_df) == 1)
-                plot <-
-                    plot +
-                    geom_errorbar(aes(
-                        x=!!alpha,
-                        ymin=beta_mzse_refit,
-                        ymax=beta_pzse_refit),
-                        data=rerun_df,
-                        width=errorbar_width,
-                        lwd=1.5) +
-                    geom_point(aes(x=!!alpha, y=betahat_refit),
-                               data=rerun_df,
-                               shape=8)
-            }
-        }
-        return(plot)
-    }
-
+PlotInfluenceDf <- function(influence_df, signal, rerun_vals=NULL,
+                            plot_num_dropped=FALSE,
+                            apip_max=NULL,
+                            include_y_zero=TRUE) {
     influence_df$alpha <-
         if (plot_num_dropped) influence_df$num_dropped else
             influence_df$prop_dropped
@@ -177,19 +155,12 @@ PlotInfluence <- function(influence_df,
     if (!is.null(apip_max)) {
       influence_df <- filter(influence_df, alpha  <= apip_max)
     }
-    errorbar_width <- diff(range(influence_df$alpha)) / 50
 
     plot <- ggplot(influence_df, aes(x=alpha))
     if (include_y_zero) {
         plot <-
             plot +
             geom_line(aes(y=0.0), col="gray50")
-    }
-    if (!is.null(signals)) {
-        for (signal in signals) {
-            plot <- PlotRegSignal(plot,  signal)
-        }
-        plot <- plot + guides(linetype=guide_legend(title="Change type"))
     }
 
     base_beta <- filter(influence_df, alpha == 0) %>% pull("beta") %>% unique()
@@ -208,6 +179,31 @@ PlotInfluence <- function(influence_df,
         "Number of points removed" else "Proportion of points removed"
     plot <- plot + guides(color="none") + xlab(xlab_name)
 
+    # Plot the signal
+    alpha_type <- if (plot_num_dropped) "n" else "prop"
+    alpha <- signal$apip[[alpha_type]]
+    if (is.null(apip_max) || (!is.null(apip_max) && alpha <= apip_max)) {
+        plot <- plot + geom_vline(aes(xintercept=!!alpha,
+                                      linetype=!!signal$description)) +
+                guides(linetype=guide_legend(title="Change type"))
+    }
+
+    if (!is.null(rerun_vals)) {
+      errorbar_width <- diff(range(influence_df$alpha)) / 50
+      plot <-
+          plot +
+          geom_errorbar(aes(
+              x=!!alpha,
+              ymin=rerun_vals$beta_mzse,
+              ymax=rerun_vals$beta_pzse),
+              data=NULL,
+              width=errorbar_width,
+              lwd=1.5) +
+          geom_point(aes(x=!!alpha, y=rerun_vals$beta),
+                     data=NULL,
+                     shape=8)
+    }
+
     return(plot)
 }
 
@@ -217,9 +213,29 @@ PlotInfluence <- function(influence_df,
 #' @param signal `r docs$signal`
 #' @return A plot for the specified signal.
 #'@export
-PlotSignal <- function(param_infl, signal, ...) {
-    stopifnot(class(param_infl) == "ParameterInferenceInfluence")
+PlotSignal <- function(model_grads, signals, parameter_name, target_signal,
+                       reruns=NULL, ...) {
+    stopifnot(class(model_grads) == "ModelGrads")
+    stopifnot(parameter_name %in% names(model_grads$param_infls))
+    param_infl <- model_grads$param_infls[[parameter_name]]
+
+    stopifnot(all(names(signals) %in% names(model_grads$param_infls)))
+
+    stopifnot(parameter_name %in% names(signals))
+    stopifnot(target_signal %in%  names(signals[[parameter_name]]))
+    signal <- signals[[parameter_name]][[target_signal]]
     stopifnot(class(signal) == "QOISignal")
+
+    if (!is.null(reruns)) {
+      ValidateSignalsAndReruns(signals, reruns)
+      rerun <- reruns[[parameter_name]][[target_signal]]
+      rerun_vals <- GetParameterInferenceQOIs(
+        rerun, parameter_name, sig_num_ses=param_infl$sig_num_ses)
+    } else {
+      rerun_vals <- NULL
+    }
+
     influence_df <- GetSortedInfluenceDf(param_infl, signal$qoi$name)
-    PlotInfluence(influence_df, signals=list(signal), ...)
+    plot <- PlotInfluenceDf(influence_df, signal, rerun_vals=rerun_vals, ...)
+    return(plot)
 }
