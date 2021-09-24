@@ -71,10 +71,9 @@ PlotSignal(model_grads, signals, "x1", "sign",
 
 
 # Visualize which points are being dropped
-
-df$drop <- FALSE
-df$drop[signals[["both"]]$apip$inds] <- TRUE
-df$infl <- model_grads$param_infls[["x1"]][[signals[["both"]]$qoi_name]]$infl
+signal <- signals[["x1"]][["both"]] 
+df$drop <- GetWeightVector(signal$apip$inds, nrow(df), bool=TRUE, invert=TRUE)
+df$infl <- signal$qoi$infl
 
 grid.arrange(
     ggplot(df) +
