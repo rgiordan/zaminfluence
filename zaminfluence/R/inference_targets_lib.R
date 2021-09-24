@@ -90,6 +90,12 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
       sig_num_ses=sig_num_ses)
     target_index <- qoi_base_values$target_index
 
+    # se_grad and beta_grad are the gradients for a parameter along the path
+    # taking a weight
+    # from its current value to zero.  That way the "gradient" measures the
+    # effect of removing a datapoint (taking its value from the current weight
+    # to zero.) So we multiply the raw weight
+    # derivatives by the actual base weights.
     se_grad <- weights * model_grads$se_grad[target_index,]
     beta_grad <- weights * model_grads$beta_grad[target_index, ]
     n_obs <- model_grads$model_fit$n_obs

@@ -34,6 +34,7 @@ validate_ModelFit <- function(model_fit) {
 }
 
 
+
 #'@export
 ModelFit <- function(fit_object, n_obs, betahat, se,
                      parameter_names=NULL, weights=NULL, se_group=NULL) {
@@ -62,7 +63,8 @@ new_ModelGrads <- function(
     beta_grad,
     se_grad,
     param_infls,
-    RerunFun) {
+    RerunFun,
+    PredictFun) {
   return(structure(
     list(model_fit=model_fit,
 
@@ -98,6 +100,31 @@ validate_ModelGrads <- function(model_grads) {
 
   return(invisible(model_grads))
 }
+
+
+#'@export
+PredictModelFit <- function(model_grads, weights) {
+    stopifnot(class(model_grads) == "ModelGrads")
+    stopifnot(is.numeric(weights))
+
+    model_fit <- model_grads$model_fit
+    stopifnot(length(weights) == model_fit$n_obs)
+
+    weight_diff <- weights - model_fit$weights
+    betahat_pred <- model_fit$betahat + model_grads$beta_grad %*% weight_diff
+    se_pred <- model_fit$se + model_grads$se_grad %*% weight_diff
+    pred_fit <-
+        ModelFit(
+            fit_object="prediction",
+            n_obs=model_grads$model_fit$n_obs,
+            betahat=betahat_pred,
+            se=se_pred,
+            parameter_names=model_fit$parameter_names,
+            weights=weights,
+            se_group=model_fit$se_group)
+    return(pred_fit)
+}
+
 
 
 #'@export

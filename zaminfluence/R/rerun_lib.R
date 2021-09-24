@@ -42,6 +42,23 @@ RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) 
 }
 
 
+#' Predict the model at the AMIS for a set of signals.
+#' @param signals `A list of signal objects, "sign", "sig", "both",
+#' as produced by [GetInferenceSignalsForParameter].
+#' @param model_grads `r docs$model_grads`
+#' @param verbose (Optional) If TRUE, print status updates.
+#'
+#' @return The original `signals`, with two new fields:
+#' - rerun_df: A dataframe summarizing the rerun.
+#' - rerun: The complete rerun result.
+#' @export
+PredictForSignals <- function(signals, model_grads, verbose=FALSE) {
+  PredictFun <- function(weights) {
+    PredictModelFit(model_grads, weights)
+  }
+  RerunForSignals(signals, model_grads, verbose=verbose, RerunFun=PredictFun)
+}
+
 # Here's the old format:
 #       signals[[target]]$rerun_df <-
 #           as.data.frame(signal) %>%

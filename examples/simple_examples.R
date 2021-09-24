@@ -62,10 +62,13 @@ model_grads <-
 
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
+preds <- PredictForSignals(signals, model_grads)
 reruns_df <- GetSignalsAndRerunsDataframe(signals, reruns, model_grads)
 
-
 load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+
+
+weights <- runif(model_grads$model_fit$n_obs)
 PlotSignal(model_grads, signals, "x1", "sign",
           reruns=reruns, apip_max=0.03)
 

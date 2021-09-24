@@ -55,7 +55,6 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
         ComputeModelInfluence(fit_object) %>%
         AppendTargetRegressorInfluence("x1")
     signals <- GetInferenceSignals(model_grads)
-    #reruns <- RerunForSignals(signals, model_grads)
 
     return(list(
         model_grads=model_grads,
