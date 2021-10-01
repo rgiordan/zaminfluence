@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 #
 # Test the manual derivatives using numerical differentiation.
+# Effectively, this tests GetIVSEDerivs and GetRegressionSEDerivs with
+# both grouped and ungrouped standard errors.
 
 library(AER)
 library(zaminfluence)
@@ -10,75 +12,96 @@ library(testthat)
 library(tidyverse)
 
 context("zaminfluence")
-#source("utils.R")
 
 
-AssertNearlyZero <- function(x, tol=1e-15) {
-  x_norm <- max(abs(x))
-  info_str <- sprintf("%e > %e", x_norm, tol)
-  expect_true(x_norm < tol, info=info_str)
-}
-
-
-TestRegressionDerivatives <- function(do_iv) {
-  # Generate data.
+GenerateTestInstance <- function(do_iv, do_grouping) {
   x_dim <- 3
   beta_true <- runif(x_dim)
 
-  if (do_iv) {
-    df <- GenerateIVRegressionData(10, beta_true, num_groups=NULL)
+  GenerateFun <- if (do_iv) GenerateIVRegressionData else GenerateRegressionData
+  if (do_grouping) {
+    df <- GenerateFun(20, beta_true, num_groups=5)
   } else {
-    df <- GenerateRegressionData(10, beta_true, num_groups=NULL)
+    df <- GenerateFun(20, beta_true)
   }
+
   df$weights <- runif(nrow(df)) + 1
 
+  # Fit a model.
   if (do_iv) {
-    x_names <- sprintf("x%d", 1:x_dim)
-    z_names <- sprintf("z%d", 1:x_dim)
-    iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
-                               paste(x_names, collapse=" + "),
-                               paste(z_names, collapse=" + ")))
-    reg_fit <- ivreg(data=df, formula=iv_form, x=TRUE, y=TRUE, weights=weights)
-
-    LocalGetRegressionSEDerivs <- function(w=df$weights,
-                                           beta=reg_fit$coefficients) {
-      GetIVSEDerivs(
-        x=df[, x_names] %>% as.matrix(),
-        z=df[, z_names] %>% as.matrix(),
-        y=df$y,
-        beta=beta,
-        w0=w, testing=TRUE)
-      }
-    reg_se_list <- LocalGetRegressionSEDerivs()
-
+      # IV:
+      x_names <- sprintf("x%d", 1:x_dim)
+      z_names <- sprintf("z%d", 1:x_dim)
+      reg_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
+                                 paste(x_names, collapse=" + "),
+                                 paste(z_names, collapse=" + ")))
+      reg_fit <- ivreg(data=df, formula = reg_form,
+                       x=TRUE, y=TRUE, weights=weights)
   } else {
-    x_names <- sprintf("x%d", 1:x_dim)
-    reg_form <- formula(sprintf("y ~ %s - 1",
-                               paste(x_names, collapse=" + ")))
-    reg_fit <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE, weights=weights)
-
-    LocalGetRegressionSEDerivs <- function(w=df$weights,
-                                           beta=reg_fit$coefficients) {
-      GetRegressionSEDerivs(
-          x=df[, x_names] %>% as.matrix(),
-          y=df$y,
-          beta=beta,
-          w0=w,
-          testing=TRUE)
-      }
-    reg_se_list <- LocalGetRegressionSEDerivs()
+      # Regression:
+      x_names <- sprintf("x%d", 1:x_dim)
+      reg_form <- formula(sprintf("y ~ %s - 1",
+                                  paste(x_names, collapse=" + ")))
+      reg_fit <- lm(data=df, formula=reg_form,
+                    x=TRUE, y=TRUE, weights=weights)
   }
 
-  if (do_iv) {
-    reg_sigma <- reg_fit$sigma
-  } else {
-    reg_sigma <- sigma(reg_fit)
+  se_group <- if (do_grouping) df$se_group else NULL
+  LocalGetRegressionSEDerivs <- function(w=df$weights,
+                                         beta=reg_fit$coefficients) {
+      if (do_iv) {
+          return(GetIVSEDerivs(
+              x=df[, x_names] %>% as.matrix(),
+              z=df[, z_names] %>% as.matrix(),
+              y=df$y,
+              beta=beta,
+              w0=w,
+              se_group=se_group,
+              testing=TRUE))
+      } else {
+          return(GetRegressionSEDerivs(
+              x=df[, x_names] %>% as.matrix(),
+              y=df$y,
+              beta=beta,
+              w0=w,
+              se_group=se_group,
+              testing=TRUE))
+      }
   }
+
+  reg_se_list <- LocalGetRegressionSEDerivs()
+  return(list(
+    reg_se_list=reg_se_list,
+    LocalGetRegressionSEDerivs=LocalGetRegressionSEDerivs,
+    se_group=se_group,
+    df=df,
+    reg_fit=reg_fit,
+    reg_form=reg_form
+  ))
+}
+
+
+TestUngroupedRegressionDerivatives <- function(do_iv) {
+  test_instance <- GenerateTestInstance(do_iv, FALSE)
+
+  reg_se_list <- test_instance$reg_se_list
+  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
+  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
+  df <- test_instance$df
+  reg_fit <- test_instance$reg_fit
+  reg_form <- test_instance$reg_form
+
+  reg_sigma <- if (do_iv) reg_fit$sigma else sigma(reg_fit)
+
+  ########################
+  # Check that the estimates match
+
   AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
   AssertNearlyZero(reg_se_list$sig2_hat - reg_sigma^2, tol=1e-11)
-  AssertNearlyZero(reg_se_list$se_mat - vcov(reg_fit), tol=1e-11)
+  AssertNearlyZero(
+    reg_se_list$se_mat - GetFitCovariance(reg_fit), tol=1e-11)
   AssertNearlyZero(reg_se_list$se -
-                   vcov(reg_fit) %>% diag() %>% sqrt(), tol=1e-11)
+    GetFitCovariance(reg_fit) %>% diag() %>% sqrt(), tol=1e-11)
 
   ########################
   # Test the derivatives
@@ -121,7 +144,7 @@ TestRegressionDerivatives <- function(do_iv) {
     GetRegTestResults <- function(w) {
         df_test <- df
         df_test$weights <- w
-        beta_test <- ivreg(data=df_test, formula=iv_form,
+        beta_test <- ivreg(data=df_test, formula=reg_form,
                            x=TRUE, y=TRUE, weights=weights)$coefficients
         iv_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
         return(
@@ -171,62 +194,22 @@ TestRegressionDerivatives <- function(do_iv) {
 
 }
 
+
+
 TestGroupedRegressionDerivatives <- function(do_iv) {
-  x_dim <- 3
-  beta_true <- runif(x_dim)
+  test_instance <- GenerateTestInstance(do_iv, TRUE)
 
-  if (do_iv) {
-      df <- GenerateIVRegressionData(20, beta_true, num_groups=5)
-  } else {
-      df <- GenerateRegressionData(20, beta_true, num_groups=5)
-  }
-  df$weights <- runif(nrow(df)) + 1
-
-  # Fit a model.
-  if (do_iv) {
-      # IV:
-      x_names <- sprintf("x%d", 1:x_dim)
-      z_names <- sprintf("z%d", 1:x_dim)
-      iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
-                                 paste(x_names, collapse=" + "),
-                                 paste(z_names, collapse=" + ")))
-      reg_fit <- ivreg(data=df, formula = iv_form,
-                       x=TRUE, y=TRUE, weights=weights)
-  } else {
-      # Regression:
-      x_names <- sprintf("x%d", 1:x_dim)
-      reg_form <- formula(sprintf("y ~ %s - 1",
-                                  paste(x_names, collapse=" + ")))
-      reg_fit <- lm(data=df, formula=reg_form,
-                    x=TRUE, y=TRUE, weights=weights)
-  }
-
-  LocalGetRegressionSEDerivs <- function(w=df$weights,
-                                         beta=reg_fit$coefficients) {
-      if (do_iv) {
-          return(GetIVSEDerivs(
-              x=df[, x_names] %>% as.matrix(),
-              z=df[, z_names] %>% as.matrix(),
-              y=df$y,
-              beta=beta,
-              w0=w,
-              se_group=df$se_group,
-              testing=TRUE))
-      } else {
-          return(GetRegressionSEDerivs(
-              x=df[, x_names] %>% as.matrix(),
-              y=df$y,
-              beta=beta,
-              w0=w,
-              se_group=df$se_group,
-              testing=TRUE))
-      }
-  }
-
-  reg_se_list <- LocalGetRegressionSEDerivs()
+  reg_se_list <- test_instance$reg_se_list
+  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
+  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
+  df <- test_instance$df
+  reg_fit <- test_instance$reg_fit
 
   w0 <- df$weights
   beta <- reg_fit$coefficients
+
+  ########################
+  # Check that the estimates match
 
   AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-9)
   AssertNearlyZero(colMeans(reg_se_list$s_mat), tol=1e-9)
@@ -234,11 +217,12 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
   AssertNearlyZero(cov(reg_se_list$s_mat) * (num_groups - 1) / num_groups -
                    reg_se_list$v_mat, tol=1e-9)
 
-  vcov_se_cov <- vcovCL(reg_fit, cluster=df$se_group, type="HC0", cadjust=FALSE)
+  vcov_se_cov <- GetFitCovariance(reg_fit, df$se_group)
   AssertNearlyZero(vcov_se_cov - reg_se_list$se_mat, tol=1e-9)
   AssertNearlyZero(sqrt(diag(vcov_se_cov)) - reg_se_list$se, tol=1e-9)
 
-  #######
+  ########################
+  # Test the derivatives
 
   ddiag_semat_dw_partial_num <-
       numDeriv::jacobian(function(w) {
@@ -284,9 +268,9 @@ TestGroupedRegressionDerivatives <- function(do_iv) {
 
 test_that("ungrouped_derivs_correct", {
   set.seed(12611)
-  TestRegressionDerivatives(do_iv=TRUE)
+  TestUngroupedRegressionDerivatives(do_iv=TRUE)
   set.seed(12611)
-  TestRegressionDerivatives(do_iv=FALSE)
+  TestUngroupedRegressionDerivatives(do_iv=FALSE)
 })
 
 

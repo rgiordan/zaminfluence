@@ -230,73 +230,13 @@ GetRegressionVariables <- function(lm_res) {
   } else {
       w0 <- lm_res$weights
   }
-  return(list(x=x, y=y, num_obs=num_obs, w0=w0, betahat=betahat))
+  parameter_names <- colnames(lm_res$x)
+
+  return(list(x=x, y=y, num_obs=num_obs, w0=w0,
+              betahat=betahat, parameter_names=parameter_names))
 }
 
 
-#' Compute all influence scores for a regression.
-#' @param lm_result `r docs$lm_result`
-#' @param se_group `r docs$se_group`
-#'
-#' @return `r docs$grad_return`
-#'
-#' @export
-ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
-  reg_vars <- GetRegressionVariables(lm_result)
-  reg_grad_list <- GetRegressionSEDerivs(
-    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
-    w0=reg_vars$w0, se_group=se_group)
-
-  # Note that the standard errors may not match iv_res when using se_group.
-  return(list(model_fit=lm_result,
-              n_obs=reg_vars$num_obs,
-              regressor_names=colnames(lm_result$x),
-              grad_fun="GetRegressionSEDerivs",
-
-              betahat=reg_vars$betahat,
-              se=reg_grad_list$se,
-              weights=reg_vars$w0,
-
-              beta_grad=reg_grad_list$dbetahat_dw,
-              se_grad=reg_grad_list$dse_dw)
-  )
-}
-
-
-#' Run a regression using zaminfluence code.  This should be identical
-#' to ordinary regression.
-#'
-#' @param lm_result `r docs$lm_result`
-#' @param weights `r docs$weights`
-#' @param se_group `r docs$se_group`
-#'
-#' @return `r docs$rerun_return`
-#'
-#' @export
-ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
-  reg_vars <- GetRegressionVariables(lm_result)
-  if (is.null(weights)) {
-    weights <- reg_vars$w0
-  }
-
-  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
-  reg_coeff <- GetRegressionCoefficients(
-    x=reg_vars$x, y=reg_vars$y, w0=weights)
-
-  reg_grad_list <- GetRegressionSEDerivs(
-    x=reg_vars$x,
-    y=reg_vars$y,
-    beta=reg_coeff$betahat,
-    w0=weights,
-    se_group=se_group,
-    testing=FALSE,
-    compute_derivs=FALSE)
-  return(list(
-    betahat=reg_grad_list$betahat,
-    se=reg_grad_list$se,
-    se_mat=reg_grad_list$se_mat
-  ))
-}
 
 
 ######################################################3
@@ -513,58 +453,81 @@ GetIVVariables <- function(iv_res) {
   } else {
       w0 <- iv_res$weights
   }
-  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0, betahat=betahat))
+  parameter_names <- colnames(x)
+  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0, betahat=betahat,
+              parameter_names=parameter_names))
 }
 
 
-#' Compute all influence scores for an IV regression.
-#' @param iv_res `r docs$iv_res`
+
+######################################################
+# Functions for re-running the IV and OLS regressions.
+
+
+###############
+# OLS
+
+#' Run a regression using zaminfluence code.  This should be identical
+#' to ordinary regression.
+#'
+#' @param lm_result `r docs$lm_result`
+#' @param weights `r docs$weights`
 #' @param se_group `r docs$se_group`
 #'
-#' @return `r docs$grad_return`
+#' @return `r docs$rerun_return`
 #'
 #' @export
-ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
-    iv_vars <- GetIVVariables(iv_res)
-    iv_grad_list <- GetIVSEDerivs(
-      x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
-      beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
+  reg_vars <- GetRegressionVariables(lm_result)
+  if (is.null(weights)) {
+    weights <- reg_vars$w0
+  }
 
-    # Note that the standard errors may not match iv_res when using se_group.
-    return(list(model_fit=iv_res,
-                n_obs=iv_vars$num_obs,
-                regressor_names=colnames(iv_res$x$regressors),
-                grad_fun="GetIVSEDerivs",
+  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
+  reg_coeff <- GetRegressionCoefficients(
+    x=reg_vars$x, y=reg_vars$y, w0=weights)
 
-                betahat=iv_vars$betahat,
-                se=iv_grad_list$se,
-                weights=iv_vars$w0,
-
-                beta_grad=iv_grad_list$dbetahat_dw,
-                se_grad=iv_grad_list$dse_dw)
-    )
+  reg_grad_list <- GetRegressionSEDerivs(
+    x=reg_vars$x,
+    y=reg_vars$y,
+    beta=reg_coeff$betahat,
+    w0=weights,
+    se_group=se_group,
+    testing=FALSE,
+    compute_derivs=FALSE)
+  return(list(
+    betahat=reg_grad_list$betahat,
+    se=reg_grad_list$se,
+    se_mat=reg_grad_list$se_mat
+  ))
 }
 
 
-#' Compute the standard error matrix for an IV regression.  Deprecated --- use
-#' [ComputeIVRegressionResults()] instead.
-#'
-#' @param iv_res `r docs$iv_res`
-#' @param se_group `r docs$se_group`
-#'
-#' @return `r docs$grad_return`
-#'
-#' @export
-ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
-  warning(paste0(
-    "ComputeIVRegressionErrorCovariance is deprecated; use the ",
-    "se_mat output of ComputeIVRegressionResults instead."))
-  iv_vars <- GetIVVariables(iv_res)
-  iv_grad_list <- GetIVSEDerivs(
-    x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
-    beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
-  return(iv_grad_list$se_mat)
-}
+
+
+###############
+# IV
+
+#
+# #' Compute the standard error matrix for an IV regression.  Deprecated --- use
+# #' [ComputeIVRegressionResults()] instead.
+# #'
+# #' @param iv_res `r docs$iv_res`
+# #' @param se_group `r docs$se_group`
+# #'
+# #' @return `r docs$grad_return`
+# #'
+# #' @export
+# ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
+#   warning(paste0(
+#     "ComputeIVRegressionErrorCovariance is deprecated; use the ",
+#     "se_mat output of ComputeIVRegressionResults instead."))
+#   iv_vars <- GetIVVariables(iv_res)
+#   iv_grad_list <- GetIVSEDerivs(
+#     x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+#     beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+#   return(iv_grad_list$se_mat)
+# }
 
 
 #' Run an IV regression using zaminfluence code.  This should be identical
@@ -608,130 +571,121 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 
 
 
-####################################################################
-# The remaining functions are common to ordinary and IV regression.
 
-#' Compute the influence functions for all regressors given a model fit.
-#' @param model_fit `r docs$model_fit`
+
+#########################################################################
+# The remaining functions wrap the actual derivative computation into
+# a format that can be used by the rest of zaminfluence.  In principle,
+# everything above this section could be replaced by wrappers that use
+# automatic differentiation, perhaps in a different programming language.
+
+
+#' Compute all influence scores for a regression.
+#' @param lm_result `r docs$lm_result`
 #' @param se_group `r docs$se_group`
 #'
 #' @return `r docs$grad_return`
 #'
 #' @export
-ComputeModelInfluence <- function(model_fit, se_group=NULL) {
+ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
+  reg_vars <- GetRegressionVariables(lm_result)
+  reg_grad_list <- GetRegressionSEDerivs(
+    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
+    w0=reg_vars$w0, se_group=se_group)
+
+  RerunFun <- function(weights) {
+    ret_list <-
+      ComputeRegressionResults(lm_result, weights=weights, se_group=se_group)
+    return(ModelFit(
+      fit_object=ret_list,
+      num_obs=reg_vars$num_obs,
+      param=ret_list$betahat,
+      se=ret_list$se,
+      parameter_names=reg_vars$parameter_names,
+      weights=weights,
+      se_group=se_group))
+  }
+
+  model_fit <- ModelFit(
+    fit_object=lm_result,
+    num_obs=reg_vars$num_obs,
+    parameter_names=reg_vars$parameter_names,
+    param=reg_vars$betahat,
+    se=reg_grad_list$se,
+    weights=reg_vars$w0,
+    se_group=se_group)
+
+  return(ModelGrads(model_fit=model_fit,
+                    param_grad=reg_grad_list$dbetahat_dw,
+                    se_grad=reg_grad_list$dse_dw,
+                    RerunFun=RerunFun))
+
+}
+
+
+#' Compute all influence scores for an IV regression.
+#' @param iv_res `r docs$iv_res`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$grad_return`
+#'
+#' @export
+ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
+    iv_vars <- GetIVVariables(iv_res)
+    iv_grad_list <- GetIVSEDerivs(
+      x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+      beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+
+      RerunFun <- function(weights) {
+        ret_list <-
+          ComputeIVRegressionResults(iv_res, weights=weights, se_group=se_group)
+        return(ModelFit(
+          fit_object=ret_list,
+          num_obs=iv_vars$num_obs,
+          param=ret_list$betahat,
+          se=ret_list$se,
+          parameter_names=iv_vars$parameter_names,
+          weights=weights,
+          se_group=se_group))
+      }
+
+    model_fit <- ModelFit(
+      fit_object=iv_res,
+      num_obs=iv_vars$num_obs,
+      parameter_names=iv_vars$parameter_names,
+      param=iv_vars$betahat,
+      se=iv_grad_list$se,
+      weights=iv_vars$w0,
+      se_group=se_group)
+
+    # Note that the standard errors may not match iv_res when using se_group.
+    return(ModelGrads(model_fit=model_fit,
+                      param_grad=iv_grad_list$dbetahat_dw,
+                      se_grad=iv_grad_list$dse_dw,
+                      RerunFun=RerunFun))
+}
+
+
+#' Compute the influence functions for all regressors given a model fit.
+#' @param model_fit `r docs$model_fit`
+#' @param se_group `r docs$se_group`
+#'
+#' @return `r docs$model_grads`
+#'
+#' @export
+ComputeModelInfluence <- function(fit_object, se_group=NULL) {
   valid_classes <- c("lm", "ivreg")
-  model_class <- class(model_fit)
+  model_class <- class(fit_object)
   if (!(model_class %in% valid_classes)) {
     stop(sprintf("The class of `model_fit` must be one of %s",
                  paste(valid_classes, collapse=", ")))
   }
   if (model_class == "lm") {
-    return(ComputeRegressionInfluence(model_fit, se_group))
+    return(ComputeRegressionInfluence(fit_object, se_group))
   } else if (model_class == "ivreg") {
-    return(ComputeIVRegressionInfluence(model_fit, se_group))
+    return(ComputeIVRegressionInfluence(fit_object, se_group))
   } else {
     # Redundant, so sue me.
     stop(sprint("Unknown model class %s", model_class))
   }
-}
-
-#' Compute the gradients of the upper and lower bounds of confidence intervals
-#' from the gradients of `betahat` and `se` with respect to the weights.
-#'
-#' @param grad_df The output of [ComputeModelInfluence()]
-#' @param sig_num_ses `r docs$sig_num_ses`
-#'
-#' @return `grad_df`, augmented with the interval derivatives and attributes.
-#'
-#' @export
-AppendIntervalColumns <- function(grad_df, sig_num_ses) {
-  grad_df[["beta_pzse_grad"]] <-
-    grad_df[["beta_grad"]] + sig_num_ses * grad_df[["se_grad"]]
-  grad_df[["beta_mzse_grad"]] <-
-    grad_df[["beta_grad"]] - sig_num_ses * grad_df[["se_grad"]]
-  base_vals <- attr(grad_df, "base_vals")
-  base_vals_names <- names(base_vals)
-  base_vals <- c(base_vals,
-                 base_vals["beta"] + sig_num_ses * base_vals["se"],
-                 base_vals["beta"] - sig_num_ses * base_vals["se"])
-  names(base_vals) <- c(base_vals_names,
-                        "beta_pzse",
-                        "beta_mzse")
-  attr(grad_df, "base_vals") <- base_vals
-  attr(grad_df, "sig_num_ses") <- sig_num_ses
-  return(grad_df)
-}
-
-
-#' Get the influence scores for a particular regressor.
-#'
-#' @param reg_infl The gradients, e.g. as computed by [ComputeModelInfluence()].
-#' @param target_regressor The name of the regressor to target.  This should
-#' correspond to the name of a column of the `x` matrix of the original fit.
-#' @param sig_num_ses `r docs$sig_num_ses`
-#'
-#' @return A gradient dataframe for the specified coefficient with extra
-#' attributes set, suitable for passing to [SortAndAccumulate()].
-#'
-#' @export
-GetTargetRegressorGrads <- function(reg_infl, target_regressor,
-                                    sig_num_ses=qnorm(0.975)) {
-    target_index <- which(reg_infl$regressor_names == target_regressor)
-    if (length(target_index) != 1) {
-        stop("Error finding target regressor in the regression.")
-    }
-
-    # The reg_infl$*_grad columns are derivatives with respect to each
-    # observation at `weights`.  They are converted to derivatives with respect
-    # to a weight scaled to be one at inclusion and zero at exclusion by the
-    # chain rule.
-    grad_df <-
-      data.frame(
-        row=1:reg_infl$n_obs,
-        weights=reg_infl$weights,
-        se_grad=reg_infl$weights * reg_infl$se_grad[target_index,],
-        beta_grad=reg_infl$weights * reg_infl$beta_grad[target_index, ],
-        obs_per_row=1)
-
-    attr(grad_df, "n_obs") <- reg_infl$n_obs
-    attr(grad_df, "n_grad_rows") <- reg_infl$n_obs
-    attr(grad_df, "obs_per_row_col") <- "obs_per_row"
-    base_vals <- c(
-        reg_infl$betahat[target_index],
-        reg_infl$se[target_index])
-    names(base_vals) <- c("beta", "se")
-    attr(grad_df, "base_vals") <- base_vals
-    attr(grad_df, "target_regressor") <- target_regressor
-    attr(grad_df, "target_index") <- target_index
-    attr(grad_df, "data_row_cols") <- "row"
-
-    grad_df <- AppendIntervalColumns(grad_df, sig_num_ses=sig_num_ses)
-
-    return(grad_df)
-}
-
-
-#' Copy the attributes needed for sorting.
-#'
-#' Sometimes if you copy or modify the gradient dataframe returned by
-#' [GetTargetRegressorGrads()], e.g. by merging with another data source,
-#' the attributes required for running [SortAndAccumulate()] are lost.
-#' This function copies the required attributes over from the original
-#' dataframe.
-#'
-#' @param new_df The dataframe to receive the attributes
-#' @param grad_df `r docs$grad_df`
-#'
-#' @return `new_df`, but with the needed attributes of `grad_df` set.
-#'
-#' @export
-CopyGradAttributes <- function(
-    new_df, grad_df,
-    attrs=c("n_obs", "obs_per_row_col", "base_vals",
-            "target_regressor", "target_index",
-            "sig_num_ses", "data_row_cols", "n_grad_rows")) {
-    for (a in attrs) {
-        attr(new_df, a) <- attr(grad_df, a)
-    }
-    return(new_df)
 }
