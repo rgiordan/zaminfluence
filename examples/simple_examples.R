@@ -9,9 +9,6 @@ library(gridExtra)
 library(zaminfluence)
 library(AER)
 
-# library(devtools)
-# load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
-
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
