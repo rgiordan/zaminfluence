@@ -53,4 +53,11 @@ test_that("GetWeightVector_correct", {
   wkeep[drop_inds] <- w[drop_inds]
   wtest <- GetWeightVector(drop_inds, num_obs=num_obs, invert=TRUE)
   AssertNearlyEqual(wtest, wkeep)
+
+  # Test failure
+  expect_error(GetWeightVector(drop_inds, num_obs=num_obs - 1, orig_weights=w))
+  expect_error(GetWeightVector(c(1, -4), num_obs=num_obs))
+  expect_error(GetWeightVector(c(1, num_obs + 1), num_obs=num_obs))
+  expect_error(GetWeightVector(c(1, 0), num_obs=num_obs))
+  expect_error(GetWeightVector(drop_inds))
 })

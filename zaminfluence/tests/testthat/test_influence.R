@@ -178,6 +178,7 @@ TestGetAMIS <- function(qoi) {
 }
 
 
+
 # Run all tests on a particular test instance.
 TestInfluence <- function(test_instance) {
   model_fit <- test_instance$model_fit
@@ -207,6 +208,18 @@ TestInfluence <- function(test_instance) {
 
   # Test GetAMIS for a single QOI
   TestGetAMIS(param_infl$beta_mzse)
+
+  # Just that summary functions run
+  signals <- GetInferenceSignals(model_grads)
+  reruns <- RerunForSignals(signals, model_grads)
+  preds <- PredictForSignals(signals, model_grads)
+
+  reruns_df <- GetSignalsAndRerunsDataframe(signals, reruns, model_grads)
+  preds_df <- GetSignalsAndRerunsDataframe(signals, preds, model_grads)
+
+  PlotSignal(model_grads, signals, "x1", "sign", reruns=reruns, apip_max=0.03)
+
+  return(invisible(test_instance))
 }
 
 

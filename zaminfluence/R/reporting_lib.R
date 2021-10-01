@@ -61,7 +61,7 @@ ValidateSignalsAndReruns <- function(signals, reruns) {
   }
 }
 
-
+#' For signals and reruns lists, produce a dataframe summarizing the two.
 #'@export
 GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
   ValidateSignalsAndReruns(signals, reruns)
@@ -85,7 +85,8 @@ GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
       unnest_longer(col=list, indices_to="target_signal") %>%
       unnest(list)
 
-  return(inner_join(rerun_df, signal_df, by=c("target_param_name", "target_signal")))
+  return(inner_join(
+    rerun_df, signal_df, by=c("target_param_name", "target_signal")))
 }
 
 
