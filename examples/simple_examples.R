@@ -24,24 +24,22 @@ n_obs <- 10000
 
 set.seed(42)
 
-RerunSummaryDf <- function(signals) {
-    # A summary comparing reruns and predictions for each signal.
-    rerun_df <-
-        signals[c("sign", "sig", "both")] %>%
-        map_dfr(~ .$rerun_df) %>%
-        mutate(summary_orig=
-                   sprintf("%f (%f, %f)",
-                           betahat_orig, beta_mzse_orig, beta_pzse_orig),
-               summary_refit=
-                   sprintf("%f (%f, %f)",
-                           betahat_refit, beta_mzse_refit, beta_pzse_refit)) %>%
-        select(description, num_removed, prop_removed, summary_orig, summary_refit)
-    return(rerun_df)
+SummarizeReruns <- function(reruns, preds) {
+    reruns_df <- GetSignalsAndRerunsDataframe(signals, reruns, model_grads)
+    preds_df <- GetSignalsAndRerunsDataframe(signals, preds, model_grads)
+    
+    summary_df <-
+        rbind(reruns_df %>% mutate(method="rerun"),
+              preds_df %>% mutate(method="prediction")) %>%
+        pivot_wider(-method, names_from=method, values_from=value)
+    return(summary_df)
 }
 
 
 #############################
 # Oridinary regression.
+
+load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Generate data.
 set.seed(42)
@@ -63,12 +61,14 @@ model_grads <-
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
 preds <- PredictForSignals(signals, model_grads)
-reruns_df <- GetSignalsAndRerunsDataframe(signals, reruns, model_grads)
+summary_df <- SummarizeReruns(reruns, preds)
+
+ggplot(summary_df) +
+    geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
+    geom_abline(aes(slope=1, intercept=0))
 
 load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
-
-weights <- runif(model_grads$model_fit$n_obs)
 PlotSignal(model_grads, signals, "x1", "sign",
           reruns=reruns, apip_max=0.03)
 

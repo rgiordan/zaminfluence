@@ -31,12 +31,9 @@ RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) 
     num_obs <- model_grads$model_fit$n_obs
     RerunSignal <- function(signal) {
         verbosePrint("Rerunning ", signal$description, "\n")
-        w_bool <- GetWeightVector(
+        weights <- GetWeightVector(
             drop_inds=signal$apip$inds,
-            num_obs=num_obs,
-            invert=TRUE)
-        weights <- model_grads$model_fit$weights
-        w[w_bool] <- 0.0
+            orig_weights=model_grads$model_fit$weights)
         return(RerunFun(weights))
     }
     reruns <- map_depth(signals, 2, RerunSignal)

@@ -602,7 +602,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
       betahat=ret_list$betahat,
       se=ret_list$se,
       parameter_names=reg_vars$parameter_names,
-      weights=new_w,
+      weights=weights,
       se_group=se_group))
   }
 
@@ -645,7 +645,7 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
           betahat=ret_list$betahat,
           se=ret_list$se,
           parameter_names=iv_vars$parameter_names,
-          weights=new_w,
+          weights=weights,
           se_group=se_group))
       }
 

@@ -156,10 +156,21 @@ GetAPIPForQOI <- function(qoi, signal) {
 #'
 #' @return A vector of weights in the order of the original data.
 #' @export
-GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
+GetWeightVector <- function(drop_inds, num_obs=NULL,
+                            orig_weights=NULL, bool=FALSE, invert=FALSE) {
   if (is.null(num_obs)) {
-    stop("`num_obs` must be specified")
+    if (is.null(orig_weights)) {
+      stop("Either `num_obs` or `orig_weights` must be specified")
+    }
+    num_obs <- length(orig_weights)
+  } else {
+    if (is.null(orig_weights)) {
+      orig_weights <- rep(1, num_obs)
+    } else {
+      stopifnot(num_obs == length(orig_weights))
+    }
   }
+
   if (length(drop_inds) > 0) {
     if (max(drop_inds) > num_obs) {
       stop(sprintf(paste0(
@@ -170,8 +181,9 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
       stop("All drop_inds must be positive.")
     }
   }
+
   if (bool) {
-    w <- rep(TRUE, num_obs)
+    w <- orig_weights != 0
     w[drop_inds] <- FALSE
     if (invert) {
       return(!w)
@@ -179,13 +191,14 @@ GetWeightVector <- function(drop_inds, num_obs, bool=FALSE, invert=FALSE) {
       return(w)
     }
   } else { # Integers, not boolean weights
-    w <- rep(1, num_obs)
-    w[drop_inds] <- 0
     if (invert) {
-      return(1 - w)
+      w <- rep(0, num_obs)
+      w[drop_inds] <- orig_weights[drop_inds]
     } else {
-      return(w)
+      w <- orig_weights
+      w[drop_inds] <- 0
     }
+    return(w)
   }
 }
 
