@@ -5,9 +5,20 @@ Finite-Sample Robustness Metrics," for the case of ordinary least squares and
 instrumental variable regressions. The repo name comes from "Z-estimator
 approximate maximal influence".
 
-**Warning:**  The latest PR made big changes to the API and code organization,
-and is not backwards compatible.  To use the old version, install as below
-using `ref="v0.2"` instead of `ref=master`.
+**Breaking update warning:**
+The move from tag v0.2 to v0.3 made big changes to the API and
+code organization, and is not backwards compatible.  The change fixed
+an [major bug](https://github.com/rgiordan/zaminfluence/issues/20)
+and generally made the code generally less research-y.  See
+`examples/simple_examples.R` for a guide to the new API.
+
+To use the old version instead of the new,
+install as below using the argument `ref="v0.2"` instead of `ref=master`.
+Note that paired
+removal, a feature in the previous version, is not yet supported in the new
+version.  For a complete descrition of the new API, see
+`zaminfluence/R/README.md`.   Please report any problems or questions by
+opening an issue on Github or emailing me.
 
 # Installation
 
