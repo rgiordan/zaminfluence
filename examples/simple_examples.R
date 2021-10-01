@@ -4,18 +4,13 @@
 # https://github.com/rgiordan/zaminfluence
 # See the README.md file for installation instructions.
 
-library(ggplot2)
-library(dplyr)
-library(reshape2)
+library(tidyverse)
 library(gridExtra)
-library(sandwich)
 library(zaminfluence)
-library(purrr)
 library(AER)
 
-
-library(devtools)
-load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+# library(devtools)
+# load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
@@ -38,8 +33,6 @@ SummarizeReruns <- function(reruns, preds) {
 
 #############################
 # Oridinary regression.
-
-load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Generate data.
 set.seed(42)
