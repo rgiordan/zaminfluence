@@ -30,7 +30,7 @@ RegressWithWeights <- function(w, se_group=NULL) {
   df$w <- w
   reg_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
   reg_vcov <- GetFitCovariance(reg_fit, se_group=se_group)
-  return(list(paramhat=reg_fit$coefficients, se_mat=reg_vcov))
+  return(list(param=reg_fit$coefficients, se_mat=reg_vcov))
 }
 
 
@@ -70,11 +70,11 @@ zam_reg_fit0 <- ComputeRegressionResults(reg_fit, weights=w0)
 zam_reg_fit00 <- ComputeRegressionResults(reg_fit0, weights=w0)
 
 # zaminfluence matches itself
-AssertNearlyEqual(zam_reg_fit0$paramhat, zam_reg_fit00$paramhat)
+AssertNearlyEqual(zam_reg_fit0$param, zam_reg_fit00$param)
 AssertNearlyEqual(zam_reg_fit0$se_mat, zam_reg_fit00$se_mat)
 
 reg_vcov <- GetFitCovariance(reg_fit, se_group=se_group)
-AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$paramhat)
+AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$param)
 AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)
 
 max(abs(reg_vcov0 - reg_vcov)) # Check something actually changed
@@ -106,9 +106,9 @@ zam_reg_fit0 <- ComputeRegressionResults(reg_fit, weights=w0)
 zam_reg_fit1 <- ComputeRegressionResults(reg_fit, weights=w1)
 zam_reg_fit2 <- ComputeRegressionResults(reg_fit, weights=w2)
 
-(coefficients(reg0) - zam_reg_fit0$paramhat) %>% max() %>% abs()
-(coefficients(reg1) - zam_reg_fit1$paramhat) %>% max() %>% abs()
-(coefficients(reg2) - zam_reg_fit2$paramhat) %>% max() %>% abs()
+(coefficients(reg0) - zam_reg_fit0$param) %>% max() %>% abs()
+(coefficients(reg1) - zam_reg_fit1$param) %>% max() %>% abs()
+(coefficients(reg2) - zam_reg_fit2$param) %>% max() %>% abs()
 
 # All match
 GetFitCovariance(reg0)[1, 1] - zam_reg_fit0$se_mat[1, 1]
@@ -268,7 +268,7 @@ test_that("regression moment conditions works", {
   new_offset <- runif(ncol(lm_result$x))
 
   new_reg <- RegressWithOffset(lm_result, new_offset)
-  actual_change <- new_reg$paramhat - lm_result$coefficients
+  actual_change <- new_reg$param - lm_result$coefficients
   pred_change <- as.numeric(reg_moment_sens$param_grad %*% new_offset)
 
   # The dependence is actually linear, so the prediction is exact.

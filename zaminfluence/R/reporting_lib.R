@@ -20,7 +20,7 @@ GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
     stopifnot(all(names(param_infls) %in% model_fit$parameter_names))
 
     GetParameterInferenceDataframe <- function(model_fit, target_index, sig_num_ses) {
-        GetInferenceQOIs(param=model_fit$paramhat[target_index],
+        GetInferenceQOIs(param=model_fit$param[target_index],
                          se=model_fit$se[target_index],
                          sig_num_ses=sig_num_ses) %>%
             purrr::imap_dfr(~ data.frame(metric=.y, value=.x))

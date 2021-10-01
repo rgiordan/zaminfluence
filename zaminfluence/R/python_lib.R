@@ -88,11 +88,11 @@ ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
   py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
   reg <- broom::tidy(lm_result)
   reticulate::py_run_string("
-paramhat = regsens_rgiordandev.reg(y, x, w=w0)
-se, paramhat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
-    paramhat, y, x, w0, se_group=se_group)
+param = regsens_rgiordandev.reg(y, x, w=w0)
+se, param_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
+    param, y, x, w0, se_group=se_group)
 ")
-  if (max(abs(py_main$paramhat - reg$estimate)) > 1e-8) {
+  if (max(abs(py_main$param - reg$estimate)) > 1e-8) {
       warning("Regression coefficients do not match.")
   }
 
@@ -102,11 +102,11 @@ se, paramhat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
               parameter_names=colnames(lm_result$x),
               grad_fun="get_regression_w_grads",
 
-              paramhat=py_main$paramhat,
+              param=py_main$param,
               se=py_main$se,
               weights=py_main$w0,
 
-              param_grad=py_main$paramhat_grad,
+              param_grad=py_main$param_grad,
               se_grad=py_main$se_grad)
           )
 }
@@ -137,11 +137,11 @@ ComputeRegressionMomentSensitivity <- function(lm_result, se_group=NULL) {
 
   reg <- broom::tidy(lm_result)
   reticulate::py_run_string("
-paramhat = regsens_rgiordandev.reg(y, x, w=w0)
-se, paramhat_grad, se_grad = regsens_rgiordandev.get_regression_offset_grads(
-    paramhat, y, x, offset0, se_group=se_group)
+param = regsens_rgiordandev.reg(y, x, w=w0)
+se, param_grad, se_grad = regsens_rgiordandev.get_regression_offset_grads(
+    param, y, x, offset0, se_group=se_group)
 ")
-  if (max(abs(py_main$paramhat - reg$estimate)) > 1e-8) {
+  if (max(abs(py_main$param - reg$estimate)) > 1e-8) {
       warning("Regression coefficients do not match.")
   }
 
@@ -151,12 +151,12 @@ se, paramhat_grad, se_grad = regsens_rgiordandev.get_regression_offset_grads(
               parameter_names=colnames(lm_result$x),
               grad_fun="get_regression_offset_grads",
 
-              paramhat=py_main$paramhat,
+              param=py_main$param,
               se=py_main$se,
               weights=py_main$w0,
               offset=py_main$offset0,
 
-              param_grad=py_main$paramhat_grad,
+              param_grad=py_main$param_grad,
               se_grad=py_main$se_grad)
           )
 }
@@ -187,13 +187,13 @@ RegressWithOffset <- function(lm_result, offset, se_group=NULL) {
 
   reg <- broom::tidy(lm_result)
   reticulate::py_run_string("
-paramhat = regsens_rgiordandev.reg(y, x, offset=offset0)
+param = regsens_rgiordandev.reg(y, x, offset=offset0)
 # Offsets do not affect the standard errors.
 se_cov = regsens_rgiordandev.get_standard_error_matrix(
-    paramhat, y, x, w=np.ones(x.shape[0]), se_group=se_group)
+    param, y, x, w=np.ones(x.shape[0]), se_group=se_group)
 ")
 
-  return(list(paramhat=py_main$paramhat,
+  return(list(param=py_main$param,
               se_cov=py_main$se_cov,
               offset=py_main$offset0)
           )
@@ -244,11 +244,11 @@ ComputeIVRegressionInfluencePython <- function(iv_res, se_group=NULL) {
     py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
     reg <- broom::tidy(iv_res)
     reticulate::py_run_string("
-paramhat = iv_lib.iv_reg(y, x, z, w=w0)
-se, paramhat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
-    paramhat, y, x, z, w0, se_group=se_group)
+param = iv_lib.iv_reg(y, x, z, w=w0)
+se, param_grad, se_grad = iv_lib.get_iv_regression_w_grads(
+    param, y, x, z, w0, se_group=se_group)
 ")
-    if (max(abs(py_main$paramhat - reg$estimate)) > 1e-8) {
+    if (max(abs(py_main$param - reg$estimate)) > 1e-8) {
         warning("Regression coefficients do not match.")
     }
 
@@ -258,11 +258,11 @@ se, paramhat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
                 parameter_names=colnames(iv_res$x$regressors),
                 grad_fun="get_iv_regression_w_grads",
 
-                paramhat=py_main$paramhat,
+                param=py_main$param,
                 se=py_main$se,
                 weights=py_main$w0,
 
-                param_grad=py_main$paramhat_grad,
+                param_grad=py_main$param_grad,
                 se_grad=py_main$se_grad)
     )
 }
@@ -272,8 +272,8 @@ se, paramhat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
 ComputeIVRegressionErrorCovariancePython <- function(iv_res, se_group=NULL) {
   py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
   reticulate::py_run_string("
-paramhat = iv_lib.iv_reg(y, x, z, w=w0)
-se2 = iv_lib.get_iv_standard_error_matrix(paramhat, y, x, z, w0, se_group=se_group)
+param = iv_lib.iv_reg(y, x, z, w=w0)
+se2 = iv_lib.get_iv_standard_error_matrix(param, y, x, z, w0, se_group=se_group)
 ")
   return(py_main$se2)
 }
@@ -285,11 +285,11 @@ ComputeRegressionInfluencePython <- function(lm_result, se_group=NULL) {
     py_main <- SetPythonRegressionVariables(lm_result, se_group=se_group)
     reg <- broom::tidy(lm_result)
     reticulate::py_run_string("
-paramhat = regsens_rgiordandev.reg(y, x, w=w0)
-se, paramhat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
-    paramhat, y, x, w0, se_group=se_group)
+param = regsens_rgiordandev.reg(y, x, w=w0)
+se, param_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
+    param, y, x, w0, se_group=se_group)
 ")
-    if (max(abs(py_main$paramhat - reg$estimate)) > 1e-8) {
+    if (max(abs(py_main$param - reg$estimate)) > 1e-8) {
         warning("Regression coefficients do not match.")
     }
 
@@ -299,11 +299,11 @@ se, paramhat_grad, se_grad = regsens_rgiordandev.get_regression_w_grads(
                 parameter_names=colnames(lm_result$x),
                 grad_fun="get_regression_w_grads",
 
-                paramhat=py_main$paramhat,
+                param=py_main$param,
                 se=py_main$se,
                 weights=py_main$w0,
 
-                param_grad=py_main$paramhat_grad,
+                param_grad=py_main$param_grad,
                 se_grad=py_main$se_grad)
     )
 }
@@ -315,11 +315,11 @@ ComputeIVRegressionInfluencePython <- function(iv_res, se_group=NULL) {
     py_main <- SetPythonIVRegressionVariables(iv_res, se_group=se_group)
     reg <- broom::tidy(iv_res)
     reticulate::py_run_string("
-paramhat = iv_lib.iv_reg(y, x, z, w=w0)
-se, paramhat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
-    paramhat, y, x, z, w0, se_group=se_group)
+param = iv_lib.iv_reg(y, x, z, w=w0)
+se, param_grad, se_grad = iv_lib.get_iv_regression_w_grads(
+    param, y, x, z, w0, se_group=se_group)
 ")
-    if (max(abs(py_main$paramhat - reg$estimate)) > 1e-8) {
+    if (max(abs(py_main$param - reg$estimate)) > 1e-8) {
         warning("Regression coefficients do not match.")
     }
 
@@ -329,11 +329,11 @@ se, paramhat_grad, se_grad = iv_lib.get_iv_regression_w_grads(
                 parameter_names=colnames(iv_res$x$regressors),
                 grad_fun="get_iv_regression_w_grads",
 
-                paramhat=py_main$paramhat,
+                param=py_main$param,
                 se=py_main$se,
                 weights=py_main$w0,
 
-                param_grad=py_main$paramhat_grad,
+                param_grad=py_main$param_grad,
                 se_grad=py_main$se_grad)
     )
 }

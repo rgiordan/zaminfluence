@@ -21,7 +21,7 @@ TestConfiguration <- function(model_fit, se_group) {
   # Test that the coefficient estimates and standard errors in model_grads
   # match what we expect from R.
   AssertNearlyEqual(
-    model_grads$model_fit$paramhat, coefficients(model_fit), desc="paramhat equal")
+    model_grads$model_fit$param, coefficients(model_fit), desc="param equal")
   se_r <- GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt()
   AssertNearlyEqual(
     model_grads$model_fit$se, se_r, desc="std error equal")
@@ -56,7 +56,7 @@ TestConfiguration <- function(model_fit, se_group) {
   # Test that if we re-run we get the same answer.
   rerun <- model_grads$RerunFun(model_fit$weights)
   AssertNearlyEqual(
-    rerun$paramhat, coefficients(model_fit), desc="rerun paramhat equal")
+    rerun$param, coefficients(model_fit), desc="rerun param equal")
   AssertNearlyEqual(
     rerun$se, se_r, desc="rerun std error equal")
 }
@@ -101,11 +101,13 @@ test_that("se groups can be non-ordered", {
     iv_zam <- ComputeIVRegressionResults(iv_res, se_group=se_group)
 
     # The coefficients shouldn't depend on se_group, but test for good measure
-    AssertNearlyEqual(reg_zam$paramhat, reg_res$coefficients)
-    AssertNearlyEqual(iv_zam$paramhat, iv_res$coefficients)
+    AssertNearlyEqual(reg_zam$betahat, reg_res$coefficients)
+    AssertNearlyEqual(iv_zam$betahat, iv_res$coefficients)
 
-    AssertNearlyEqual(reg_zam$se_mat, GetFitCovariance(reg_res, se_group=se_group))
-    AssertNearlyEqual(iv_zam$se_mat, GetFitCovariance(iv_res, se_group=se_group))
+    AssertNearlyEqual(
+      reg_zam$se_mat, GetFitCovariance(reg_res, se_group=se_group))
+    AssertNearlyEqual(
+      iv_zam$se_mat, GetFitCovariance(iv_res, se_group=se_group))
   }
 
   TestSEGroup(NULL)
@@ -134,13 +136,13 @@ test_that("rerun works", {
   zam_iv_fit <- ComputeIVRegressionResults(
     iv_fit, weights=df$w, se_group=df$se_group)
   iv_vcov <- GetFitCovariance(iv_fit, se_group=df$se_group)
-  AssertNearlyEqual(iv_fit$coefficients, zam_iv_fit$paramhat)
+  AssertNearlyEqual(iv_fit$coefficients, zam_iv_fit$betahat)
   AssertNearlyEqual(iv_vcov, zam_iv_fit$se_mat)
 
   zam_reg_fit <- ComputeRegressionResults(
     reg_fit, weights=df$w, se_group=df$se_group)
   reg_vcov <- GetFitCovariance(reg_fit, se_group=df$se_group)
-  AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$paramhat)
+  AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$betahat)
   AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)
 
   # Test that rerun works with left-out observations.  Generate a weight
@@ -179,7 +181,7 @@ test_that("rerun works", {
       }
       new_vcov <- GetFitCovariance(new_fit, se_group=se_group)
 
-      AssertNearlyEqual(new_fit$coefficients, zam_fit$paramhat)
+      AssertNearlyEqual(new_fit$coefficients, zam_fit$betahat)
       AssertNearlyEqual(new_vcov, zam_fit$se_mat)
     }
   }

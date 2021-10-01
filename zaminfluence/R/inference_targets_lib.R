@@ -56,25 +56,25 @@ GetParameterInferenceQOIs <- function(model_fit, target_parameter,
        ), ")\n")
   }
 
-  paramhat <- model_fit$paramhat[target_index]
+  param <- model_fit$param[target_index]
   se <- model_fit$se[target_index]
 
-  values <- GetInferenceQOIs(paramhat=paramhat, se=se, sig_num_ses=sig_num_ses)
+  values <- GetInferenceQOIs(param=param, se=se, sig_num_ses=sig_num_ses)
   values$target_index <- target_index
   return(values)
 }
 
 
-GetInferenceQOIs <- function(paramhat, se, sig_num_ses) {
+GetInferenceQOIs <- function(param, se, sig_num_ses) {
   # Remove names so we can use unlist() and get expected names.
-  paramhat <- unname(paramhat)
+  param <- unname(param)
   se <- unname(se)
   sig_num_ses <- unname(sig_num_ses)
   return(list(
-    param=paramhat,
+    param=param,
     se=se,
-    param_mzse=paramhat - sig_num_ses * se,
-    param_pzse=paramhat + sig_num_ses * se
+    param_mzse=param - sig_num_ses * se,
+    param_pzse=param + sig_num_ses * se
   ))
 }
 
@@ -100,7 +100,7 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     param_grad <- weights * model_grads$param_grad[target_index, ]
     n_obs <- model_grads$model_fit$n_obs
     qoi_gradients <- GetInferenceQOIs(
-      paramhat=param_grad,
+      param=param_grad,
       se=se_grad,
       sig_num_ses=sig_num_ses)
 
@@ -226,7 +226,7 @@ GetInferenceSignals <- function(model_grads) {
 GetInferenceSignalsForParameter <- function(param_infl) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
     base_values <- GetBaseValues(param_infl)
-    paramhat <- base_values["param"]
+    param <- base_values["param"]
     param_mzse <- base_values["param_mzse"]
     param_pzse <- base_values["param_pzse"]
 
@@ -238,7 +238,7 @@ GetInferenceSignalsForParameter <- function(param_infl) {
     #signals$target_parameter <- param_infl$target_parameter
     signals$sign <- QOISignal(
       qoi=param_infl[["param"]],
-      signal=-1 * paramhat,
+      signal=-1 * param,
       description=sign_label)
 
     is_significant <- sign(param_mzse) == sign(param_pzse)
@@ -278,7 +278,7 @@ GetInferenceSignalsForParameter <- function(param_infl) {
               description=sig_label)
         }
 
-        if (paramhat >= 0) {
+        if (param >= 0) {
             signals$both <- QOISignal(
                 qoi=param_infl[["param_mzse"]],
                 signal=-1 * param_mzse,

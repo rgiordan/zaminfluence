@@ -1,14 +1,14 @@
 
 new_ModelFit <- function(
-  fit_object, n_obs, parameter_names, paramhat, se, weights, se_group) {
+  fit_object, n_obs, parameter_names, param, se, weights, se_group) {
   return(structure(
     list(fit_object=fit_object,
          n_obs=n_obs,
          parameter_names=as.character(parameter_names),
-         paramhat=paramhat,
+         param=param,
          se=se,
          weights=weights,
-         parameter_dim=length(paramhat),
+         parameter_dim=length(param),
          se_group=se_group),
     class="ModelFit"
     ))
@@ -28,7 +28,7 @@ validate_ModelFit <- function(model_fit) {
 
   parameter_dim <- model_fit$parameter_dim
   stopifnot(length(model_fit$parameter_names) == parameter_dim)
-  stopifnot(length(model_fit$paramhat) == parameter_dim)
+  stopifnot(length(model_fit$param) == parameter_dim)
   stopifnot(length(model_fit$se) == parameter_dim)
   return(invisible(model_fit))
 }
@@ -36,19 +36,19 @@ validate_ModelFit <- function(model_fit) {
 
 
 #'@export
-ModelFit <- function(fit_object, n_obs, paramhat, se,
+ModelFit <- function(fit_object, n_obs, param, se,
                      parameter_names=NULL, weights=NULL, se_group=NULL) {
     if (is.null(weights)) {
         weights <- rep(1.0, n_obs)
     }
     if (is.null(parameter_names)) {
-        parameter_names <- sprintf("theta%d", 1:length(paramhat))
+        parameter_names <- sprintf("theta%d", 1:length(param))
     }
     return(validate_ModelFit(new_ModelFit(
       fit_object=fit_object,
       n_obs=n_obs,
       parameter_names=parameter_names,
-      paramhat=paramhat,
+      param=param,
       se=se,
       weights=weights,
       se_group=se_group
@@ -111,13 +111,13 @@ PredictModelFit <- function(model_grads, weights) {
     stopifnot(length(weights) == model_fit$n_obs)
 
     weight_diff <- weights - model_fit$weights
-    paramhat_pred <- model_fit$paramhat + model_grads$param_grad %*% weight_diff
+    param_pred <- model_fit$param + model_grads$param_grad %*% weight_diff
     se_pred <- model_fit$se + model_grads$se_grad %*% weight_diff
     pred_fit <-
         ModelFit(
             fit_object="prediction",
             n_obs=model_grads$model_fit$n_obs,
-            paramhat=paramhat_pred,
+            param=param_pred,
             se=se_pred,
             parameter_names=model_fit$parameter_names,
             weights=weights,

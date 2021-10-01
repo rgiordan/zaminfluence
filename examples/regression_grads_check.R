@@ -123,7 +123,7 @@ if (do_iv) {
     reg_infl_python <- ComputeRegressionInfluencePython(reg_fit)
 }
 
-AssertNearlyZero(reg_infl_python$paramhat - reg_infl$paramhat)
+AssertNearlyZero(reg_infl_python$param - reg_infl$param)
 AssertNearlyZero(reg_infl_python$param_grad - reg_infl$param_grad)
 AssertNearlyZero(reg_infl_python$se_grad - reg_infl$se_grad)
 
