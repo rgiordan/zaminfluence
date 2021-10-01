@@ -1,14 +1,14 @@
 
 new_ModelFit <- function(
-  fit_object, n_obs, parameter_names, betahat, se, weights, se_group) {
+  fit_object, n_obs, parameter_names, paramhat, se, weights, se_group) {
   return(structure(
     list(fit_object=fit_object,
          n_obs=n_obs,
          parameter_names=as.character(parameter_names),
-         betahat=betahat,
+         paramhat=paramhat,
          se=se,
          weights=weights,
-         parameter_dim=length(betahat),
+         parameter_dim=length(paramhat),
          se_group=se_group),
     class="ModelFit"
     ))
@@ -28,7 +28,7 @@ validate_ModelFit <- function(model_fit) {
 
   parameter_dim <- model_fit$parameter_dim
   stopifnot(length(model_fit$parameter_names) == parameter_dim)
-  stopifnot(length(model_fit$betahat) == parameter_dim)
+  stopifnot(length(model_fit$paramhat) == parameter_dim)
   stopifnot(length(model_fit$se) == parameter_dim)
   return(invisible(model_fit))
 }
@@ -36,19 +36,19 @@ validate_ModelFit <- function(model_fit) {
 
 
 #'@export
-ModelFit <- function(fit_object, n_obs, betahat, se,
+ModelFit <- function(fit_object, n_obs, paramhat, se,
                      parameter_names=NULL, weights=NULL, se_group=NULL) {
     if (is.null(weights)) {
         weights <- rep(1.0, n_obs)
     }
     if (is.null(parameter_names)) {
-        parameter_names <- sprintf("theta%d", 1:length(betahat))
+        parameter_names <- sprintf("theta%d", 1:length(paramhat))
     }
     return(validate_ModelFit(new_ModelFit(
       fit_object=fit_object,
       n_obs=n_obs,
       parameter_names=parameter_names,
-      betahat=betahat,
+      paramhat=paramhat,
       se=se,
       weights=weights,
       se_group=se_group
@@ -60,7 +60,7 @@ ModelFit <- function(fit_object, n_obs, betahat, se,
 
 new_ModelGrads <- function(
     model_fit,
-    beta_grad,
+    param_grad,
     se_grad,
     param_infls,
     RerunFun,
@@ -68,7 +68,7 @@ new_ModelGrads <- function(
   return(structure(
     list(model_fit=model_fit,
 
-         beta_grad=beta_grad,
+         param_grad=param_grad,
          se_grad=se_grad,
 
          param_infls=param_infls,
@@ -90,7 +90,7 @@ validate_ModelGrads <- function(model_grads) {
     stopifnot(nrow(grad_mat) == model_fit$parameter_dim)
   }
 
-  CheckGradDim(model_grads$beta_grad)
+  CheckGradDim(model_grads$param_grad)
   CheckGradDim(model_grads$se_grad)
 
   stopifnot(class(model_grads$param_infls) == "list")
@@ -111,13 +111,13 @@ PredictModelFit <- function(model_grads, weights) {
     stopifnot(length(weights) == model_fit$n_obs)
 
     weight_diff <- weights - model_fit$weights
-    betahat_pred <- model_fit$betahat + model_grads$beta_grad %*% weight_diff
+    paramhat_pred <- model_fit$paramhat + model_grads$param_grad %*% weight_diff
     se_pred <- model_fit$se + model_grads$se_grad %*% weight_diff
     pred_fit <-
         ModelFit(
             fit_object="prediction",
             n_obs=model_grads$model_fit$n_obs,
-            betahat=betahat_pred,
+            paramhat=paramhat_pred,
             se=se_pred,
             parameter_names=model_fit$parameter_names,
             weights=weights,
@@ -130,13 +130,13 @@ PredictModelFit <- function(model_grads, weights) {
 #'@export
 ModelGrads <- function(
     model_fit,
-    beta_grad,
+    param_grad,
     se_grad,
     RerunFun) {
 
   return(validate_ModelGrads(new_ModelGrads(
       model_fit=model_fit,
-      beta_grad=beta_grad,
+      param_grad=param_grad,
       se_grad=se_grad,
       RerunFun=RerunFun,
       param_infls=list())))

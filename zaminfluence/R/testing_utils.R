@@ -68,8 +68,8 @@ GenerateRandomEffects <- function(n_obs, num_groups=NULL) {
 
 
 #' @export
-GenerateRegressionData <- function(n_obs, beta_true, x=NULL, num_groups=NULL) {
-  x_dim <- length(beta_true)
+GenerateRegressionData <- function(n_obs, param_true, x=NULL, num_groups=NULL) {
+  x_dim <- length(param_true)
   if (is.null(x)) {
     x <- matrix(runif(n_obs * x_dim), n_obs, x_dim)
     x <- x - rep(colMeans(x), each=n_obs)
@@ -80,7 +80,7 @@ GenerateRegressionData <- function(n_obs, beta_true, x=NULL, num_groups=NULL) {
   }
   eps <- rnorm(n_obs)
   re_df <- GenerateRandomEffects(n_obs, num_groups)
-  y <- x %*% beta_true + eps + re_df$re
+  y <- x %*% param_true + eps + re_df$re
   df <- data.frame(x)
   names(df)  <- paste0("x", 1:x_dim)
   df$y <- y
@@ -94,10 +94,10 @@ GenerateRegressionData <- function(n_obs, beta_true, x=NULL, num_groups=NULL) {
 
 
 #' @export
-GenerateIVRegressionData <- function(n_obs, beta_true, num_groups=NULL) {
+GenerateIVRegressionData <- function(n_obs, param_true, num_groups=NULL) {
   # Simulate some IV data
 
-  x_dim <- length(beta_true)
+  x_dim <- length(param_true)
   x <- rnorm(n_obs * x_dim) %>% matrix(nrow=n_obs)
   x_rot <- diag(x_dim) + rep(0.2, x_dim ^ 2) %>% matrix(nrow=x_dim)
   x <- x %*% x_rot
@@ -126,7 +126,7 @@ GenerateIVRegressionData <- function(n_obs, beta_true, num_groups=NULL) {
   sigma_true <- 2.0
   eps_base <- rnorm(n_obs) + rowSums(x) + re_df$re
   eps_true <- ProjectPerp(z, eps_base)
-  y <- x %*% beta_true + eps_true
+  y <- x %*% param_true + eps_true
 
 
   x_df <- data.frame(x)

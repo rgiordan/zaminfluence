@@ -77,8 +77,8 @@ tibble(list=foo) %>%
 # Pairing
 
 x_dim <- 3
-beta_true <- 0.1 * runif(x_dim)
-df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
+param_true <- 0.1 * runif(x_dim)
+df <- GenerateRegressionData(n_obs, param_true, num_groups=NULL)
 df$arm <- as.integer(runif(nrow(df)) < 0.5)  # Control or treatment
 df$group <- sample.int(3, n_obs, replace=TRUE)  # Some subgrouping
 df$row <- 1:nrow(df)
@@ -109,7 +109,7 @@ if (FALSE) {
 
 # Rerun
 rerun_df <- RerunForTargetChanges(influence_dfs, target_change, reg_fit)
-select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
+select(rerun_df, change, param, param_pzse, param_mzse, prop_removed)
 
 
 
@@ -117,8 +117,8 @@ select(rerun_df, change, beta, beta_pzse, beta_mzse, prop_removed)
 # Aggregated pairing
 
 x_dim <- 3
-beta_true <- 0.1 * runif(x_dim)
-df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
+param_true <- 0.1 * runif(x_dim)
+df <- GenerateRegressionData(n_obs, param_true, num_groups=NULL)
 df$arm <- as.integer(runif(nrow(df)) < 0.5)  # Control or treatment
 df$group <- sample.int(floor(n_obs / 10), n_obs, replace=TRUE)  # Some subgrouping
 df$row <- 1:nrow(df)
@@ -136,9 +136,9 @@ grad_df <-
     bind_cols(df[c("arm", "group")]) %>%
     group_by(arm, group) %>%
     summarize(se_grad=sum(se_grad),
-              beta_grad=sum(beta_grad),
-              beta_pzse_grad=sum(beta_pzse_grad),
-              beta_mzse_grad=sum(beta_mzse_grad),
+              param_grad=sum(param_grad),
+              param_pzse_grad=sum(param_pzse_grad),
+              param_mzse_grad=sum(param_mzse_grad),
               obs_per_row=sum(obs_per_row),
               .groups="drop") %>%
     mutate(grouped_row=1:n()) %>%
@@ -181,6 +181,6 @@ this_change <- filter(target_change, change == "sign")
 infl_df <- influence_dfs[["sign"]][[this_change[["direction"]]]]
 w_bool <- GetWeightForAlpha(infl_df, "prop_removed",
                             this_change[["prop_removed"]], rows_to_keep=FALSE)
-grad_df[w_bool, ] %>% select(arm, group, beta_grad, grouped_row)
+grad_df[w_bool, ] %>% select(arm, group, param_grad, grouped_row)
 table(grad_df[w_bool, "arm"])
 

@@ -44,8 +44,8 @@ load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 # Generate data.
 set.seed(42)
 x_dim <- 3
-beta_true <- 0.1 * runif(x_dim)
-df <- GenerateRegressionData(n_obs, beta_true, num_groups=NULL)
+param_true <- 0.1 * runif(x_dim)
+df <- GenerateRegressionData(n_obs, param_true, num_groups=NULL)
 
 # Fit a regression model.
 x_names <- sprintf("x%d", 1:x_dim)
@@ -97,8 +97,8 @@ grid.arrange(
 # Generate data.
 set.seed(42)
 x_dim <- 3
-beta_true <- 0.1 * runif(x_dim)
-df <- GenerateIVRegressionData(n_obs, beta_true, num_groups=NULL)
+param_true <- 0.1 * runif(x_dim)
+df <- GenerateIVRegressionData(n_obs, param_true, num_groups=NULL)
 
 # Fit an IV model.
 x_names <- sprintf("x%d", 1:x_dim)
@@ -132,9 +132,9 @@ PlotSignal(model_grads, signals, "x1", "sign",
 # Generate data.
 set.seed(42)
 x_dim <- 3
-beta_true <- 0.1 * runif(x_dim)
+param_true <- 0.1 * runif(x_dim)
 num_groups <- 50
-df <- GenerateRegressionData(n_obs, beta_true, num_groups=num_groups)
+df <- GenerateRegressionData(n_obs, param_true, num_groups=num_groups)
 
 # se_group is zero-indexed group indicator with no missing entries.
 table(df$se_group)

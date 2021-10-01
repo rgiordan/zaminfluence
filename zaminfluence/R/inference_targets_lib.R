@@ -4,17 +4,17 @@ library(purrr)
 # Define an ParameterInferenceInfluence S3 object.
 new_ParameterInferenceInfluence <- function(
     target_index, target_parameter, sig_num_ses,
-    se_qoi, beta_qoi, beta_mzse_qoi, beta_pzse_qoi) {
+    se_qoi, param_qoi, param_mzse_qoi, param_pzse_qoi) {
   return(structure(
     list(
         target_index=as.integer(target_index),
         target_parameter=as.character(target_parameter),
         se=se_qoi,
-        beta=beta_qoi,
-        beta_mzse=beta_mzse_qoi,
-        beta_pzse=beta_pzse_qoi,
+        param=param_qoi,
+        param_mzse=param_mzse_qoi,
+        param_pzse=param_pzse_qoi,
         sig_num_ses=sig_num_ses,
-        qoi_names=c("beta", "beta_mzse", "beta_pzse", "se")),
+        qoi_names=c("param", "param_mzse", "param_pzse", "se")),
     class="ParameterInferenceInfluence"))
 }
 
@@ -24,7 +24,7 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
   stopifnot(class(param_infl) == "ParameterInferenceInfluence")
   stopifnot(setequal(
     param_infl$qoi_names,
-    c("beta", "beta_mzse", "beta_pzse", "se")))
+    c("param", "param_mzse", "param_pzse", "se")))
 
   for (qoi_name in param_infl$qoi_names) {
     stopifnot(class(param_infl[[qoi_name]]) == "QOIInfluence")
@@ -56,25 +56,25 @@ GetParameterInferenceQOIs <- function(model_fit, target_parameter,
        ), ")\n")
   }
 
-  betahat <- model_fit$betahat[target_index]
+  paramhat <- model_fit$paramhat[target_index]
   se <- model_fit$se[target_index]
 
-  values <- GetInferenceQOIs(betahat=betahat, se=se, sig_num_ses=sig_num_ses)
+  values <- GetInferenceQOIs(paramhat=paramhat, se=se, sig_num_ses=sig_num_ses)
   values$target_index <- target_index
   return(values)
 }
 
 
-GetInferenceQOIs <- function(betahat, se, sig_num_ses) {
+GetInferenceQOIs <- function(paramhat, se, sig_num_ses) {
   # Remove names so we can use unlist() and get expected names.
-  betahat <- unname(betahat)
+  paramhat <- unname(paramhat)
   se <- unname(se)
   sig_num_ses <- unname(sig_num_ses)
   return(list(
-    beta=betahat,
+    param=paramhat,
     se=se,
-    beta_mzse=betahat - sig_num_ses * se,
-    beta_pzse=betahat + sig_num_ses * se
+    param_mzse=paramhat - sig_num_ses * se,
+    param_pzse=paramhat + sig_num_ses * se
   ))
 }
 
@@ -90,17 +90,17 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
       sig_num_ses=sig_num_ses)
     target_index <- qoi_base_values$target_index
 
-    # se_grad and beta_grad are the gradients for a parameter along the path
+    # se_grad and param_grad are the gradients for a parameter along the path
     # taking a weight
     # from its current value to zero.  That way the "gradient" measures the
     # effect of removing a datapoint (taking its value from the current weight
     # to zero.) So we multiply the raw weight
     # derivatives by the actual base weights.
     se_grad <- weights * model_grads$se_grad[target_index,]
-    beta_grad <- weights * model_grads$beta_grad[target_index, ]
+    param_grad <- weights * model_grads$param_grad[target_index, ]
     n_obs <- model_grads$model_fit$n_obs
     qoi_gradients <- GetInferenceQOIs(
-      betahat=beta_grad,
+      paramhat=param_grad,
       se=se_grad,
       sig_num_ses=sig_num_ses)
 
@@ -113,20 +113,20 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
               infl=qoi_gradients$se,
               base_value=qoi_base_values$se,
               num_obs=n_obs),
-          beta_qoi=QOIInfluence(
-              name="beta",
-              infl=qoi_gradients$beta,
-              base_value=qoi_base_values$beta,
+          param_qoi=QOIInfluence(
+              name="param",
+              infl=qoi_gradients$param,
+              base_value=qoi_base_values$param,
               num_obs=n_obs),
-          beta_mzse_qoi=QOIInfluence(
-              name="beta_mzse",
-              infl=qoi_gradients$beta_mzse,
-              base_value=qoi_base_values$beta_mzse,
+          param_mzse_qoi=QOIInfluence(
+              name="param_mzse",
+              infl=qoi_gradients$param_mzse,
+              base_value=qoi_base_values$param_mzse,
               num_obs=n_obs),
-          beta_pzse_qoi=QOIInfluence(
-              name="beta_pzse",
-              infl=qoi_gradients$beta_pzse,
-              base_value=qoi_base_values$beta_pzse,
+          param_pzse_qoi=QOIInfluence(
+              name="param_pzse",
+              infl=qoi_gradients$param_pzse,
+              base_value=qoi_base_values$param_pzse,
               num_obs=n_obs))
 
     validate_ParameterInferenceInfluence(param_infl)
@@ -226,9 +226,9 @@ GetInferenceSignals <- function(model_grads) {
 GetInferenceSignalsForParameter <- function(param_infl) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
     base_values <- GetBaseValues(param_infl)
-    betahat <- base_values["beta"]
-    beta_mzse <- base_values["beta_mzse"]
-    beta_pzse <- base_values["beta_pzse"]
+    paramhat <- base_values["param"]
+    param_mzse <- base_values["param_mzse"]
+    param_pzse <- base_values["param_pzse"]
 
     sign_label <- "sign"
     sig_label <- "significance"
@@ -237,56 +237,56 @@ GetInferenceSignalsForParameter <- function(param_infl) {
     signals <- list()
     #signals$target_parameter <- param_infl$target_parameter
     signals$sign <- QOISignal(
-      qoi=param_infl[["beta"]],
-      signal=-1 * betahat,
+      qoi=param_infl[["param"]],
+      signal=-1 * paramhat,
       description=sign_label)
 
-    is_significant <- sign(beta_mzse) == sign(beta_pzse)
+    is_significant <- sign(param_mzse) == sign(param_pzse)
     if (is_significant) {
-        if (beta_mzse >= 0) { # then beta_pzse > 0 too because significant
+        if (param_mzse >= 0) { # then param_pzse > 0 too because significant
             signals$sig <- QOISignal(
-              qoi=param_infl[["beta_mzse"]],
-              signal=-1 * beta_mzse,
+              qoi=param_infl[["param_mzse"]],
+              signal=-1 * param_mzse,
               description=sig_label)
             signals$both  <- QOISignal(
-              qoi=param_infl[["beta_pzse"]],
-              signal=-1 * beta_pzse,
+              qoi=param_infl[["param_pzse"]],
+              signal=-1 * param_pzse,
               description=both_label)
-        } else if (beta_pzse < 0) { # then beta_mzse < 0 too because significant
+        } else if (param_pzse < 0) { # then param_mzse < 0 too because significant
             signals$sig <- QOISignal(
-              qoi=param_infl[["beta_pzse"]],
-              signal=-1 * beta_pzse,
+              qoi=param_infl[["param_pzse"]],
+              signal=-1 * param_pzse,
               description=sig_label)
             signals$both <- QOISignal(
-                qoi=param_infl[["beta_mzse"]],
-                signal=-1 * beta_mzse,
+                qoi=param_infl[["param_mzse"]],
+                signal=-1 * param_mzse,
                 description=both_label)
         } else {
             stop("Impossible for a significant result")
         }
     } else { # Not significant.  Choose to change the interval endpoint which
              # is closer.
-        if (abs(beta_mzse) >= abs(beta_pzse)) {
+        if (abs(param_mzse) >= abs(param_pzse)) {
             signals$sig <- QOISignal(
-              qoi=param_infl[["beta_pzse"]],
-              signal=-1 * beta_pzse,
+              qoi=param_infl[["param_pzse"]],
+              signal=-1 * param_pzse,
               description=sig_label)
         } else  {
             signals$sig <- QOISignal(
-              qoi=param_infl[["beta_mzse"]],
-              signal=-1 * beta_mzse,
+              qoi=param_infl[["param_mzse"]],
+              signal=-1 * param_mzse,
               description=sig_label)
         }
 
-        if (betahat >= 0) {
+        if (paramhat >= 0) {
             signals$both <- QOISignal(
-                qoi=param_infl[["beta_mzse"]],
-                signal=-1 * beta_mzse,
+                qoi=param_infl[["param_mzse"]],
+                signal=-1 * param_mzse,
                 description=both_label)
         } else {
             signals$both <- QOISignal(
-                qoi=param_infl[["beta_mzse"]],
-                signal=-1 * beta_mzse,
+                qoi=param_infl[["param_mzse"]],
+                signal=-1 * param_mzse,
                 description=both_label)
         }
     }

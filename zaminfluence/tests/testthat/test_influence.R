@@ -15,15 +15,15 @@ context("zaminfluence")
 
 GenerateTestInstance <- function(do_iv, do_grouping) {
     x_dim <- 1
-    beta_true <- 0.1
+    param_true <- 0.1
     num_obs <- 500
 
     GenerateFun <- if (do_iv)
       GenerateIVRegressionData else GenerateRegressionData
     if (do_grouping) {
-        df <- GenerateFun(num_obs, beta_true, num_groups=5)
+        df <- GenerateFun(num_obs, param_true, num_groups=5)
     } else {
-        df <- GenerateFun(num_obs, beta_true)
+        df <- GenerateFun(num_obs, param_true)
     }
 
     df$weights <- runif(nrow(df)) + 1
@@ -109,7 +109,7 @@ TestPredictions <- function(
     #   cat("\n***************************\n")
     # }
 
-    # Check the maximum relative error amongst beta, beta_mzse, and beta_pzse
+    # Check the maximum relative error amongst param, param_mzse, and param_pzse
     max_rel_err <- max(rel_error)
     expect_true(max_rel_err < tol,
                 info=sprintf("%s %s prediction error: %f",
@@ -186,7 +186,7 @@ TestInfluence <- function(test_instance) {
   param_infl <- model_grads$param_infls[["x1"]]
 
   # Check the validity of the influence scores.
-  qoi_names <- c("beta", "beta_mzse", "beta_pzse")
+  qoi_names <- c("param", "param_mzse", "param_pzse")
   for (qoi_name in qoi_names) {
       validate_QOIInfluence(param_infl[[qoi_name]])
       for (sign in c("pos", "neg")) {
@@ -207,7 +207,7 @@ TestInfluence <- function(test_instance) {
   }
 
   # Test GetAMIS for a single QOI
-  TestGetAMIS(param_infl$beta_mzse)
+  TestGetAMIS(param_infl$param_mzse)
 
   # Just that summary functions run
   signals <- GetInferenceSignals(model_grads)

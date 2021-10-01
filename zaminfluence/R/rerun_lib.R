@@ -62,11 +62,11 @@ PredictForSignals <- function(signals, model_grads, verbose=FALSE) {
 #       signals[[target]]$rerun_df <-
 #           as.data.frame(signal) %>%
 #               mutate(
-#                   betahat_refit=rerun_base_values["beta"],
+#                   paramhat_refit=rerun_base_values["param"],
 #                   se_refit=rerun_base_values["se"],
-#                   beta_mzse_refit=rerun_base_values["beta_mzse"],
-#                   beta_pzse_refit=rerun_base_values["beta_pzse"],
-#                   betahat_orig=orig_base_values["beta"],
+#                   param_mzse_refit=rerun_base_values["param_mzse"],
+#                   param_pzse_refit=rerun_base_values["param_pzse"],
+#                   paramhat_orig=orig_base_values["param"],
 #                   se_orig=se_orig,
-#                   beta_mzse_orig=orig_base_values["beta_mzse"],
-#                   beta_pzse_orig=orig_base_values["beta_pzse"])
+#                   param_mzse_orig=orig_base_values["param_mzse"],
+#                   param_pzse_orig=orig_base_values["param_pzse"])

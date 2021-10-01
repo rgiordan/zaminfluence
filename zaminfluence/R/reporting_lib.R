@@ -20,7 +20,7 @@ GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
     stopifnot(all(names(param_infls) %in% model_fit$parameter_names))
 
     GetParameterInferenceDataframe <- function(model_fit, target_index, sig_num_ses) {
-        GetInferenceQOIs(beta=model_fit$betahat[target_index],
+        GetInferenceQOIs(param=model_fit$paramhat[target_index],
                          se=model_fit$se[target_index],
                          sig_num_ses=sig_num_ses) %>%
             purrr::imap_dfr(~ data.frame(metric=.y, value=.x))
@@ -92,8 +92,8 @@ GetSignalsAndRerunsDataframe <- function(signals, reruns, model_grads) {
 
 #' Produce an influence dataframe suitable for visualization.
 #' @param param_infl `r docs$param_infl`
-#' @param sorting_qoi_name The name of a QOI ("beta", "beta_mzse", or
-#' "beta_pzse") whose influence is used to sort the dataframe.
+#' @param sorting_qoi_name The name of a QOI ("param", "param_mzse", or
+#' "param_pzse") whose influence is used to sort the dataframe.
 #' @param max_num_obs (Optional)  Include at most the `max_num_obs`
 #' most influential observations for the sorting QOI.
 #' Default is to include all observations.
@@ -117,7 +117,7 @@ GetSortedInfluenceDf <- function(param_infl, sorting_qoi_name,
             mutate(prop_dropped=num_dropped /
                        qoi_for_sorting[[infl_sign]]$num_obs,
                    sign=infl_sign)
-        for (qoi_name in c("beta", "beta_mzse", "beta_pzse")) {
+        for (qoi_name in c("param", "param_mzse", "param_pzse")) {
             base_value <- param_infl[[qoi_name]]$base_value
             infl_sorted <- param_infl[[qoi_name]]$infl[ordered_inds]
             qoi_df[[qoi_name]] <- base_value + cumsum(c(0, infl_sorted))
@@ -164,17 +164,17 @@ PlotInfluenceDf <- function(influence_df, signal, rerun_vals=NULL,
             geom_line(aes(y=0.0), col="gray50")
     }
 
-    base_beta <- filter(influence_df, alpha == 0) %>% pull("beta") %>% unique()
-    stopifnot(length(base_beta) == 1)
+    base_param <- filter(influence_df, alpha == 0) %>% pull("param") %>% unique()
+    stopifnot(length(base_param) == 1)
     plot <-
         plot +
-        geom_line(aes(y=!!base_beta), col="blue", lwd=2) +
+        geom_line(aes(y=!!base_param), col="blue", lwd=2) +
         geom_ribbon(aes(
-            ymin=beta_mzse,
-            ymax=beta_pzse,
+            ymin=param_mzse,
+            ymax=param_pzse,
             group=sign),
             fill="blue", color=NA, alpha=0.1) +
-        geom_line(aes(y=beta, group=sign), lwd=2)
+        geom_line(aes(y=param, group=sign), lwd=2)
 
     xlab_name <- if (plot_num_dropped)
         "Number of points removed" else "Proportion of points removed"
@@ -195,12 +195,12 @@ PlotInfluenceDf <- function(influence_df, signal, rerun_vals=NULL,
           plot +
           geom_errorbar(aes(
               x=!!alpha,
-              ymin=rerun_vals$beta_mzse,
-              ymax=rerun_vals$beta_pzse),
+              ymin=rerun_vals$param_mzse,
+              ymax=rerun_vals$param_pzse),
               data=NULL,
               width=errorbar_width,
               lwd=1.5) +
-          geom_point(aes(x=!!alpha, y=rerun_vals$beta),
+          geom_point(aes(x=!!alpha, y=rerun_vals$param),
                      data=NULL,
                      shape=8)
     }

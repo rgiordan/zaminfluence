@@ -72,13 +72,13 @@ AssertNearlyZero <- function(x, tol=1e-9) {
 do_iv <- FALSE
 
 x_dim <- 3
-beta_true <- runif(x_dim)
+param_true <- runif(x_dim)
 num_groups <- NULL
 
 if (do_iv) {
-    df <- GenerateIVRegressionData(20, beta_true, num_groups=num_groups)
+    df <- GenerateIVRegressionData(20, param_true, num_groups=num_groups)
 } else {
-    df <- GenerateRegressionData(20, beta_true, num_groups=num_groups)
+    df <- GenerateRegressionData(20, param_true, num_groups=num_groups)
 }
 df$weights <- runif(nrow(df)) + 1
 df$se_group <- 1:nrow(df) - 1
@@ -123,8 +123,8 @@ if (do_iv) {
     reg_infl_python <- ComputeRegressionInfluencePython(reg_fit)
 }
 
-AssertNearlyZero(reg_infl_python$betahat - reg_infl$betahat)
-AssertNearlyZero(reg_infl_python$beta_grad - reg_infl$beta_grad)
+AssertNearlyZero(reg_infl_python$paramhat - reg_infl$paramhat)
+AssertNearlyZero(reg_infl_python$param_grad - reg_infl$param_grad)
 AssertNearlyZero(reg_infl_python$se_grad - reg_infl$se_grad)
 
 

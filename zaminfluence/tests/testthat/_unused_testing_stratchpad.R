@@ -30,7 +30,7 @@ RegressWithWeights <- function(w, se_group=NULL) {
   df$w <- w
   reg_fit <- lm(y ~ x1 + 1, data=df, x=TRUE, y=TRUE, weights=df$w)
   reg_vcov <- GetFitCovariance(reg_fit, se_group=se_group)
-  return(list(betahat=reg_fit$coefficients, se_mat=reg_vcov))
+  return(list(paramhat=reg_fit$coefficients, se_mat=reg_vcov))
 }
 
 
@@ -70,11 +70,11 @@ zam_reg_fit0 <- ComputeRegressionResults(reg_fit, weights=w0)
 zam_reg_fit00 <- ComputeRegressionResults(reg_fit0, weights=w0)
 
 # zaminfluence matches itself
-AssertNearlyEqual(zam_reg_fit0$betahat, zam_reg_fit00$betahat)
+AssertNearlyEqual(zam_reg_fit0$paramhat, zam_reg_fit00$paramhat)
 AssertNearlyEqual(zam_reg_fit0$se_mat, zam_reg_fit00$se_mat)
 
 reg_vcov <- GetFitCovariance(reg_fit, se_group=se_group)
-AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$betahat)
+AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$paramhat)
 AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)
 
 max(abs(reg_vcov0 - reg_vcov)) # Check something actually changed
@@ -106,9 +106,9 @@ zam_reg_fit0 <- ComputeRegressionResults(reg_fit, weights=w0)
 zam_reg_fit1 <- ComputeRegressionResults(reg_fit, weights=w1)
 zam_reg_fit2 <- ComputeRegressionResults(reg_fit, weights=w2)
 
-(coefficients(reg0) - zam_reg_fit0$betahat) %>% max() %>% abs()
-(coefficients(reg1) - zam_reg_fit1$betahat) %>% max() %>% abs()
-(coefficients(reg2) - zam_reg_fit2$betahat) %>% max() %>% abs()
+(coefficients(reg0) - zam_reg_fit0$paramhat) %>% max() %>% abs()
+(coefficients(reg1) - zam_reg_fit1$paramhat) %>% max() %>% abs()
+(coefficients(reg2) - zam_reg_fit2$paramhat) %>% max() %>% abs()
 
 # All match
 GetFitCovariance(reg0)[1, 1] - zam_reg_fit0$se_mat[1, 1]
@@ -205,9 +205,9 @@ test_that("aggregated pairing works", {
       bind_cols(df[c("arm", "group")]) %>%
       group_by(arm, group) %>%
       summarize(se_grad=sum(se_grad),
-                beta_grad=sum(beta_grad),
-                beta_pzse_grad=sum(beta_pzse_grad),
-                beta_mzse_grad=sum(beta_mzse_grad),
+                param_grad=sum(param_grad),
+                param_pzse_grad=sum(param_pzse_grad),
+                param_mzse_grad=sum(param_mzse_grad),
                 obs_per_row=sum(obs_per_row),
                 .groups="drop") %>%
       mutate(grouped_row=1:n()) %>%
@@ -235,7 +235,7 @@ test_that("aggregated pairing works", {
           testthat::expect_true(all(infl_df$arm_1 == 1))
 
           # Check that the rows in the paired dataframe match the original.
-          influence_cols <- c("se_grad", "beta_grad", "beta_pzse_grad", "beta_mzse_grad")
+          influence_cols <- c("se_grad", "param_grad", "param_pzse_grad", "param_mzse_grad")
           AssertNearlyZero(
             grad_df[infl_df$grouped_row_0, influence_cols] -
               infl_df[, paste(influence_cols, "0", sep="_")]
@@ -268,8 +268,8 @@ test_that("regression moment conditions works", {
   new_offset <- runif(ncol(lm_result$x))
 
   new_reg <- RegressWithOffset(lm_result, new_offset)
-  actual_change <- new_reg$betahat - lm_result$coefficients
-  pred_change <- as.numeric(reg_moment_sens$beta_grad %*% new_offset)
+  actual_change <- new_reg$paramhat - lm_result$coefficients
+  pred_change <- as.numeric(reg_moment_sens$param_grad %*% new_offset)
 
   # The dependence is actually linear, so the prediction is exact.
   testthat::expect_equivalent(actual_change, pred_change)
@@ -299,5 +299,5 @@ n_obs <- length(model_fit$y)
 vcov_se_cov <- GetFitCovariance(model_fit, cluster=1:n_obs)
 robust_se <- sqrt(diag(vcov_se_cov))[target_index]
 
-# infl_scale <- GetInfluenceScale(grad_df$beta_grad)
+# infl_scale <- GetInfluenceScale(grad_df$param_grad)
 # testthat::expect_equivalent(sqrt(n_obs) * robust_se, infl_scale)
