@@ -38,7 +38,8 @@ are computed for and from `QOIInfluence` objects.
 
 - **QOI Signal** objects
 (variable `signal`, S3 class `QOISignal`, see `inference_targets_lib.R`).
-Information about a particular change in a quantity of interest, including a description of what the change means, the approximate
+Information about a particular change in a quantity of interest,
+including a description of what the change means, the approximate
 perturbation-inducing proportion
 (APIP), the corresponding approximate maximally influential set (AMIS).
 
@@ -127,7 +128,18 @@ A signal records a target change in a QOI.  A signal is a list and must have
 
 ### APIP
 The APIP for a particular change, which contains
-    - `n`: The number of points to remove
-    - `prop`: The proportion of points to remove
-    - `inds`: The indices (in the original data order) of the data dropped in
-    the corresponding Approximate Maximally Influential Set (AMIS).
+- `n`: The number of points to remove
+- `prop`: The proportion of points to remove
+- `inds`: The indices (in the original data order) of the data dropped in
+the corresponding Approximate Maximally Influential Set (AMIS).
+
+
+# Extending `zaminfluence`
+
+Currently, we have implemented OLS and IV regression.
+In order to use `zaminfluence` for your own models, you need only to
+provide your own instances of the `ModelFit` and `ModelGrads` classes,
+as instantiated by the corresponding S3 functions `ModelGrads` and `ModelFit`.
+We recommend using automatic differentiation in Python together with a
+wrapper in `reticulate` that translates your results into valid
+`ModelGrads` and `ModelFit` objects.  

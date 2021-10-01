@@ -9,8 +9,8 @@ GetSortedInfluenceDf(param_infl, sorting_qoi_name, max_num_obs = Inf)
 \arguments{
 \item{param_infl}{A parameter influence object (e.g. as produced by \link{AppendTargetRegressorInfluence}).}
 
-\item{sorting_qoi_name}{The name of a QOI ("beta", "beta_mzse", or
-"beta_pzse") whose influence is used to sort the dataframe.}
+\item{sorting_qoi_name}{The name of a QOI ("param", "param_mzse", or
+"param_pzse") whose influence is used to sort the dataframe.}
 
 \item{max_num_obs}{(Optional)  Include at most the \code{max_num_obs}
 most influential observations for the sorting QOI.

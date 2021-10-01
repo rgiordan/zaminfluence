@@ -4,7 +4,13 @@
 \alias{GetWeightVector}
 \title{Compute a weight vector for a set of dropped indices.}
 \usage{
-GetWeightVector(drop_inds, num_obs, bool = FALSE, invert = FALSE)
+GetWeightVector(
+  drop_inds,
+  num_obs = NULL,
+  orig_weights = NULL,
+  bool = FALSE,
+  invert = FALSE
+)
 }
 \arguments{
 \item{drop_inds}{\verb{The indices to drop (in the order of the original data)}}
