@@ -47,6 +47,16 @@ perturbation-inducing proportion
 based on the influence function, of the data points to drop to effect a
 particular change in a particular quantity of interest.
 
+- **Parameter and Target Change lists**.  Though not an S3 class, the
+function `GetInferenceSignals` computes a nested list of QOI Signals
+for all parameters and target changes in a particular Model Grads object.
+The outer index is into parameter names, and the inner index is target
+changes.  The functions `RerunForSignals` and `PredictForSignals` take
+in a `signals` list so structured and return lists of `ModelFit` objects
+with the same structure, which can then be passed to
+`GetSignalsAndRerunsDataframe` to get a tidy summary of refits and predictions.
+
+
 # Data Structure Details
 
 ### ModelFit
@@ -106,8 +116,6 @@ data of the most negative influence score.  Equivalently,
   - `infl_cumsum`:    The cumulative sum of the sorted influences scores with
 the specified sign.
   - `num_obs`:   The total number of observations in the original dataset
-
-QOIInfluence objects can be maniupated using functions in `influence_lib.R`.
 
 ### QOISignal
 
