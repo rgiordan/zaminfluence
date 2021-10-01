@@ -98,7 +98,7 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     # derivatives by the actual base weights.
     se_grad <- weights * model_grads$se_grad[target_index,]
     param_grad <- weights * model_grads$param_grad[target_index, ]
-    n_obs <- model_grads$model_fit$n_obs
+    num_obs <- model_grads$model_fit$num_obs
     qoi_gradients <- GetInferenceQOIs(
       param=param_grad,
       se=se_grad,
@@ -112,22 +112,22 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
               name="se",
               infl=qoi_gradients$se,
               base_value=qoi_base_values$se,
-              num_obs=n_obs),
+              num_obs=num_obs),
           param_qoi=QOIInfluence(
               name="param",
               infl=qoi_gradients$param,
               base_value=qoi_base_values$param,
-              num_obs=n_obs),
+              num_obs=num_obs),
           param_mzse_qoi=QOIInfluence(
               name="param_mzse",
               infl=qoi_gradients$param_mzse,
               base_value=qoi_base_values$param_mzse,
-              num_obs=n_obs),
+              num_obs=num_obs),
           param_pzse_qoi=QOIInfluence(
               name="param_pzse",
               infl=qoi_gradients$param_pzse,
               base_value=qoi_base_values$param_pzse,
-              num_obs=n_obs))
+              num_obs=num_obs))
 
     validate_ParameterInferenceInfluence(param_infl)
 

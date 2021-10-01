@@ -26,7 +26,7 @@ TestConfiguration <- function(model_fit, se_group) {
   AssertNearlyEqual(
     model_grads$model_fit$se, se_r, desc="std error equal")
   testthat::expect_equivalent(
-    model_grads$model_fit$n_obs, length(model_fit$y), info="num obs")
+    model_grads$model_fit$num_obs, length(model_fit$y), info="num obs")
   # testthat::expect_equivalent(
   #   model_grads$weights, model_fit$weights, info="weights")
   testthat::expect_equivalent(

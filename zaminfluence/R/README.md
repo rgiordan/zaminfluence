@@ -2,93 +2,99 @@
 # Overall organization
 
 The code is organized into a hierarchy of objects, which I try to refer
-to using common variable names.
+to using common variable names, and which each have their own S3 classes.
 
-TODO: Define rerun objects, too.
+- **Model Fit** objects
+(variable `model_fit`, S3 class `ModelFit`,
+see `model_grads_lib.R`).
+The information for a single fit of a model, including parameter and
+standard error estimates, as well as the information
+needed to re-run it at different weights.
 
-
-- **Model Gradients** objects (`model_grads`).  They contain information for an
-entire model, including all the information needed to re-run it, and all the
-gradients that will be needed to compute influence functions.
+- **Model Gradients** objects
+(variable `model_grads`, S3 class `ModelGrads`, see `model_grads_lib.R`).
+All the gradients for model evaluated at a particular fit.
 A Model Gradients object will typically
 contain a number of Parameter Influence objects.
-- **Parameter Influence**  objects (`param_infl`).  A parameter influence object
-stores a number of quantities of interest and their influence functions for
-a particular parameter in the model.
-A Parameter Influence object will contain a number of
-Quantity of Interest objects.  Currently library, the three
-quantities of interest stored for each parameter are its point estimate
-and the two ends of a confidence interval.
-- **Quantity of Interest (QOI)** objects (`qoi`).  This contains
-information about a
+
+- **Parameter Inference Influence**  objects
+(variable `param_infl`, S3 class `ParameterInferenceInfluence`,
+see `inference_targets_lib.R`).
+A number of quantities of interest and their
+influence functions for performing frequentist inference on a particular
+parameter in the model. A Parameter Influence object will contain a number of
+Quantity of Interest objects --- namely, for the point estimate, the
+standard error, and the two ends of a
+confidence interval.
+
+- **Quantity of Interest (QOI) influence** objects
+(variable `qoi`, S3 class `QOIInfluence`, see `influence_lib`).
+Information about a
 particular quantity of interest, including sorted influence functions and
 the base value.  The key quantites of our paper --- the approximate
 perturbation-inducing proportion (APIP), approximate maximally influential
 set (AMIS), and approximate maximumally influential perturbation (AMIP) ---
-are computed for and from Quantity of Interest objects.
-- **Signal** objects (`signal`).  A signal object stores information about a
-particular change in a quantity of interest, including a description of
-what the change means, the approximate
-perturbation-inducing proportion (APIP), the corresponding approximate maximally
-influential set (AMIS), and, optionally, the result of a re-run.  A signal
-only uses a single Quantity of Interest, but a Quantity of Interest may
-appear in more than one signal, if changes of different magnitudes have
-different meanings.
+are computed for and from `QOIInfluence` objects.
 
-The code has an organization that corresponds to the above structures.
+- **QOI Signal** objects
+(variable `signal`, S3 class `QOISignal`, see `inference_targets_lib.R`).
+Information about a particular change in a quantity of interest, including a description of what the change means, the approximate
+perturbation-inducing proportion
+(APIP), the corresponding approximate maximally influential set (AMIS).
 
-- Model Gradient objects for regression are computed in `ols_iv_grads_lib.R`.
-Most of `ols_iv_grads_lib.R` is for computing the acutal influence scores,
-the actual creation of the Model Gradient objects is in a couple thin wrappers
-at the end.
-- QOI objects are computed and wrangled in `influence_lib.R`.
-- Parameter influence and signal objects dealing with changes of sign,
-significance, and both sign and significance are constructed and wrangled in
-`inference_targets_lib.R`.
+- **Approximate Maximum Influence Perturbation** objects
+(variable `apip`, S3 class `APIP`, see `influence_lib.R`).  An estimate,
+based on the influence function, of the data points to drop to effect a
+particular change in a particular quantity of interest.
 
 # Data Structure Details
 
-### Model Gradients
+### ModelFit
 
-The most capacious object is a Model Gradients object.  They are
-created with `ComputeModelInfluence`.  A model is a fit
-of a `D`-dimensional parameter using `n_obs` datapoints  It is a list and must
-have the following fields:
-- `weights`:    The original data weights (length `n_obs`)
-- `betahat`:   The original estimator (length `D`)
-- `se`:      The original standard errors (length `D`)
-- `n_obs`:      The original number of observations
-- `beta_grad`:  A matrix (`n_obs` x `D`) of gradients of the point estimates
-- `se_grad`:    A matrix (`n_obs` x `D`) of gradients of the standard errors
+A model is a fit of a `D`-dimensional parameter using `num_obs` datapoints.
+- `fit_object`:          Everything you need to re-fit the model
+- `num_obs`:      The original number of observations
 - `parameter_names`:    The names of the parameters
-- `model_fit`:          Everything you need to re-fit the model
-- `param_infl_list`:  An (optional) list of Parameter Influence objects.
-- `RerunFun`:  A function taking the arguments `model_fit` and a vector of
-boolean weights and returning a refit object.
+- `param`:   The estimator of the parameter (length `D`)
+- `se`:      The estimate of the standard errors (length `D`)
+- `weights`:    The original data weights (length `num_obs`)
+- `parameter_dim`:    The dimension `D`
+- `se_group`: If non-null, a vector of length `num_obs` used for grouped
+standard errors.
 
-### Parameter Influence
+### ModelGrads
+
+A `ModelFit` together with gradients of the parameter and standard errors
+with respect to the data weights.
+- `model_fit`:  A `ModelFit` at the original weights.
+- `param_grad`:  A matrix (`num_obs` x `D`) of gradients of the point estimates
+- `se_grad`:    A matrix (`num_obs` x `D`) of gradients of the standard errors
+- `param_infls`:  An (optional) list of `ParameterInferenceInfluence` objects.
+- `RerunFun`:  A function taking new weights and returning a new `ModelFit`
+object evaluated at the new weights.
+
+### ParameterInferenceInfluence
 
 A Parameter Influence object contains influence scores for inference concerning
 a single parameter form a Model Gradients object.  They are
-created with `AppendTargetRegressorInfluence`.
-It is a list and must have the following fields:
-- `target_index`:   The index into betahat
+created with `AppendTargetRegressorInfluence` and are typically stored in
+the `param_infls` field of a `ModelGrads` object.
+- `target_index`:   The index into param for this parameter
+- `target_parameter`:   The  parameter name (as in `ModelFit$parameter_names`)
 - `sig_num_ses`:    The number of ses that form a confidence interval
-- `beta`:  A QOI object for the point estimate
-- `beta_mzse`:  A QOI object for the lower end of a confidence
+- `se`: A `QOIInfluence` object for the standard error
+- `param`:  A  `QOIInfluence` object for the point estimate
+- `param_mzse`:  A  `QOIInfluence` object for the lower end of a confidence
 interval ("minus z standard errors").
-- `beta_pzse`:  A QOI object for the upper end of a confidence
+- `param_pzse`:  A  `QOIInfluence` object for the upper end of a confidence
 interval ("plus z standard errors").
 
-### Quantity of Interest
+### QOIInfluence
 
 QOI objects contain a processed influence vector for a particular scalar-valued
 quantity of interest.
-They are created with `QOIInfluence`.  Then contain
 - `base_value`:     The original value of the quantity of interest
 - `infl`: The unsorted influence scores (in the same order as the original data)
-- `num_obs`:        The total number of observations (is this necessary?)
-- `obs_per_row`:    The number of observations per row (is this necessary?)
 - `neg`, `pos`:       Sorted influence scores for the negative and positive
 influence scores, where sorted influence scores have:
   - `infl_inds`:      Indices into the original data that sort the influence
@@ -99,32 +105,21 @@ data of the most negative influence score.  Equivalently,
 `infl[pos$infl_inds[1]] == max(infl)`.
   - `infl_cumsum`:    The cumulative sum of the sorted influences scores with
 the specified sign.
+  - `num_obs`:   The total number of observations in the original dataset
 
-QOI objects can be maniupated using functions in `influence_lib.R`.
+QOIInfluence objects can be maniupated using functions in `influence_lib.R`.
 
-### Signal
+### QOISignal
 
 A signal records a target change in a QOI.  A signal is a list and must have
-- `qoi_name`:         The name of the quantity of interest
-- `signal`:         The amount to change the quantity of interest
+- `qoi`:         The target `QOIInfluence` object
+- `signal`:         The numerical amount to change the quantity of interest
 - `description`:    A plain language description of what the change means
-- `apip`:           The APIP for this particular change, which contains
+- `apip`:    An `APIP` object for this particular change.
+
+### APIP
+The APIP for a particular change, which contains
     - `n`: The number of points to remove
     - `prop`: The proportion of points to remove
-    - `inds`: The indices (in the original data order) of the data dropped in the corresponding AMIS.
-
-Currently, signals are created with `GetInferenceSignals`, which defines signals
-to change the sign, significance, and both sign and significance.
-
-Optionally, a signal may also contain:
-- `rerun`: The complete result of a re-run at the AMIS.
-- `rerun_df`: A tidy summary dataframe of the predicted and actual changes
-in the parameter and its confidence interval.
-
-
-# TODOs
-
-- Rename beta to theta everywhere
-- Consistently use "hat" or not in the names (I think no hat)
-- Document rerun objects
-- Consistently use "num" or "n" everywhere (I think num)
+    - `inds`: The indices (in the original data order) of the data dropped in
+    the corresponding Approximate Maximally Influential Set (AMIS).

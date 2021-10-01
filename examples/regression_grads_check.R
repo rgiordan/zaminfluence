@@ -21,7 +21,7 @@ py_main <- InitializePython(file.path(base_dir, "venv/bin/python3"))
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
-n_obs <- 10000
+num_obs <- 10000
 
 # The test utilities can simulate data.
 setwd(file.path(base_dir, "zaminfluence/tests/testthat/"))

@@ -53,33 +53,33 @@ GetFitCovariance <- function(fit, se_group=NULL) {
 
 
 
-GenerateRandomEffects <- function(n_obs, num_groups=NULL) {
+GenerateRandomEffects <- function(num_obs, num_groups=NULL) {
   if (!is.null(num_groups)) {
     # Add random effects.  se_group must be zero-indexed.
-    se_group <- floor(num_groups * runif(n_obs))
+    se_group <- floor(num_groups * runif(num_obs))
     se_group[se_group == num_groups] <- 0  # Better safe than sorry
 
     re <- rnorm(num_groups)[se_group + 1]
     return(data.frame(se_group=se_group, re=re))
   } else {
-    return(data.frame(re=rep(0, n_obs)))
+    return(data.frame(re=rep(0, num_obs)))
   }
 }
 
 
 #' @export
-GenerateRegressionData <- function(n_obs, param_true, x=NULL, num_groups=NULL) {
+GenerateRegressionData <- function(num_obs, param_true, x=NULL, num_groups=NULL) {
   x_dim <- length(param_true)
   if (is.null(x)) {
-    x <- matrix(runif(n_obs * x_dim), n_obs, x_dim)
-    x <- x - rep(colMeans(x), each=n_obs)
+    x <- matrix(runif(num_obs * x_dim), num_obs, x_dim)
+    x <- x - rep(colMeans(x), each=num_obs)
   } else {
-    if (!(nrow(x) == n_obs)) {
+    if (!(nrow(x) == num_obs)) {
       stop("Wrong number of x rows.")
     }
   }
-  eps <- rnorm(n_obs)
-  re_df <- GenerateRandomEffects(n_obs, num_groups)
+  eps <- rnorm(num_obs)
+  re_df <- GenerateRandomEffects(num_obs, num_groups)
   y <- x %*% param_true + eps + re_df$re
   df <- data.frame(x)
   names(df)  <- paste0("x", 1:x_dim)
@@ -94,26 +94,26 @@ GenerateRegressionData <- function(n_obs, param_true, x=NULL, num_groups=NULL) {
 
 
 #' @export
-GenerateIVRegressionData <- function(n_obs, param_true, num_groups=NULL) {
+GenerateIVRegressionData <- function(num_obs, param_true, num_groups=NULL) {
   # Simulate some IV data
 
   x_dim <- length(param_true)
-  x <- rnorm(n_obs * x_dim) %>% matrix(nrow=n_obs)
+  x <- rnorm(num_obs * x_dim) %>% matrix(nrow=num_obs)
   x_rot <- diag(x_dim) + rep(0.2, x_dim ^ 2) %>% matrix(nrow=x_dim)
   x <- x %*% x_rot
-  x <- x - rep(colMeans(x), each=n_obs)
+  x <- x - rep(colMeans(x), each=num_obs)
   colMeans(x)
 
-  z <- rnorm(n_obs * x_dim) %>% matrix(nrow=n_obs)
+  z <- rnorm(num_obs * x_dim) %>% matrix(nrow=num_obs)
   z_rot <- diag(x_dim) + rep(0.2, x_dim ^ 2) %>% matrix(nrow=x_dim)
   z <- z %*% z_rot + x
-  z <- z - rep(colMeans(z), each=n_obs)
+  z <- z - rep(colMeans(z), each=num_obs)
   colMeans(z)
 
   Project <- function(z, vec) {
-      n_obs <- nrow(z)
-      ztz <- t(z) %*% z / n_obs
-      ztv <- t(z) %*% vec / n_obs
+      num_obs <- nrow(z)
+      ztz <- t(z) %*% z / num_obs
+      ztv <- t(z) %*% vec / num_obs
       return(z %*% solve(ztz, ztv))
   }
 
@@ -121,10 +121,10 @@ GenerateIVRegressionData <- function(n_obs, param_true, num_groups=NULL) {
       return(vec - Project(z, vec))
   }
 
-  re_df <- GenerateRandomEffects(n_obs, num_groups)
+  re_df <- GenerateRandomEffects(num_obs, num_groups)
 
   sigma_true <- 2.0
-  eps_base <- rnorm(n_obs) + rowSums(x) + re_df$re
+  eps_base <- rnorm(num_obs) + rowSums(x) + re_df$re
   eps_true <- ProjectPerp(z, eps_base)
   y <- x %*% param_true + eps_true
 

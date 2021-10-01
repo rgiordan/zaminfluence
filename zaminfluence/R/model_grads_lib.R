@@ -1,9 +1,9 @@
 
 new_ModelFit <- function(
-  fit_object, n_obs, parameter_names, param, se, weights, se_group) {
+  fit_object, num_obs, parameter_names, param, se, weights, se_group) {
   return(structure(
     list(fit_object=fit_object,
-         n_obs=n_obs,
+         num_obs=num_obs,
          parameter_names=as.character(parameter_names),
          param=param,
          se=se,
@@ -17,13 +17,13 @@ new_ModelFit <- function(
 
 validate_ModelFit <- function(model_fit) {
   stopifnot(class(model_fit) == "ModelFit")
-  StopIfNotNumericScalar(model_fit$n_obs)
+  StopIfNotNumericScalar(model_fit$num_obs)
   StopIfNotNumericScalar(model_fit$parameter_dim)
 
-  n_obs <- model_fit$n_obs
-  stopifnot(length(model_fit$weights) == n_obs)
+  num_obs <- model_fit$num_obs
+  stopifnot(length(model_fit$weights) == num_obs)
   if (!is.null(model_fit$se_group)) {
-    stopifnot(length(model_fit$se_group) == n_obs)
+    stopifnot(length(model_fit$se_group) == num_obs)
   }
 
   parameter_dim <- model_fit$parameter_dim
@@ -36,17 +36,17 @@ validate_ModelFit <- function(model_fit) {
 
 
 #'@export
-ModelFit <- function(fit_object, n_obs, param, se,
+ModelFit <- function(fit_object, num_obs, param, se,
                      parameter_names=NULL, weights=NULL, se_group=NULL) {
     if (is.null(weights)) {
-        weights <- rep(1.0, n_obs)
+        weights <- rep(1.0, num_obs)
     }
     if (is.null(parameter_names)) {
         parameter_names <- sprintf("theta%d", 1:length(param))
     }
     return(validate_ModelFit(new_ModelFit(
       fit_object=fit_object,
-      n_obs=n_obs,
+      num_obs=num_obs,
       parameter_names=parameter_names,
       param=param,
       se=se,
@@ -86,7 +86,7 @@ validate_ModelGrads <- function(model_grads) {
 
   CheckGradDim <- function(grad_mat) {
     stopifnot(length(dim(grad_mat)) == 2)
-    stopifnot(ncol(grad_mat) == model_fit$n_obs)
+    stopifnot(ncol(grad_mat) == model_fit$num_obs)
     stopifnot(nrow(grad_mat) == model_fit$parameter_dim)
   }
 
@@ -108,7 +108,7 @@ PredictModelFit <- function(model_grads, weights) {
     stopifnot(is.numeric(weights))
 
     model_fit <- model_grads$model_fit
-    stopifnot(length(weights) == model_fit$n_obs)
+    stopifnot(length(weights) == model_fit$num_obs)
 
     weight_diff <- weights - model_fit$weights
     param_pred <- model_fit$param + model_grads$param_grad %*% weight_diff
@@ -116,7 +116,7 @@ PredictModelFit <- function(model_grads, weights) {
     pred_fit <-
         ModelFit(
             fit_object="prediction",
-            n_obs=model_grads$model_fit$n_obs,
+            num_obs=model_grads$model_fit$num_obs,
             param=param_pred,
             se=se_pred,
             parameter_names=model_fit$parameter_names,

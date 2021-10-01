@@ -28,7 +28,7 @@ RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) 
         if (verbose) cat(..., sep="")
     }
 
-    num_obs <- model_grads$model_fit$n_obs
+    num_obs <- model_grads$model_fit$num_obs
     RerunSignal <- function(signal) {
         verbosePrint("Rerunning ", signal$description, "\n")
         weights <- GetWeightVector(

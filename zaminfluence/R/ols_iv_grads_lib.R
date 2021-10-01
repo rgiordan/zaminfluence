@@ -598,7 +598,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
       ComputeRegressionResults(lm_result, weights=weights, se_group=se_group)
     return(ModelFit(
       fit_object=ret_list,
-      n_obs=reg_vars$num_obs,
+      num_obs=reg_vars$num_obs,
       param=ret_list$betahat,
       se=ret_list$se,
       parameter_names=reg_vars$parameter_names,
@@ -608,7 +608,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
 
   model_fit <- ModelFit(
     fit_object=lm_result,
-    n_obs=reg_vars$num_obs,
+    num_obs=reg_vars$num_obs,
     parameter_names=reg_vars$parameter_names,
     param=reg_vars$betahat,
     se=reg_grad_list$se,
@@ -641,7 +641,7 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
           ComputeIVRegressionResults(iv_res, weights=weights, se_group=se_group)
         return(ModelFit(
           fit_object=ret_list,
-          n_obs=iv_vars$num_obs,
+          num_obs=iv_vars$num_obs,
           param=ret_list$betahat,
           se=ret_list$se,
           parameter_names=iv_vars$parameter_names,
@@ -651,7 +651,7 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
 
     model_fit <- ModelFit(
       fit_object=iv_res,
-      n_obs=iv_vars$num_obs,
+      num_obs=iv_vars$num_obs,
       parameter_names=iv_vars$parameter_names,
       param=iv_vars$betahat,
       se=iv_grad_list$se,

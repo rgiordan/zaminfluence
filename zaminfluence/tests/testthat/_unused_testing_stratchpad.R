@@ -149,11 +149,11 @@ vcov(reg1) / vcov(reg2)
 test_that("pairing works", {
   set.seed(42)
 
-  n_obs <- 1000
-  df <- GenerateRegressionData(n_obs, 0.5)
-  df$assignment <- as.integer(runif(n_obs) < 0.3)
-  df$group1 <- c("a", "b")[as.integer(runif(n_obs) < 0.5) + 1]
-  df$group2 <- c("c", "d")[as.integer(runif(n_obs) < 0.5) + 1]
+  num_obs <- 1000
+  df <- GenerateRegressionData(num_obs, 0.5)
+  df$assignment <- as.integer(runif(num_obs) < 0.3)
+  df$group1 <- c("a", "b")[as.integer(runif(num_obs) < 0.5) + 1]
+  df$group2 <- c("c", "d")[as.integer(runif(num_obs) < 0.5) + 1]
   df$row <- 1:nrow(df)
   lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE)
 
@@ -189,10 +189,10 @@ test_that("pairing works", {
 test_that("aggregated pairing works", {
   set.seed(42)
 
-  n_obs <- 1000
-  df <- GenerateRegressionData(n_obs, 0.5)
-  df$arm <- as.integer(runif(n_obs) < 0.3)
-  df$group <- sample.int(floor(n_obs / 10), n_obs, replace=TRUE)
+  num_obs <- 1000
+  df <- GenerateRegressionData(num_obs, 0.5)
+  df$arm <- as.integer(runif(num_obs) < 0.3)
+  df$group <- sample.int(floor(num_obs / 10), num_obs, replace=TRUE)
   df$row <- 1:nrow(df)
   lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE)
 
@@ -295,9 +295,9 @@ test_that("python runs", {
 
 # Check the "scale" of the influence function is correct (note that this
 # may not match the actual standard errors for grouping).
-n_obs <- length(model_fit$y)
-vcov_se_cov <- GetFitCovariance(model_fit, cluster=1:n_obs)
+num_obs <- length(model_fit$y)
+vcov_se_cov <- GetFitCovariance(model_fit, cluster=1:num_obs)
 robust_se <- sqrt(diag(vcov_se_cov))[target_index]
 
 # infl_scale <- GetInfluenceScale(grad_df$param_grad)
-# testthat::expect_equivalent(sqrt(n_obs) * robust_se, infl_scale)
+# testthat::expect_equivalent(sqrt(num_obs) * robust_se, infl_scale)

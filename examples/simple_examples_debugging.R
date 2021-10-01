@@ -17,7 +17,7 @@ library(AER)
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
-n_obs <- 10000
+num_obs <- 10000
 
 set.seed(42)
 
@@ -78,9 +78,9 @@ tibble(list=foo) %>%
 
 x_dim <- 3
 param_true <- 0.1 * runif(x_dim)
-df <- GenerateRegressionData(n_obs, param_true, num_groups=NULL)
+df <- GenerateRegressionData(num_obs, param_true, num_groups=NULL)
 df$arm <- as.integer(runif(nrow(df)) < 0.5)  # Control or treatment
-df$group <- sample.int(3, n_obs, replace=TRUE)  # Some subgrouping
+df$group <- sample.int(3, num_obs, replace=TRUE)  # Some subgrouping
 df$row <- 1:nrow(df)
 
 # Fit a regression model.
@@ -118,9 +118,9 @@ select(rerun_df, change, param, param_pzse, param_mzse, prop_removed)
 
 x_dim <- 3
 param_true <- 0.1 * runif(x_dim)
-df <- GenerateRegressionData(n_obs, param_true, num_groups=NULL)
+df <- GenerateRegressionData(num_obs, param_true, num_groups=NULL)
 df$arm <- as.integer(runif(nrow(df)) < 0.5)  # Control or treatment
-df$group <- sample.int(floor(n_obs / 10), n_obs, replace=TRUE)  # Some subgrouping
+df$group <- sample.int(floor(num_obs / 10), num_obs, replace=TRUE)  # Some subgrouping
 df$row <- 1:nrow(df)
 
 # Fit a regression model.
@@ -148,10 +148,10 @@ grad_df <-
 attr(grad_df, "data_row_cols") <- "grouped_row"
 
 # Note that I still consider one of the original rows to be an observation,
-# so the n_obs attribute remains the same.  If a single group were to be
+# so the num_obs attribute remains the same.  If a single group were to be
 # an "observation", then you'd want ``obs_per_row`` to contain all ones,
-# and the ``n_obs`` attribute to be set to the number of unique groups.
-print(attr(grad_df, "n_obs"))
+# and the ``num_obs`` attribute to be set to the number of unique groups.
+print(attr(grad_df, "num_obs"))
 
 # However, we still need to record how many distinct gradients are being
 # sorted so we can index into grad_df using our results.

@@ -20,7 +20,7 @@ load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 compare <- function(x, y) { return(max(abs(x - y))) }
 check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 
-n_obs <- 10000
+num_obs <- 10000
 
 set.seed(42)
 
@@ -45,7 +45,7 @@ load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 set.seed(42)
 x_dim <- 3
 param_true <- 0.1 * runif(x_dim)
-df <- GenerateRegressionData(n_obs, param_true, num_groups=NULL)
+df <- GenerateRegressionData(num_obs, param_true, num_groups=NULL)
 
 # Fit a regression model.
 x_names <- sprintf("x%d", 1:x_dim)
@@ -98,7 +98,7 @@ grid.arrange(
 set.seed(42)
 x_dim <- 3
 param_true <- 0.1 * runif(x_dim)
-df <- GenerateIVRegressionData(n_obs, param_true, num_groups=NULL)
+df <- GenerateIVRegressionData(num_obs, param_true, num_groups=NULL)
 
 # Fit an IV model.
 x_names <- sprintf("x%d", 1:x_dim)
@@ -134,7 +134,7 @@ set.seed(42)
 x_dim <- 3
 param_true <- 0.1 * runif(x_dim)
 num_groups <- 50
-df <- GenerateRegressionData(n_obs, param_true, num_groups=num_groups)
+df <- GenerateRegressionData(num_obs, param_true, num_groups=num_groups)
 
 # se_group is zero-indexed group indicator with no missing entries.
 table(df$se_group)
