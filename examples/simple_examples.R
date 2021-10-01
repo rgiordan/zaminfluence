@@ -67,8 +67,6 @@ ggplot(summary_df) +
     geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
     geom_abline(aes(slope=1, intercept=0))
 
-load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
-
 PlotSignal(model_grads, signals, "x1", "sign",
           reruns=reruns, apip_max=0.03)
 
@@ -114,21 +112,18 @@ fit_object <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
 model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
-signals <-
-    GetInferenceSignalsForParameter(model_grads$param_infls[["x1"]]) %>%
-    RerunForTargetChanges(model_grads)
 
-# Summaries comparing reruns and predictions for each signal.
-RerunSummaryDf(signals)
-PlotSignal(model_grads$param_infls[["x1"]], signals[["both"]], apip_max=0.03)
+signals <- GetInferenceSignals(model_grads)
+reruns <- RerunForSignals(signals, model_grads)
+preds <- PredictForSignals(signals, model_grads)
 
+summary_df <- SummarizeReruns(reruns, preds)
+ggplot(summary_df) +
+    geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
+    geom_abline(aes(slope=1, intercept=0))
 
-
-testthat::expect_equivalent(
-    model_grads$model_fit$parameter_names, fit_object$x %>% colnames(),
-    info="column names")
-
-fit_object$x$regressors
+PlotSignal(model_grads, signals, "x1", "sign",
+           reruns=reruns, apip_max=0.03)
 
 
 #############################
@@ -154,18 +149,21 @@ model_grads <-
     ComputeModelInfluence(fit_object) %>%
     AppendTargetRegressorInfluence("x1")
 
-signals <-
-    GetInferenceSignalsForParameter(model_grads$param_infls[["x1"]]) %>%
-    RerunForTargetChanges(model_grads)
+
+signals <- GetInferenceSignals(model_grads)
+reruns <- RerunForSignals(signals, model_grads)
+preds <- PredictForSignals(signals, model_grads)
+summary_df <- SummarizeReruns(reruns, preds)
+
+ggplot(summary_df) +
+    geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
+    geom_abline(aes(slope=1, intercept=0))
 
 # Summaries comparing reruns and predictions for each signal.
-RerunSummaryDf(signals)
-grid.arrange(
-    PlotSignal(model_grads$param_infls[["x1"]], signals[["sign"]], apip_max=0.03),
-    PlotSignal(model_grads$param_infls[["x1"]], signals[["sig"]], apip_max=0.03),
-    PlotSignal(model_grads$param_infls[["x1"]], signals[["both"]], apip_max=0.03),
-    ncol=3
-)
+plots <-
+    map(c("sign", "sig", "both"),
+        ~ PlotSignal(model_grads, signals, "x1", ., reruns=reruns, apip_max=0.03))
+do.call(function(...) { grid.arrange(..., ncol=1) }, plots)
 
 
 #############################
