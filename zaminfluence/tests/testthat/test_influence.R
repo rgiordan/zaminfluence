@@ -6,8 +6,6 @@
 
 library(AER)
 library(zaminfluence)
-#library(numDeriv)
-#library(sandwich)
 library(testthat)
 library(tidyverse)
 library(purrr)
