@@ -54,8 +54,7 @@ TestConfiguration <- function(model_fit, se_group) {
     info="beta_mzse base value")
 
   # Test that if we re-run we get the same answer.
-  w_bool <- rep(TRUE, model_grads$model_fit$n_obs)
-  rerun <- model_grads$RerunFun(w_bool)
+  rerun <- model_grads$RerunFun(model_fit$weights)
   AssertNearlyEqual(
     rerun$betahat, coefficients(model_fit), desc="rerun betahat equal")
   AssertNearlyEqual(
