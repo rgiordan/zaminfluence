@@ -235,7 +235,6 @@ GetInferenceSignalsForParameter <- function(param_infl) {
     both_label <- "sign and significance"
 
     signals <- list()
-    #signals$target_parameter <- param_infl$target_parameter
     signals$sign <- QOISignal(
       qoi=param_infl[["param"]],
       signal=-1 * param,
@@ -278,10 +277,12 @@ GetInferenceSignalsForParameter <- function(param_infl) {
               description=sig_label)
         }
 
+        # If positive, taking the upper CI limit to zero will change both
+        # sign and make it significant.
         if (param >= 0) {
             signals$both <- QOISignal(
-                qoi=param_infl[["param_mzse"]],
-                signal=-1 * param_mzse,
+                qoi=param_infl[["param_pzse"]],
+                signal=-1 * param_pzse,
                 description=both_label)
         } else {
             signals$both <- QOISignal(

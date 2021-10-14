@@ -51,6 +51,8 @@ model_grads <-
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
 preds <- PredictForSignals(signals, model_grads)
+base_df <- GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls)
+
 summary_df <- SummarizeReruns(reruns, preds)
 
 ggplot(summary_df) +
