@@ -79,11 +79,10 @@ QOIInfluence <- function(infl, base_value, name, num_obs=NULL) {
 
 # Define an APIP S3 class
 
-new_APIP <- function(n, prop, inds) {
+new_APIP <- function(n, prop, inds, success) {
   return(structure(
-    list(n=n, prop=prop, inds=as.integer(inds)),
-    class="APIP"
-  ))
+    list(n=n, prop=prop, inds=as.integer(inds), success=as.logical(success)),
+    class="APIP"))
 }
 
 
@@ -91,18 +90,28 @@ validate_APIP <- function(apip) {
   stopifnot(class(apip) == "APIP")
   StopIfNotNumericScalar(apip$n)
   StopIfNotNumericScalar(apip$prop)
-  if (!is.null(apip$inds)) {
+  if (any(is.na(apip$inds))) {
+    stopifnot(length(apip$inds) == 1)
+    stopifnot(!apip$success)
+  } else {
     stopifnot(all(apip$inds > 0))
+    stopifnot(apip$success)
   }
   return(invisible(apip))
 }
 
 
 APIP <- function(n_drop, num_obs, inds_drop) {
+  if (any(is.na(inds_drop))) {
+    success <- FALSE
+  } else {
+    success <- TRUE
+  }
   return(validate_APIP(new_APIP(
     n=n_drop,
     prop=n_drop / num_obs,
-    inds=inds_drop
+    inds=inds_drop,
+    success=success
   )))
 }
 
@@ -169,6 +178,10 @@ GetWeightVector <- function(drop_inds, num_obs=NULL,
     } else {
       stopifnot(num_obs == length(orig_weights))
     }
+  }
+
+  if (any(is.na(drop_inds))) {
+    stop("Non-numeric drop_inds specfied.")
   }
 
   if (length(drop_inds) > 0) {

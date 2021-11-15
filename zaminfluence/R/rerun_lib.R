@@ -30,11 +30,17 @@ RerunForSignals <- function(signals, model_grads, RerunFun=NULL, verbose=FALSE) 
 
     num_obs <- model_grads$model_fit$num_obs
     RerunSignal <- function(signal) {
-        verbosePrint("Rerunning ", signal$description, "\n")
+      if (signal$apip$success) {
+        verbosePrint("Rerunning ", signal$description, ".\n")
         weights <- GetWeightVector(
             drop_inds=signal$apip$inds,
             orig_weights=model_grads$model_fit$weights)
         return(RerunFun(weights))
+      } else {
+        verbosePrint(
+          "The linear approximation cannot reverse the signal  ",
+          signal$description, "; skipping rerun.\n")
+      }
     }
     reruns <- map_depth(signals, 2, RerunSignal)
     return(reruns)

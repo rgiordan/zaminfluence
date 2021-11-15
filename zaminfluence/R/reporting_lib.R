@@ -16,6 +16,9 @@ library(tibble)
 #' in `param_infls` for `model_fit`.
 #'@export
 GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
+    if (is.null(model_fit)) {
+      return(data.frame())
+    }
     stopifnot(class(model_fit) == "ModelFit")
     stopifnot(all(names(param_infls) %in% model_fit$parameter_names))
 
@@ -56,8 +59,12 @@ ValidateSignalsAndReruns <- function(signals, reruns) {
       for (signal_name in names(param_reruns)) {
           rerun <- param_reruns[[signal_name]]
           signal <- param_signals[[signal_name]]
-          stopifnot(class(rerun) == "ModelFit")
           stopifnot(class(signal) == "QOISignal")
+          if (signal$apip$success) {
+            stopifnot(class(rerun) == "ModelFit")
+          } else {
+            stopifnot(is.null(rerun))
+          }
       }
   }
 }
@@ -182,12 +189,14 @@ PlotInfluenceDf <- function(influence_df, signal, rerun_vals=NULL,
     plot <- plot + guides(color="none") + xlab(xlab_name)
 
     # Plot the signal
-    alpha_type <- if (plot_num_dropped) "n" else "prop"
-    alpha <- signal$apip[[alpha_type]]
-    if (is.null(apip_max) || (!is.null(apip_max) && alpha <= apip_max)) {
-        plot <- plot + geom_vline(aes(xintercept=!!alpha,
-                                      linetype=!!signal$description)) +
-                guides(linetype=guide_legend(title="Change type"))
+    if (signal$apip$success) {
+      alpha_type <- if (plot_num_dropped) "n" else "prop"
+      alpha <- signal$apip[[alpha_type]]
+      if (is.null(apip_max) || (!is.null(apip_max) && alpha <= apip_max)) {
+          plot <- plot + geom_vline(aes(xintercept=!!alpha,
+                                        linetype=!!signal$description)) +
+                  guides(linetype=guide_legend(title="Change type"))
+      }
     }
 
     if (!is.null(rerun_vals)) {
@@ -228,13 +237,14 @@ PlotSignal <- function(model_grads, signals, parameter_name, target_signal,
     signal <- signals[[parameter_name]][[target_signal]]
     stopifnot(class(signal) == "QOISignal")
 
+    rerun_vals <- NULL
     if (!is.null(reruns)) {
       ValidateSignalsAndReruns(signals, reruns)
       rerun <- reruns[[parameter_name]][[target_signal]]
-      rerun_vals <- GetParameterInferenceQOIs(
-        rerun, parameter_name, sig_num_ses=param_infl$sig_num_ses)
-    } else {
-      rerun_vals <- NULL
+      if (!is.null(rerun)) {
+        rerun_vals <- GetParameterInferenceQOIs(
+          rerun, parameter_name, sig_num_ses=param_infl$sig_num_ses)
+      }
     }
 
     influence_df <- GetSortedInfluenceDf(param_infl, signal$qoi$name)
