@@ -136,11 +136,20 @@ x_names <- sprintf("x%d", 1:x_dim)
 reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
 fit_object <- lm(data=df, formula=reg_form, x=TRUE, y=TRUE)
 
-# Get influence and reruns.
+# Get influence and reruns.  Pass the grouping indicator to the `se_group`` argument
+# of `ComputeModelInfluence`.
 model_grads <-
-    ComputeModelInfluence(fit_object) %>%
+    ComputeModelInfluence(fit_object, se_group=df$se_group) %>%
     AppendTargetRegressorInfluence("x1")
 
+
+# The grouped standard error which zaminfluence computes...
+cat("Zaminfluence SE:\t", model_grads$param_infls[["x1"]]$se$base_value, "\n")
+
+# ...is equivalent to the that computed by the following standard command:
+cat("vcovCL se:\t\t", 
+    vcovCL(fit_object, cluster=df$se_group, type="HC0", cadjust=FALSE)["x1", "x1"] %>% sqrt(), 
+    "\n")
 
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
@@ -161,4 +170,5 @@ do.call(function(...) { grid.arrange(..., ncol=1) }, plots)
 #############################
 # Pairing
 
-# In the current version of the refactor, pairing is not yet supported.
+# In the current version of zaminfluence, pairing is not yet supported.  If you're particularly
+# interested in paried analysis, please reach out to the package authors.
