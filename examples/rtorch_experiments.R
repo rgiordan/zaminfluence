@@ -8,7 +8,6 @@ AssertNearlyZero <- function(v, tol=1e-8) {
         stop(sprintf("Not approximately zero: %e > %e", max(abs(v)), tol))
     }
 }
-AssertNearlyZero(1e-8, 1e-9)
 
 
 num_obs <- 1000
@@ -145,6 +144,9 @@ zam_time
 
 ##################################################
 # Can matrix inverses be cached?  I don't see how.
+
+# TODO: try
+# https://torch.mlverse.org/docs/reference/torch_cholesky_solve.html
 
 mat_dim <- 500
 a_mat <- runif(mat_dim * mat_dim) %>% matrix(mat_dim, mat_dim)
