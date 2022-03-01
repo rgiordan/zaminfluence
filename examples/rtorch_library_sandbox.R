@@ -17,18 +17,6 @@ AssertNearlyZero <- function(v, tol=1e-8) {
 
 
 
-# Hmm
-# https://discuss.pytorch.org/t/groupby-aggregate-mean-in-pytorch/45335
-
-inds <- torch_tensor(c(1, 1, 3, 2, 2) %>% matrix(5, 1), dtype=torch_int64())
-src <- torch_tensor(c(0.1) %>% matrix(5, 2))
-agg_mat <- torch_tensor(matrix(0, 3, 2))
-
-agg_mat$scatter_add(dim=1, index=inds[["repeat"]](list(1, 2)), src=src)
-
-
-
-
 
 ######################
 
@@ -51,6 +39,28 @@ iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                            paste(z_names, collapse=" + ")))
 iv_res <- ivreg(data=df, formula = iv_form, x=TRUE, y=TRUE)
 
+model_grads <- 
+    zaminfluence::ComputeModelInfluence(iv_res, se_group=df$se_group) %>%
+    zaminfluence::AppendTargetRegressorInfluence("x1")
+
+
+
+# Torch stuff
+
+TorchGroupedAggregate <- function(src_mat, inds) {
+    # https://discuss.pytorch.org/t/groupby-aggregate-mean-in-pytorch/45335
+    max_ind <- inds$max() %>% as.integer()
+    zero_mat <- torch_tensor(
+        matrix(0, nrow=max_ind, ncol=src_mat$shape[2]),
+        dtype=src_mat$dtype)
+    inds_rep <- inds[["repeat"]](list(1, src_mat$shape[2]))
+    agg_mat <- zero_mat$scatter_add(dim=1, index=inds_rep, src=src_mat)
+    return(agg_mat)    
+}
+
+# inds <- torch_tensor(c(1, 1, 3, 2, 2) %>% matrix(5, 1), dtype=torch_int64())
+# src <- torch_tensor(c(rep(0.1, 5), rep(0.2, 5)) %>% matrix(5, 2))
+# TorchGroupedAggregate(src, inds)
 
 
 DefineTorchVars <- function(iv_vars) {
@@ -90,43 +100,44 @@ DefineTorchVars <- function(iv_vars) {
     ))    
 }
 
+# Compute
 
 iv_vars <- GetIVVariables(iv_res)
 tv <- DefineTorchVars(iv_vars)
 
 tv$score_mat <- tv$z * tv$eps * tv$w
-tv$se_group <- torch_tensor(as.integer(factor(df$se_group)) - 1, dtype=torch_int64())
-# Problem is bincount does not accept vectors of weights
-tv$score_agg <- torch_bincount(tv$se_group, tv$score_mat)
-GroupedSum(iv_vars$z * as.numeric(tv$eps) * iv_vars$w, as.integer(factor(df$se_group)) - 1)
-tv$score_agg
+tv$se_group <-
+    torch_tensor(
+        as.integer(factor(df$se_group)) %>% matrix(ncol=1), 
+        dtype=torch_int64())
+tv$score_sum <- TorchGroupedAggregate(src_mat=tv$score_mat, inds=tv$se_group)
+tv$s_mat <- tv$score_sum - tv$score_sum$mean(dim=1, keepdim=TRUE)
 
-s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
+num_groups <- tv$s_mat$shape[1]
+tv$v_mat <- torch_matmul(tv$s_mat$transpose(2, 1), tv$s_mat) / num_groups
 
 
+tv$zwx_inv_vmat <- linalg_solve(tv$zwx, tv$v_mat)
+tv$se_cov_mat <- linalg_solve(tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
+
+tv$betahat_se <- torch_sqrt(torch_diag(tv$se_cov_mat))
 
 
+keep_dims <- 1:x_dim
+se_infl_mat <- matrix(NA, nrow=length(keep_dims), ncol=num_obs)
+for (di in 1:length(keep_dims)) {
+    d <- keep_dims[di]
+    se_infl_mat[di, ] <- 
+        torch::autograd_grad(
+            tv$betahat_se[d],
+            tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+}
 
-#if (!is.null(se_group)) {
-    # Grouped standard errors
-    # Enforces that the grouping variable is sequential and zero-indexed.
-    
-    score_mat <- GroupedSum(z * eps * w0, se_group)
-    
-    # colMeans(s_mat) is zero at the weights used for regression, but include
-    # it so we can test partial derivatives.
-    s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
-    
-    num_groups <- nrow(s_mat)
-    
-    # v is for variance, so I take the average, but we then need to multiply
-    # again by num_groups to get the standard error variance.
-    v_mat <- t(s_mat) %*% s_mat / num_groups
-    
-    # Covariance matrix
-    zwx_inv_vmat <- solve(zwx_qr, v_mat)
-    se_mat <- solve(zwx_qr, t(zwx_inv_vmat)) * num_groups
-# } else {
-#     
-# }
+
+tv$betahat_se[1]
+model_grads$param_infls[["x1"]]$se$base_value
+
+AssertNearlyZero(model_grads$se_grad - se_infl_mat)
+plot(model_grads$se_grad, se_infl_mat); abline(0, 1)
+
  

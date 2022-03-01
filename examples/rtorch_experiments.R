@@ -184,3 +184,17 @@ print(qr_solve_time)
 print(qr_time)
 
 
+
+
+
+
+cat("-----------\n")
+x <- torch_tensor(5, requires_grad=TRUE)
+print(sprintf("x = %f", x))
+x <- 2 * x
+print(sprintf("x = %f", x))
+y <- 2 * x 
+print(sprintf("x = %f", x))
+print(sprintf("y = %f", y))
+print(sprintf("dy/dx = %f", torch::autograd_grad(y, x)[[1]]))
+
