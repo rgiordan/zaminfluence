@@ -54,9 +54,9 @@ zam_time <- Sys.time() - zam_time
 DefineTorchVars <- function(x, y, w) {
     num_obs <- nrow(x)
     num_cols <- ncol(x)
-    x_tens <- torch_tensor(x, requires_grad=FALSE)
-    y_tens <- torch_tensor(matrix(y, ncol=1), requires_grad=FALSE)
-    w_tens <- torch_tensor(matrix(w, ncol=1), requires_grad=TRUE)
+    x_tens <- torch_tensor(x, requires_grad=FALSE, dtype=torch_double())
+    y_tens <- torch_tensor(matrix(y, ncol=1), requires_grad=FALSE, dtype=torch_double())
+    w_tens <- torch_tensor(matrix(w, ncol=1), requires_grad=TRUE, dtype=torch_double())
     
     xw <- x_tens * w_tens
     xwx <- torch_matmul(torch_transpose(xw, 1, 2), x_tens)
@@ -84,10 +84,14 @@ w_base <- rep(1, num_obs)
 torch_time <- Sys.time()
 tv <- DefineTorchVars(x=fit_object$x, y=fit_object$y, w=w_base)
 
+keep_dims <- 1:min(10, tv$x_dim)
+#keep_dims <- 1:tv$x_dim
+
 # betahat
-torch_infl_mat <- matrix(NA, nrow=tv$x_dim, ncol=num_obs)
-for (d in 1:tv$x_dim) {
-    torch_infl_mat[d, ] <- 
+torch_infl_mat <- matrix(NA, nrow=length(keep_dims), ncol=num_obs)
+for (di in 1:length(keep_dims)) {
+    d <- keep_dims[di]
+    torch_infl_mat[di, ] <- 
         torch::autograd_grad(
             tv$betahat[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
 }
@@ -101,11 +105,13 @@ tv$betahat_grouped_cov <-
     linalg_solve(tv$xwx / num_obs, torch_transpose(tv$xwx_inv_score_cov, 1, 2)) / num_obs
 tv$betahat_grouped_se <- torch_sqrt(torch_diag(tv$betahat_grouped_cov))
 
-torch_grouped_se_infl_mat <- matrix(NA, nrow=tv$x_dim, ncol=num_obs)
-for (d in 1:tv$x_dim) {
-    torch_grouped_se_infl_mat[d, ] <- 
+torch_grouped_se_infl_mat <- matrix(NA, nrow=length(keep_dims), ncol=num_obs)
+for (di in 1:length(keep_dims)) {
+    d <- keep_dims[di]
+    torch_grouped_se_infl_mat[di, ] <- 
         torch::autograd_grad(
-            tv$betahat_grouped_se[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+            tv$betahat_grouped_se[d],
+            tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
 }
 
 torch_time <- Sys.time() - torch_time
@@ -115,9 +121,10 @@ tv$sig2hat <- torch_sum(tv$w * (tv$eps ** 2))  / (num_obs - tv$x_dim)
 tv$betahat_cov <- torch_inverse(tv$xwx) * tv$sig2hat
 tv$betahat_se <- torch_sqrt(torch_diag(tv$betahat_cov))
 
-torch_se_infl_mat <- matrix(NA, nrow=tv$x_dim, ncol=num_obs)
-for (d in 1:tv$x_dim) {
-    torch_se_infl_mat[d, ] <- 
+torch_se_infl_mat <- matrix(NA, nrow=length(keep_dims), ncol=num_obs)
+for (di in 1:length(keep_dims)) {
+    d <- keep_dims[di]
+    torch_se_infl_mat[di, ] <- 
         torch::autograd_grad(
             tv$betahat_se[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
 }
@@ -125,10 +132,10 @@ for (d in 1:tv$x_dim) {
 #########################
 # Compare times
 
-AssertNearlyZero(torch_infl_mat - model_grads$param_grad)
-AssertNearlyZero(torch_infl_mat - grouped_model_grads$param_grad)
-AssertNearlyZero(torch_grouped_se_infl_mat - grouped_model_grads$se_grad)
-AssertNearlyZero(torch_se_infl_mat - model_grads$se_grad)
+AssertNearlyZero(torch_infl_mat - model_grads$param_grad[keep_dims, ])
+AssertNearlyZero(torch_infl_mat - grouped_model_grads$param_grad[keep_dims, ])
+AssertNearlyZero(torch_grouped_se_infl_mat - grouped_model_grads$se_grad[keep_dims, ])
+AssertNearlyZero(torch_se_infl_mat - model_grads$se_grad[keep_dims, ])
 
 
 torch_time
@@ -136,25 +143,42 @@ zam_time
 
 
 
-#########################
-# Hmm
+##################################################
+# Can matrix inverses be cached?  I don't see how.
 
-mat_dim <- 5
+mat_dim <- 500
 a_mat <- runif(mat_dim * mat_dim) %>% matrix(mat_dim, mat_dim)
-a_mat <- a_mat + t(a_mat) + diag(a_mat) * 10
+a_mat <- a_mat + t(a_mat) + diag(a_mat) 
 b_vec <- runif(mat_dim)
 ainv_b <- solve(a_mat, b_vec)
 
+# Base solve
+
 a_tens <- torch_tensor(a_mat, dtype=torch_double())
 b_tens <- torch_tensor(b_vec %>% matrix(ncol=1), dtype=torch_double())
+
+solve_time <- Sys.time()
 ainv_b_torch <- torch::linalg_solve(a_tens, b_tens) %>% as.numeric()
+solve_time <- Sys.time() - solve_time
 AssertNearlyZero(ainv_b_torch -  ainv_b)
 
+# QR
+a_tens <- torch_tensor(a_mat, dtype=torch_double())
+b_tens <- torch_tensor(b_vec %>% matrix(ncol=1), dtype=torch_double())
+
+qr_time <- Sys.time()
 qr_tens <- linalg_qr(a_tens)
+qr_solve_time <- Sys.time()
 qtb_tens <- torch::torch_matmul(torch_transpose(qr_tens[[1]], 2, 1), b_tens)
 ainv_b_qr <- 
     torch::linalg_solve(qr_tens[[2]], qtb_tens) %>% as.numeric()
+qr_time <- Sys.time() - qr_time
+qr_solve_time <- Sys.time() - qr_solve_time
+
 AssertNearlyZero(ainv_b_qr -  ainv_b)
 AssertNearlyZero(ainv_b_qr -  ainv_b_torch)
+print(solve_time)
+print(qr_solve_time)
+print(qr_time)
 
 
