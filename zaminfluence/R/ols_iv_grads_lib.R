@@ -19,7 +19,7 @@ ExpandGroupedSum <- function(s_mat, group) {
 }
 
 
-# Run regression using the QR decomposition.
+# Run regression using --- and retaiing --- the QR decomposition.
 GetRegressionCoefficients <- function(x, y, w0) {
   x_w <- x * w0
   xwx_qr <- qr(t(x_w) %*% x)
@@ -28,15 +28,43 @@ GetRegressionCoefficients <- function(x, y, w0) {
 }
 
 
+ValidateBetaInds <- function(beta_inds, x) {
+  # If beta_inds is unspecified, compute derivatives for all coefficients.
+  if (is.null(beta_inds)) {
+    beta_inds <- 1:ncol(x)
+  }
+  beta_inds <- as.integer(beta_inds)
+  if (min(beta_inds) < 1) {
+    stop("beta_inds must be >= 1")
+  }
+  if (max(beta_inds) > ncol(x)) {
+    stop("beta_inds must be no greater than the number of x columns")
+  }
+  if (length(unique(beta_inds)) != length(beta_inds)) {
+    stop("beta_inds must not contain repeats")
+  }
+  return(beta_inds)
+}
+
+
 # Compute the estimate, standard errors, and their derivatives for
 # ordinary least squares regression.
 # See the file inst/regression_derivatives.pdf for the derivation of
 # the derivatives computed by this function.
+#
+# Derivatives will be computed only for the beta_inds indices.
+# Since we can't easily use a QR decomposition for a select
+# set of rows, the computational savings of computing only a few
+# indices' derivatives are limited to the for loop in when se_group == TRUE.
+# You could get around this with a Schur complement but that would
+# be a lot of tedious work.
 GetRegressionSEDerivs <- function(x, y, beta, w0,
                                   se_group=NULL,
                                   testing=FALSE,
-                                  compute_derivs=TRUE) {
+                                  compute_derivs=TRUE,
+                                  beta_inds=NULL) {
 
+  beta_inds <- ValidateBetaInds(beta_inds, x)
   reg_coeff <- GetRegressionCoefficients(x, y, w0)
   betahat <- reg_coeff$betahat
   xwx_qr <- reg_coeff$xwx_qr
@@ -47,8 +75,8 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
   eps <- as.numeric(y - x %*% beta)
 
   x_w <- x * w0
-  xwx_qr <- qr(t(x_w) %*% x)
-  betahat <- solve(xwx_qr, t(x_w) %*% y) %>% as.numeric()
+  #xwx_qr <- qr(t(x_w) %*% x)
+  #betahat <- solve(xwx_qr, t(x_w) %*% y) %>% as.numeric()
 
   if (compute_derivs) {
     # This derivative is common to both standard error methods.
@@ -64,6 +92,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
     # Enforces that the grouping variable is sequential and zero-indexed.
     se_group <- as.numeric(factor(se_group)) - 1
 
+    # s_mat stands for "score matrix"
     s_mat <- GroupedSum(x * w0 * eps, se_group)
 
     # colMeans(s_mat) is zero at the weights used for regression, but include
@@ -77,6 +106,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
     v_mat <- t(s_mat) %*% s_mat / num_groups
 
     # Covariance matrix
+    # xwx^{-1} v_mat xwx^{-1}
     xwx_inv_vmat <- solve(xwx_qr, v_mat)
     se_mat <- solve(xwx_qr, t(xwx_inv_vmat)) * num_groups
 
@@ -89,20 +119,23 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
       s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
       xwx_inv_s_mat_expanded <-
         ExpandGroupedSum(t(xwx_inv_s_mat), se_group) %>% t()
-      #xwx_inv_s_mat_expanded <- solve(xwx_qr, t(s_mat_expanded))
 
       # To understand the next line,
       # note that dbetahat_dw = solve(xwx_qr, t(x * eps))
       ddiag_semat_dw_partial <-
         2 * xwx_inv_s_mat_expanded * dbetahat_dw -
-        2 * (solve(xwx_qr, t(x))) * (se_mat %*% t(x))
+        2 * (solve(xwx_qr, t(x))) * (se_mat %*% t(x)) %>%
+        `[`(beta_inds, , drop=FALSE)
+
 
       # Second, the partials through the beta dependence.
-      beta_dim <- ncol(x)
-      # ddiag_semat_dbeta_partial will be beta_dim x beta_dim; the columns
+      # ddiag_semat_dbeta_partial will be beta_inds x betahat; the columns
       # correspond to the entries of betahat.
-      ddiag_semat_dbeta_partial <- matrix(NA, nrow(se_mat), nrow(dbetahat_dw))
-      for (d in 1:beta_dim) {
+      # Here there are big computational savings by only computing the
+      # indices we need.
+      ddiag_semat_dbeta_partial <-
+        matrix(NA, nrow=nrow(se_mat), ncol=nrow(dbetahat_dw))
+      for (d in 1:length(betahat)) {
         xi_d <- GroupedSum(-1 * x_w * x[, d], se_group)
         xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
         ddiag_semat_dbeta_partial[, d] <-
@@ -122,6 +155,7 @@ GetRegressionSEDerivs <- function(x, y, beta, w0,
       ddiag_semat_dbeta_partial <- NA
       ddiag_semat_dw <- NA
     }
+
 
     # Specify return values
     ret_list <- list(
