@@ -39,14 +39,14 @@ iv_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
                            paste(z_names, collapse=" + ")))
 iv_res <- ivreg(data=df, formula = iv_form, x=TRUE, y=TRUE)
 
-#se_group <- df$se_group
-se_group <- NULL
+se_group <- df$se_group
+#se_group <- NULL
 
 model_grads <- 
     zaminfluence::ComputeModelInfluence(iv_res, se_group=se_group) %>%
     zaminfluence::AppendTargetRegressorInfluence("x1")
 
-keep_dims <- 1:x_dim
+keep_inds <- 1:x_dim
 
 
 # Torch stuff
@@ -105,51 +105,81 @@ DefineTorchVars <- function(iv_vars) {
     ))    
 }
 
+GetIVRegressionSEDerivs <- function(iv_vars, se_group=NULL, keep_inds=NULL) {
+    keep_inds <- ValidateBetaInds(keep_inds, iv_vars$x)
+    tv <- DefineTorchVars(iv_vars)
+    
+    if (!is.null(se_group)) {
+        tv$score_mat <- tv$z * tv$eps * tv$w
+        tv$se_group <-
+            torch_tensor(
+                as.integer(factor(df$se_group)) %>% matrix(ncol=1), 
+                dtype=torch_int64())
+        tv$score_sum <- TorchGroupedAggregate(src_mat=tv$score_mat, inds=tv$se_group)
+        tv$s_mat <- tv$score_sum - tv$score_sum$mean(dim=1, keepdim=TRUE)
+        
+        num_groups <- tv$s_mat$shape[1]
+        tv$v_mat <- torch_matmul(tv$s_mat$transpose(2, 1), tv$s_mat) / num_groups
+        
+        tv$zwx_inv_vmat <- linalg_solve(tv$zwx, tv$v_mat)
+        tv$se_cov_mat <- linalg_solve(tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
+    } else {
+        tv$sig2_hat <- torch_sum(tv$w * (tv$eps ** 2)) / (tv$num_obs - tv$num_cols)
+        
+        if (iv_vars$z_equals_x) {
+            # Regression is when Z == X and we can save some computation
+            tv$se_cov_mat <- tv$sig2_hat * torch_inverse(tv$zwx)
+        } else {
+            # IV is when Z != X
+            tv$zwz <- torch_matmul(tv$zw_t, tv$z)
+            tv$zwx_inv_zwz <- linalg_solve(tv$zwx, tv$zwz)
+            tv$se_cov_mat <- tv$sig2_hat * linalg_solve(tv$zwx, tv$zwx_inv_zwz$transpose(2, 1))
+        }
+    }
+    
+    
+    # betahat
+    betahat_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+    for (di in 1:length(keep_inds)) {
+        d <- keep_inds[di]
+        betahat_infl_mat[di, ] <- 
+            torch::autograd_grad(
+                tv$betahat[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+    }
+    
+    # standard errors
+    tv$betahat_se <- torch_sqrt(torch_diag(tv$se_cov_mat))
+    se_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+    for (di in 1:length(keep_inds)) {
+        d <- keep_inds[di]
+        se_infl_mat[di, ] <- 
+            torch::autograd_grad(
+                tv$betahat_se[d],
+                tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+    }
+    
+    return(list(
+        tv=tv, 
+        betahat=as.numeric(tv$betahat),
+        betahat_se=as.numeric(tv$betahat_se),
+        betahat_infl_mat=betahat_infl_mat, 
+        se_infl_mat=se_infl_mat))
+}
+
+
+
 # Compute
 
+z_equals_x <- FALSE
 iv_vars <- GetIVVariables(iv_res)
-tv <- DefineTorchVars(iv_vars)
+iv_vars$z_equals_x <- FALSE
 
-if (!is.null(se_group)) {
-    tv$score_mat <- tv$z * tv$eps * tv$w
-    tv$se_group <-
-        torch_tensor(
-            as.integer(factor(df$se_group)) %>% matrix(ncol=1), 
-            dtype=torch_int64())
-    tv$score_sum <- TorchGroupedAggregate(src_mat=tv$score_mat, inds=tv$se_group)
-    tv$s_mat <- tv$score_sum - tv$score_sum$mean(dim=1, keepdim=TRUE)
-    
-    num_groups <- tv$s_mat$shape[1]
-    tv$v_mat <- torch_matmul(tv$s_mat$transpose(2, 1), tv$s_mat) / num_groups
-    
-    tv$zwx_inv_vmat <- linalg_solve(tv$zwx, tv$v_mat)
-    tv$se_cov_mat <- linalg_solve(tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
-} else {
-    tv$sig2_hat <- torch_sum(tv$w * (tv$eps ** 2)) / (tv$num_obs - tv$num_cols)
-    tv$zwz <- torch_matmul(tv$zw_t, tv$z)
-    tv$zwx_inv_zwz <- linalg_solve(tv$zwx, tv$zwz)
-    tv$sand_mat <- linalg_solve(tv$zwx, tv$zwx_inv_zwz$transpose(2, 1))
-    tv$se_cov_mat <- tv$sand_mat * tv$sig2_hat
-    # sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
-    # 
-    # zwx_inv_zwz <- solve(zwx_qr, zwz)
-    # sand_mat <- solve(zwx_qr, t(zwx_inv_zwz))
-    # se_mat <- sig2_hat * sand_mat
-}
+torch_grads <- GetIVRegressionSEDerivs(iv_vars, se_group=se_group, keep_inds=keep_inds)
 
-tv$betahat_se <- torch_sqrt(torch_diag(tv$se_cov_mat))
-se_infl_mat <- matrix(NA, nrow=length(keep_dims), ncol=num_obs)
-for (di in 1:length(keep_dims)) {
-    d <- keep_dims[di]
-    se_infl_mat[di, ] <- 
-        torch::autograd_grad(
-            tv$betahat_se[d],
-            tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
-}
+AssertNearlyZero(model_grads$param_grad - torch_grads$betahat_infl_mat)
+AssertNearlyZero(model_grads$se_grad - torch_grads$se_infl_mat)
 
 
-AssertNearlyZero(as.numeric(tv$betahat_se[1]) - model_grads$param_infls[["x1"]]$se$base_value)
-AssertNearlyZero(model_grads$se_grad - se_infl_mat)
 #plot(model_grads$se_grad, se_infl_mat); abline(0, 1)
 
  
