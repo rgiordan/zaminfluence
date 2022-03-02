@@ -21,207 +21,6 @@ ValidateBetaInds <- function(beta_inds, x) {
 }
 
 
-# Compute the estimate, standard errors, and their derivatives for
-# ordinary least squares regression.
-# See the file inst/regression_derivatives.pdf for the derivation of
-# the derivatives computed by this function.
-#
-# Derivatives will be computed only for the beta_inds indices.
-# Since we can't easily use a QR decomposition for a select
-# set of rows, the computational savings of computing only a few
-# indices' derivatives are limited to the for loop in when se_group == TRUE.
-# You could get around this with a Schur complement but that would
-# be a lot of tedious work.
-GetRegressionSEDerivs <- function(x, y, beta, w0,
-                                  se_group=NULL,
-                                  testing=FALSE,
-                                  compute_derivs=TRUE,
-                                  beta_inds=NULL) {
-
-  beta_inds <- ValidateBetaInds(beta_inds, x)
-  reg_coeff <- GetRegressionCoefficients(x, y, w0)
-  betahat <- reg_coeff$betahat
-  xwx_qr <- reg_coeff$xwx_qr
-  x_w <- reg_coeff$x_w
-
-  num_obs <- length(y)
-
-  eps <- as.numeric(y - x %*% beta)
-
-  x_w <- x * w0
-  #xwx_qr <- qr(t(x_w) %*% x)
-  #betahat <- solve(xwx_qr, t(x_w) %*% y) %>% as.numeric()
-
-  if (compute_derivs) {
-    # This derivative is common to both standard error methods.
-    dbetahat_dw <- solve(xwx_qr, t(x * eps))
-  } else {
-    dbetahat_dw <- NA
-  }
-
-  if (!is.null(se_group)) {
-    ##############################################
-    # Derivatives for grouped standard errors:
-
-    # Enforces that the grouping variable is sequential and zero-indexed.
-    se_group <- as.numeric(factor(se_group)) - 1
-
-    # s_mat stands for "score matrix"
-    s_mat <- GroupedSum(x * w0 * eps, se_group)
-
-    # colMeans(s_mat) is zero at the weights used for regression, but include
-    # it so we can test partial derivatives.
-    s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
-
-    num_groups <- nrow(s_mat)
-
-    # v is for variance, so I take the average, but we then need to multiply
-    # again by num_groups to get the standard error variance.
-    v_mat <- t(s_mat) %*% s_mat / num_groups
-
-    # Covariance matrix
-    # xwx^{-1} v_mat xwx^{-1}
-    xwx_inv_vmat <- solve(xwx_qr, v_mat)
-    se_mat <- solve(xwx_qr, t(xwx_inv_vmat)) * num_groups
-
-    if (compute_derivs) {
-      # Covariance matrix derivatives.
-
-      # First the partials wrt the weights.
-      # s_mat_expanded is s_mat with rows repeated to match the shape of z.
-      xwx_inv_s_mat <- solve(xwx_qr, t(s_mat))
-      s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
-      xwx_inv_s_mat_expanded <-
-        ExpandGroupedSum(t(xwx_inv_s_mat), se_group) %>% t()
-
-      # To understand the next line,
-      # note that dbetahat_dw = solve(xwx_qr, t(x * eps))
-      ddiag_semat_dw_partial <-
-        2 * xwx_inv_s_mat_expanded * dbetahat_dw -
-        2 * (solve(xwx_qr, t(x))) * (se_mat %*% t(x)) %>%
-        `[`(beta_inds, , drop=FALSE)
-
-
-      # Second, the partials through the beta dependence.
-      # ddiag_semat_dbeta_partial will be beta_inds x betahat; the columns
-      # correspond to the entries of betahat.
-      # Here there are big computational savings by only computing the
-      # indices we need.
-      ddiag_semat_dbeta_partial <-
-        matrix(NA, nrow=nrow(se_mat), ncol=nrow(dbetahat_dw))
-      for (d in 1:length(betahat)) {
-        xi_d <- GroupedSum(-1 * x_w * x[, d], se_group)
-        xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
-        ddiag_semat_dbeta_partial[, d] <-
-          2 * xwx_inv_s_mat %*%
-              t(solve(xwx_qr, t(xi_d))) %>% diag()
-      }
-
-      ddiag_semat_dw <-
-        ddiag_semat_dw_partial + ddiag_semat_dbeta_partial %*% dbetahat_dw
-      dse_dw <- 0.5 * ddiag_semat_dw / sqrt(diag(se_mat))
-    } else {
-      # Don't compute any derivative information.
-      dse_mat_diag_dw <- NA
-      dse_dw <- NA
-      ddiag_semat_dw_partial <- NA
-      s_mat_expanded <- NA
-      ddiag_semat_dbeta_partial <- NA
-      ddiag_semat_dw <- NA
-    }
-
-
-    # Specify return values
-    ret_list <- list(
-        betahat=betahat,
-        se_mat=se_mat,
-        se=sqrt(diag(se_mat)),
-        dbetahat_dw=dbetahat_dw,
-        dse_mat_diag_dw=ddiag_semat_dw,
-        dse_dw=dse_dw
-      )
-
-    if (testing) {
-        # For testing and debugging, it's useful to get the
-        # intermediate results.
-        ret_list$v_mat <- v_mat
-        ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
-        ret_list$s_mat <- s_mat
-        ret_list$s_mat_expanded <- s_mat_expanded
-        ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
-    }
-    return(ret_list)
-  } else {
-    ##############################################
-    # Derivatives for un-grouped standard errors:
-
-    sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
-
-    sand_mat <- solve(xwx_qr)
-    se_mat <- sig2_hat * sand_mat
-
-    if (compute_derivs) {
-      ##############################
-      # Derivatives
-
-      # standard error partial derivatives
-      dsig2_hat_dw_partial <- eps^2 / (num_obs - length(beta))
-      dsig2_hat_dbeta <- -2 * colSums(w0 * eps * x) / (num_obs - length(beta))
-
-      # Derivative of the diagonal of the sandwich matrix, which does not
-      # depend on beta.
-      # See notes for the definition of these terms and the derivation.
-      R_x <- solve(xwx_qr, t(x))
-      dsand_mat_diag_dw_partial <- -1 * R_x * R_x
-
-      dse_mat_diag_dw_partial <-
-          dsand_mat_diag_dw_partial * sig2_hat +
-          outer(diag(sand_mat), dsig2_hat_dw_partial)
-
-      # combine with the chain rule.
-      # Note that dsig2_hat_dbeta gets broadcasted like a column vector.
-      dsig2_hat_dw <- colSums(
-        dsig2_hat_dbeta * dbetahat_dw) + dsig2_hat_dw_partial
-      dse_mat_diag_dw <-
-          dse_mat_diag_dw_partial +
-          outer(diag(sand_mat), colSums(dsig2_hat_dbeta * dbetahat_dw))
-
-      dse_dw <- 0.5 * dse_mat_diag_dw / sqrt(diag(se_mat))
-    } else {
-      dsig2_hat_dw <- NA
-      dse_mat_diag_dw <- NA
-      dse_dw <- NA
-      dsig2_hat_dbeta <- NA
-      dsig2_hat_dw_partial <- NA
-      dsand_mat_diag_dw_partial <- NA
-      dse_mat_diag_dw_partial <- NA
-    }
-
-    # Specify return values
-    ret_list <- list(
-      betahat=betahat,
-      se_mat=se_mat,
-      se=sqrt(diag(se_mat)),
-      sig2_hat=sig2_hat,
-      dbetahat_dw=dbetahat_dw,
-      dsig2_hat_dw=dsig2_hat_dw,
-      dse_mat_diag_dw=dse_mat_diag_dw,
-      dse_dw=dse_dw)
-
-    if (testing) {
-        # For testing and debugging, it's useful to get the intermediate results.
-        ret_list$sand_mat <- sand_mat
-        ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta
-        ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial
-        ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial
-        ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial
-    }
-
-    return(ret_list)
-  }
-}
-
-
 # Extract the relevant variables from the output of `lm()`
 GetRegressionVariables <- function(lm_res) {
   if (!(("x" %in% names(lm_res)) &
@@ -242,205 +41,6 @@ GetRegressionVariables <- function(lm_res) {
 
   return(list(x=x, y=y, num_obs=num_obs, w0=w0,
               betahat=betahat, parameter_names=parameter_names))
-}
-
-
-
-
-######################################################3
-# Instrumental variables
-
-# Get the IV estimates from regressors x, instruemnts z, responses y, and
-# weights w0.
-GetIVCoefficients <- function(x, z, y, w0) {
-  z_w <- z * w0
-  zwz <- t(z_w) %*% z
-  zwx_qr <- qr(t(z_w) %*% x)
-
-  betahat <- solve(zwx_qr, t(z_w) %*% y) %>% as.numeric()
-
-  return(list(
-    z_w=z_w,
-    zwz=zwz,
-    zwx_qr=zwx_qr,
-    betahat=betahat))
-}
-
-# Compute the estimate, standard errors, and their derivatives for
-# instrumental variables regression.
-# See the file inst/regression_derivatives.pdf for the derivation of
-# the derivatives computed by this function.
-GetIVSEDerivs <- function(x, z, y, beta, w0, se_group=NULL,
-                          compute_derivs=TRUE, testing=FALSE) {
-  num_obs <- length(y)
-
-  eps <- as.numeric(y - x %*% beta)
-
-  iv_coeff <- GetIVCoefficients(x, z, y, w0)
-  z_w <- iv_coeff$z_w
-  zwz <- iv_coeff$zwz
-  zwx_qr <- iv_coeff$zwx_qr
-  betahat <- iv_coeff$betahat
-
-  if (compute_derivs) {
-    # This derivative is the same for both SE methods.
-    dbetahat_dw <- solve(zwx_qr, t(z * eps))
-  } else {
-    dbetahat_dw <- NA
-  }
-
-  if (!is.null(se_group)) {
-    ##############################################
-    # Derivatives for grouped standard errors:
-
-    # Enforces that the grouping variable is sequential and zero-indexed.
-    se_group <- as.numeric(factor(se_group)) - 1
-
-    s_mat <- GroupedSum(z * eps * w0, se_group)
-
-    # colMeans(s_mat) is zero at the weights used for regression, but include
-    # it so we can test partial derivatives.
-    s_mat <- s_mat - rep(colMeans(s_mat), each=nrow(s_mat))
-
-    num_groups <- nrow(s_mat)
-
-    # v is for variance, so I take the average, but we then need to multiply
-    # again by num_groups to get the standard error variance.
-    v_mat <- t(s_mat) %*% s_mat / num_groups
-
-    # Covariance matrix
-    zwx_inv_vmat <- solve(zwx_qr, v_mat)
-    se_mat <- solve(zwx_qr, t(zwx_inv_vmat)) * num_groups
-
-    if (compute_derivs) {
-      # Covariance matrix derivatives.
-
-      # First the partials wrt the weights.
-
-      #s_mat_expanded <- ExpandGroupedSum(s_mat, se_group)
-
-      zwx_inv_s_mat <- solve(zwx_qr, t(s_mat))
-      #zwx_inv_s_mat_expanded <- solve(zwx_qr, t(s_mat_expanded))
-      zwx_inv_s_mat_expanded <-
-        ExpandGroupedSum(t(zwx_inv_s_mat), se_group) %>% t()
-
-      # To understand the next line, note that
-      # dbetahat_dw = solve(zwx_qr, t(z * eps))
-      ddiag_semat_dw_partial <-
-        2 * zwx_inv_s_mat_expanded * dbetahat_dw -
-        2 * (solve(zwx_qr, t(z))) * (se_mat %*% t(x))
-
-      # Second, the partials through the beta dependence.
-      beta_dim <- ncol(x)
-      # ddiag_semat_dbeta_partial will be beta_dim x beta_dim; the columns
-      # correspond to the entries of betahat.
-      ddiag_semat_dbeta_partial <- matrix(NA, nrow(se_mat), nrow(dbetahat_dw))
-      for (d in 1:beta_dim) {
-        xi_d <- GroupedSum(-1 * z_w * x[, d], se_group)
-        xi_d <- xi_d - rep(colMeans(xi_d), each=nrow(xi_d))
-        ddiag_semat_dbeta_partial[, d] <-
-          2 * zwx_inv_s_mat %*%
-              t(solve(zwx_qr, t(xi_d))) %>% diag()
-      }
-
-      ddiag_semat_dw <-
-        ddiag_semat_dw_partial + ddiag_semat_dbeta_partial %*% dbetahat_dw
-      dse_dw <- 0.5 * ddiag_semat_dw / sqrt(diag(se_mat))
-    } else {
-      ddiag_semat_dw <- NA
-      dse_dw <- NA
-      ddiag_semat_dw_partial <- NA
-      ddiag_semat_dbeta_partial <- NA
-    }
-
-    # Specify return values
-    ret_list <- list(
-        betahat=betahat,
-        se_mat=se_mat,
-        se=sqrt(diag(se_mat)),
-        dbetahat_dw=dbetahat_dw,
-        dse_mat_diag_dw=ddiag_semat_dw,
-        dse_dw=dse_dw
-      )
-
-    if (testing) {
-        # For testing and debugging, it's useful to get the intermediate results.
-        ret_list$v_mat <- v_mat
-        ret_list$ddiag_semat_dw_partial <- ddiag_semat_dw_partial
-        ret_list$s_mat <- s_mat
-        ret_list$ddiag_semat_dbeta_partial <- ddiag_semat_dbeta_partial
-    }
-    return(ret_list)
-
-  } else {
-    ##############################################
-    # Derivatives for un-grouped standard errors:
-
-    sig2_hat <- sum(w0 * eps^2) / (num_obs - length(beta))
-
-    zwx_inv_zwz <- solve(zwx_qr, zwz)
-    sand_mat <- solve(zwx_qr, t(zwx_inv_zwz))
-    se_mat <- sig2_hat * sand_mat
-
-    if (compute_derivs) {
-      ##############################
-      # Derivatives
-
-      # standard error partial derivatives
-      dsig2_hat_dw_partial <- eps^2 / (num_obs - length(beta))
-      dsig2_hat_dbeta <- -2 * colSums(w0 * eps * x) / (num_obs - length(beta))
-
-      # Derivative of the diagonal of the sandwich matrix, which does not
-      # depend on beta.
-      # See notes for the definition of these terms and the derivation.
-      #AR_x <- zwx_inv_zwz %*% solve(t(zwx), t(x))
-      AR_x <- sand_mat %*% t(x)
-      R_z <- solve(zwx_qr, t(z))
-      dsand_mat_diag_dw_partial <- R_z * R_z - 2 * AR_x * R_z
-
-      dse_mat_diag_dw_partial <-
-          dsand_mat_diag_dw_partial * sig2_hat +
-          outer(diag(sand_mat), dsig2_hat_dw_partial)
-
-      # combine with the chain rule.
-      # Note that dsig2_hat_dbeta gets broadcasted like a column vector.
-      dsig2_hat_dw <- colSums(dsig2_hat_dbeta * dbetahat_dw) + dsig2_hat_dw_partial
-      dse_mat_diag_dw <-
-          dse_mat_diag_dw_partial +
-          outer(diag(sand_mat), colSums(dsig2_hat_dbeta * dbetahat_dw))
-
-      dse_dw <- 0.5 * dse_mat_diag_dw / sqrt(diag(se_mat))
-    } else {
-      dsig2_hat_dw <- NA
-      dse_mat_diag_dw <- NA
-      dse_dw <- NA
-      dsig2_hat_dbeta <- NA
-      dsig2_hat_dw_partial <- NA
-      dsand_mat_diag_dw_partial <- NA
-      dse_mat_diag_dw_partial <- NA
-    }
-
-    # Specify return values
-    ret_list <- list(
-        betahat=betahat,
-        se_mat=se_mat,
-        se=sqrt(diag(se_mat)),
-        sig2_hat=sig2_hat,
-        dbetahat_dw=dbetahat_dw,
-        dsig2_hat_dw=dsig2_hat_dw,
-        dse_mat_diag_dw=dse_mat_diag_dw,
-        dse_dw=dse_dw)
-
-    if (testing) {
-        # For testing and debugging, it's useful to get the intermediate results.
-        ret_list$sand_mat <- sand_mat
-        ret_list$dsig2_hat_dbeta <- dsig2_hat_dbeta
-        ret_list$dsig2_hat_dw_partial <- dsig2_hat_dw_partial
-        ret_list$dsand_mat_diag_dw_partial <- dsand_mat_diag_dw_partial
-        ret_list$dse_mat_diag_dw_partial <- dse_mat_diag_dw_partial
-    }
-    return(ret_list)
-  }
 }
 
 
@@ -469,7 +69,131 @@ GetIVVariables <- function(iv_res) {
 
 
 ######################################################
+# Torch stuff.
+
+
+TorchGroupedAggregate <- function(src_mat, inds) {
+    # https://discuss.pytorch.org/t/groupby-aggregate-mean-in-pytorch/45335
+    max_ind <- inds$max() %>% as.integer()
+    zero_mat <- torch_tensor(
+        matrix(0, nrow=max_ind, ncol=src_mat$shape[2]),
+        dtype=src_mat$dtype)
+    inds_rep <- inds[["repeat"]](list(1, src_mat$shape[2]))
+    agg_mat <- zero_mat$scatter_add(dim=1, index=inds_rep, src=src_mat)
+    return(agg_mat)
+}
+
+# inds <- torch_tensor(c(1, 1, 3, 2, 2) %>% matrix(5, 1), dtype=torch_int64())
+# src <- torch_tensor(c(rep(0.1, 5), rep(0.2, 5)) %>% matrix(5, 2))
+# TorchGroupedAggregate(src, inds)
+
+
+DefineTorchVars <- function(iv_vars) {
+    stopifnot(all(c("x", "y", "z", "w0") %in% names(iv_vars)))
+
+    num_obs <- nrow(iv_vars$x)
+    num_cols <- ncol(iv_vars$x)
+
+    stopifnot(length(iv_vars$y) == num_obs)
+    stopifnot(nrow(iv_vars$x) == num_obs)
+    stopifnot(nrow(iv_vars$z) == num_obs)
+    stopifnot(ncol(iv_vars$x) == num_cols)
+    stopifnot(ncol(iv_vars$z) == num_cols)
+
+    x <- torch_tensor(iv_vars$x, requires_grad=FALSE, dtype=torch_double())
+    z <- torch_tensor(iv_vars$z, requires_grad=FALSE, dtype=torch_double())
+    y <- torch_tensor(matrix(iv_vars$y, ncol=1), requires_grad=FALSE, dtype=torch_double())
+    w <- torch_tensor(matrix(iv_vars$w0, ncol=1), requires_grad=TRUE, dtype=torch_double())
+
+    z_w <- z * w
+    z_w_t <- z_w$transpose(2, 1)
+    zwx <- torch_matmul(z_w_t, x)
+    #t(iv_vars$z) %*% iv_vars$z - zwz # Why 1e-6?
+    betahat <- torch::linalg_solve(zwx, torch_matmul(z_w_t, y))
+    eps <- y - torch_matmul(x, betahat)
+
+    return(list(
+        num_obs=num_obs,
+        num_cols=num_cols,
+        x=x,
+        z=z,
+        y=y,
+        w=w,
+        zwx=zwx,
+        zw_t=z_w_t,
+        eps=eps,
+        betahat=betahat
+    ))
+}
+
+GetIVRegressionSEDerivs <- function(iv_vars, se_group=NULL, keep_inds=NULL) {
+    keep_inds <- ValidateBetaInds(keep_inds, iv_vars$x)
+    tv <- DefineTorchVars(iv_vars)
+
+    if (!is.null(se_group)) {
+        tv$score_mat <- tv$z * tv$eps * tv$w
+        tv$se_group <-
+            torch_tensor(
+                as.integer(factor(df$se_group)) %>% matrix(ncol=1),
+                dtype=torch_int64())
+        tv$score_sum <- TorchGroupedAggregate(src_mat=tv$score_mat, inds=tv$se_group)
+        tv$s_mat <- tv$score_sum - tv$score_sum$mean(dim=1, keepdim=TRUE)
+
+        num_groups <- tv$s_mat$shape[1]
+        tv$v_mat <- torch_matmul(tv$s_mat$transpose(2, 1), tv$s_mat) / num_groups
+
+        tv$zwx_inv_vmat <- linalg_solve(tv$zwx, tv$v_mat)
+        tv$se_cov_mat <- linalg_solve(tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
+    } else {
+        tv$sig2_hat <- torch_sum(tv$w * (tv$eps ** 2)) / (tv$num_obs - tv$num_cols)
+
+        if (iv_vars$z_equals_x) {
+            # Regression is when Z == X and we can save some computation
+            tv$se_cov_mat <- tv$sig2_hat * torch_inverse(tv$zwx)
+        } else {
+            # IV is when Z != X
+            tv$zwz <- torch_matmul(tv$zw_t, tv$z)
+            tv$zwx_inv_zwz <- linalg_solve(tv$zwx, tv$zwz)
+            tv$se_cov_mat <- tv$sig2_hat * linalg_solve(tv$zwx, tv$zwx_inv_zwz$transpose(2, 1))
+        }
+    }
+
+
+    # betahat
+    betahat_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+    for (di in 1:length(keep_inds)) {
+        d <- keep_inds[di]
+        betahat_infl_mat[di, ] <-
+            torch::autograd_grad(
+                tv$betahat[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+    }
+
+    # standard errors
+    tv$betahat_se <- torch_sqrt(torch_diag(tv$se_cov_mat))
+    se_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+    for (di in 1:length(keep_inds)) {
+        d <- keep_inds[di]
+        se_infl_mat[di, ] <-
+            torch::autograd_grad(
+                tv$betahat_se[d],
+                tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+    }
+
+    return(list(
+        tv=tv,
+        betahat=as.numeric(tv$betahat),
+        betahat_se=as.numeric(tv$betahat_se),
+        betahat_infl_mat=betahat_infl_mat,
+        se_infl_mat=se_infl_mat))
+}
+
+
+
+
+######################################################
 # Functions for re-running the IV and OLS regressions.
+
+
 
 
 ###############
