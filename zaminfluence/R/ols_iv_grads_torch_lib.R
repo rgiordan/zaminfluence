@@ -2,22 +2,22 @@
 # Ordinary least squares
 
 
-ValidateBetaInds <- function(beta_inds, x) {
-  # If beta_inds is unspecified, compute derivatives for all coefficients.
-  if (is.null(beta_inds)) {
-    beta_inds <- 1:ncol(x)
+ValidateKeepInds <- function(keep_inds, x) {
+  # If keep_inds is unspecified, compute derivatives for all coefficients.
+  if (is.null(keep_inds)) {
+    keep_inds <- 1:ncol(x)
   }
-  beta_inds <- as.integer(beta_inds)
-  if (min(beta_inds) < 1) {
-    stop("beta_inds must be >= 1")
+  keep_inds <- as.integer(keep_inds)
+  if (min(keep_inds) < 1) {
+    stop("keep_inds must be >= 1")
   }
-  if (max(beta_inds) > ncol(x)) {
-    stop("beta_inds must be no greater than the number of x columns")
+  if (max(keep_inds) > ncol(x)) {
+    stop("keep_inds must be no greater than the number of x columns")
   }
-  if (length(unique(beta_inds)) != length(beta_inds)) {
-    stop("beta_inds must not contain repeats")
+  if (length(unique(keep_inds)) != length(keep_inds)) {
+    stop("keep_inds must not contain repeats")
   }
-  return(beta_inds)
+  return(keep_inds)
 }
 
 
@@ -40,6 +40,7 @@ GetRegressionVariables <- function(lm_res) {
   parameter_names <- colnames(lm_res$x)
 
   return(list(x=x, y=y, num_obs=num_obs, w0=w0,
+              z_equals_x=TRUE,
               betahat=betahat, parameter_names=parameter_names))
 }
 
@@ -62,8 +63,9 @@ GetIVVariables <- function(iv_res) {
       w0 <- iv_res$weights
   }
   parameter_names <- colnames(x)
-  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0, betahat=betahat,
-              parameter_names=parameter_names))
+  return(list(x=x, y=y, z=z, num_obs=num_obs, w0=w0,
+              z_equals_x=FALSE,
+              betahat=betahat, parameter_names=parameter_names))
 }
 
 
@@ -101,9 +103,15 @@ DefineTorchVars <- function(iv_vars) {
     stopifnot(ncol(iv_vars$z) == num_cols)
 
     x <- torch_tensor(iv_vars$x, requires_grad=FALSE, dtype=torch_double())
-    z <- torch_tensor(iv_vars$z, requires_grad=FALSE, dtype=torch_double())
-    y <- torch_tensor(matrix(iv_vars$y, ncol=1), requires_grad=FALSE, dtype=torch_double())
-    w <- torch_tensor(matrix(iv_vars$w0, ncol=1), requires_grad=TRUE, dtype=torch_double())
+    if (iv_vars$z_equals_x) {
+      z <- x
+    } else {
+      z <- torch_tensor(iv_vars$z, requires_grad=FALSE, dtype=torch_double())
+    }
+    y <- torch_tensor(matrix(iv_vars$y, ncol=1),
+                      requires_grad=FALSE, dtype=torch_double())
+    w <- torch_tensor(matrix(iv_vars$w0, ncol=1),
+                      requires_grad=TRUE, dtype=torch_double())
 
     z_w <- z * w
     z_w_t <- z_w$transpose(2, 1)
@@ -126,8 +134,12 @@ DefineTorchVars <- function(iv_vars) {
     ))
 }
 
-GetIVRegressionSEDerivs <- function(iv_vars, se_group=NULL, keep_inds=NULL) {
-    keep_inds <- ValidateBetaInds(keep_inds, iv_vars$x)
+
+#'@export
+GetIVRegressionSEDerivsTorch <- function(
+      iv_vars, se_group=NULL, keep_inds=NULL, compute_derivs=TRUE) {
+
+    keep_inds <- ValidateKeepInds(keep_inds, iv_vars$x)
     tv <- DefineTorchVars(iv_vars)
 
     if (!is.null(se_group)) {
@@ -143,9 +155,11 @@ GetIVRegressionSEDerivs <- function(iv_vars, se_group=NULL, keep_inds=NULL) {
         tv$v_mat <- torch_matmul(tv$s_mat$transpose(2, 1), tv$s_mat) / num_groups
 
         tv$zwx_inv_vmat <- linalg_solve(tv$zwx, tv$v_mat)
-        tv$se_cov_mat <- linalg_solve(tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
+        tv$se_cov_mat <- linalg_solve(
+          tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
     } else {
-        tv$sig2_hat <- torch_sum(tv$w * (tv$eps ** 2)) / (tv$num_obs - tv$num_cols)
+        tv$sig2_hat <- torch_sum(
+          tv$w * (tv$eps ** 2)) / (tv$num_obs - tv$num_cols)
 
         if (iv_vars$z_equals_x) {
             # Regression is when Z == X and we can save some computation
@@ -154,37 +168,42 @@ GetIVRegressionSEDerivs <- function(iv_vars, se_group=NULL, keep_inds=NULL) {
             # IV is when Z != X
             tv$zwz <- torch_matmul(tv$zw_t, tv$z)
             tv$zwx_inv_zwz <- linalg_solve(tv$zwx, tv$zwz)
-            tv$se_cov_mat <- tv$sig2_hat * linalg_solve(tv$zwx, tv$zwx_inv_zwz$transpose(2, 1))
+            tv$se_cov_mat <- tv$sig2_hat * linalg_solve(
+              tv$zwx, tv$zwx_inv_zwz$transpose(2, 1))
         }
     }
-
-
-    # betahat
-    betahat_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
-    for (di in 1:length(keep_inds)) {
-        d <- keep_inds[di]
-        betahat_infl_mat[di, ] <-
-            torch::autograd_grad(
-                tv$betahat[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
-    }
-
-    # standard errors
     tv$betahat_se <- torch_sqrt(torch_diag(tv$se_cov_mat))
-    se_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
-    for (di in 1:length(keep_inds)) {
-        d <- keep_inds[di]
-        se_infl_mat[di, ] <-
-            torch::autograd_grad(
-                tv$betahat_se[d],
-                tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
-    }
 
-    return(list(
+    return_list <- list(
         tv=tv,
         betahat=as.numeric(tv$betahat),
-        betahat_se=as.numeric(tv$betahat_se),
-        betahat_infl_mat=betahat_infl_mat,
-        se_infl_mat=se_infl_mat))
+        betahat_se=as.numeric(tv$betahat_se))
+
+    if (compute_derivs) {
+      # betahat
+      betahat_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+      for (di in 1:length(keep_inds)) {
+          d <- keep_inds[di]
+          betahat_infl_mat[di, ] <-
+              torch::autograd_grad(
+                  tv$betahat[d], tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+      }
+
+      # standard errors
+      se_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+      for (di in 1:length(keep_inds)) {
+          d <- keep_inds[di]
+          se_infl_mat[di, ] <-
+              torch::autograd_grad(
+                  tv$betahat_se[d],
+                  tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
+      }
+
+      return_list$betahat_infl_mat <- betahat_infl_mat,
+      return_list$se_infl_mat <- se_infl_mat
+    }
+
+    return(return_list)
 }
 
 
@@ -211,26 +230,20 @@ GetIVRegressionSEDerivs <- function(iv_vars, se_group=NULL, keep_inds=NULL) {
 #' @export
 ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
   reg_vars <- GetRegressionVariables(lm_result)
-  if (is.null(weights)) {
-    weights <- reg_vars$w0
+  if (!is.null(weights)) {
+    reg_vars$w0 <- weights
   }
 
-  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
-  reg_coeff <- GetRegressionCoefficients(
-    x=reg_vars$x, y=reg_vars$y, w0=weights)
-
-  reg_grad_list <- GetRegressionSEDerivs(
-    x=reg_vars$x,
-    y=reg_vars$y,
-    beta=reg_coeff$betahat,
-    w0=weights,
+  reg_grad_list <- GetIVRegressionSEDerivsTorch(
+    iv_vars=reg_vars,
     se_group=se_group,
-    testing=FALSE,
+    keep_inds=NULL,
     compute_derivs=FALSE)
+
   return(list(
     betahat=reg_grad_list$betahat,
-    se=reg_grad_list$se,
-    se_mat=reg_grad_list$se_mat
+    se=reg_grad_list$betahat_se,
+    se_mat=reg_grad_list$tv$se_cov_mat
   ))
 }
 
@@ -239,27 +252,6 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 
 ###############
 # IV
-
-#
-# #' Compute the standard error matrix for an IV regression.  Deprecated --- use
-# #' [ComputeIVRegressionResults()] instead.
-# #'
-# #' @param iv_res `r docs$iv_res`
-# #' @param se_group `r docs$se_group`
-# #'
-# #' @return `r docs$grad_return`
-# #'
-# #' @export
-# ComputeIVRegressionErrorCovariance <- function(iv_res, se_group=NULL) {
-#   warning(paste0(
-#     "ComputeIVRegressionErrorCovariance is deprecated; use the ",
-#     "se_mat output of ComputeIVRegressionResults instead."))
-#   iv_vars <- GetIVVariables(iv_res)
-#   iv_grad_list <- GetIVSEDerivs(
-#     x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
-#     beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
-#   return(iv_grad_list$se_mat)
-# }
 
 
 #' Run an IV regression using zaminfluence code.  This should be identical
@@ -273,31 +265,20 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 #' @export
 ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
   iv_vars <- GetIVVariables(iv_res)
-  if (is.null(weights)) {
-    weights <- iv_vars$w0
+  if (!is.null(weights)) {
+    reg_vars$w0 <- weights
   }
 
-  # TODO: re-use the QR decomposition in GetRegressionSEDerivs
-  iv_coeff <- GetIVCoefficients(
-    x=iv_vars$x,
-    z=iv_vars$z,
-    y=iv_vars$y,
-    w0=weights)
-
-  iv_grad_list <- GetIVSEDerivs(
-    x=iv_vars$x,
-    z=iv_vars$z,
-    y=iv_vars$y,
-    beta=iv_coeff$betahat,
-    w0=weights,
+  reg_grad_list <- GetIVRegressionSEDerivsTorch(
+    iv_vars=iv_vars,
     se_group=se_group,
-    testing=FALSE,
+    keep_inds=NULL,
     compute_derivs=FALSE)
 
   return(list(
-    betahat=iv_grad_list$betahat,
-    se=iv_grad_list$se,
-    se_mat=iv_grad_list$se_mat
+    betahat=reg_grad_list$betahat,
+    se=reg_grad_list$betahat_se,
+    se_mat=reg_grad_list$tv$se_cov_mat
   ))
 }
 
@@ -319,11 +300,18 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 #' @return `r docs$grad_return`
 #'
 #' @export
-ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
+ComputeRegressionInfluence <- function(
+    lm_result, se_group=NULL, keep_inds=NULL) {
+
   reg_vars <- GetRegressionVariables(lm_result)
-  reg_grad_list <- GetRegressionSEDerivs(
-    x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
-    w0=reg_vars$w0, se_group=se_group)
+  # reg_grad_list <- GetRegressionSEDerivs(
+  #   x=reg_vars$x, y=reg_vars$y, beta=reg_vars$betahat,
+  #   w0=reg_vars$w0, se_group=se_group)
+  reg_grad_list <- GetIVRegressionSEDerivsTorch(
+    iv_vars=reg_vars,
+    se_group=se_group,
+    keep_inds=keep_inds,
+    compute_derivs=TRUE)
 
   RerunFun <- function(weights) {
     ret_list <-
@@ -347,9 +335,10 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
     weights=reg_vars$w0,
     se_group=se_group)
 
+  # TODO: ModelGrads needs keep_inds
   return(ModelGrads(model_fit=model_fit,
-                    param_grad=reg_grad_list$dbetahat_dw,
-                    se_grad=reg_grad_list$dse_dw,
+                    param_grad=reg_grad_list$betahat_infl_mat,
+                    se_grad=reg_grad_list$betahat_se_infl_mat,
                     RerunFun=RerunFun))
 
 }
@@ -362,13 +351,20 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
 #' @return `r docs$grad_return`
 #'
 #' @export
-ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
-    iv_vars <- GetIVVariables(iv_res)
-    iv_grad_list <- GetIVSEDerivs(
-      x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
-      beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+ComputeIVRegressionInfluence <- function(
+      iv_res, se_group=NULL, keep_inds=NULL) {
 
-      RerunFun <- function(weights) {
+    iv_vars <- GetIVVariables(iv_res)
+    # iv_grad_list <- GetIVSEDerivs(
+    #   x=iv_vars$x, z=iv_vars$z, y=iv_vars$y,
+    #   beta=iv_vars$betahat, w0=iv_vars$w0, se_group=se_group)
+    iv_grad_list <- GetIVRegressionSEDerivsTorch(
+      iv_vars=iv_vars,
+      se_group=se_group,
+      keep_inds=keep_inds,
+      compute_derivs=TRUE)
+
+    RerunFun <- function(weights) {
         ret_list <-
           ComputeIVRegressionResults(iv_res, weights=weights, se_group=se_group)
         return(ModelFit(
@@ -391,9 +387,10 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
       se_group=se_group)
 
     # Note that the standard errors may not match iv_res when using se_group.
+    # TODO: ModelGrads needs keep_inds
     return(ModelGrads(model_fit=model_fit,
-                      param_grad=iv_grad_list$dbetahat_dw,
-                      se_grad=iv_grad_list$dse_dw,
+                      param_grad=iv_grad_list$betahat_infl_mat,
+                      se_grad=iv_grad_list$betahat_se_infl_mat,
                       RerunFun=RerunFun))
 }
 

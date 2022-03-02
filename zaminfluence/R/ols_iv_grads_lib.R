@@ -510,7 +510,7 @@ GetIVVariables <- function(iv_res) {
 #'
 #' @return `r docs$rerun_return`
 #'
-#' @export
+##' @export
 ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
   reg_vars <- GetRegressionVariables(lm_result)
   if (is.null(weights)) {
@@ -572,7 +572,7 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 #' @param se_group `r docs$se_group`
 #'
 #' @return A list containing the regression coefficients and standard errors.
-#' @export
+##' @export
 ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
   iv_vars <- GetIVVariables(iv_res)
   if (is.null(weights)) {
@@ -620,7 +620,7 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 #'
 #' @return `r docs$grad_return`
 #'
-#' @export
+##' @export
 ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
   reg_vars <- GetRegressionVariables(lm_result)
   reg_grad_list <- GetRegressionSEDerivs(
@@ -663,7 +663,7 @@ ComputeRegressionInfluence <- function(lm_result, se_group=NULL) {
 #'
 #' @return `r docs$grad_return`
 #'
-#' @export
+##' @export
 ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
     iv_vars <- GetIVVariables(iv_res)
     iv_grad_list <- GetIVSEDerivs(
@@ -697,29 +697,4 @@ ComputeIVRegressionInfluence <- function(iv_res, se_group=NULL) {
                       param_grad=iv_grad_list$dbetahat_dw,
                       se_grad=iv_grad_list$dse_dw,
                       RerunFun=RerunFun))
-}
-
-
-#' Compute the influence functions for all regressors given a model fit.
-#' @param model_fit `r docs$model_fit`
-#' @param se_group `r docs$se_group`
-#'
-#' @return `r docs$model_grads`
-#'
-#' @export
-ComputeModelInfluence <- function(fit_object, se_group=NULL) {
-  valid_classes <- c("lm", "ivreg")
-  model_class <- class(fit_object)
-  if (!(model_class %in% valid_classes)) {
-    stop(sprintf("The class of `model_fit` must be one of %s",
-                 paste(valid_classes, collapse=", ")))
-  }
-  if (model_class == "lm") {
-    return(ComputeRegressionInfluence(fit_object, se_group))
-  } else if (model_class == "ivreg") {
-    return(ComputeIVRegressionInfluence(fit_object, se_group))
-  } else {
-    # Redundant, so sue me.
-    stop(sprint("Unknown model class %s", model_class))
-  }
 }
