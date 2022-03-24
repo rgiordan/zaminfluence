@@ -185,7 +185,8 @@ print(qr_time)
 
 
 
-
+##################################################
+# Be careful about cyclic dependencies.
 
 
 cat("-----------\n")
@@ -198,3 +199,30 @@ print(sprintf("x = %f", x))
 print(sprintf("y = %f", y))
 print(sprintf("dy/dx = %f", torch::autograd_grad(y, x)[[1]]))
 
+
+
+##################################################
+# Can you force it to compute a Hessian?  Yes.
+
+
+par_dim <- 5
+
+x_r <- runif(par_dim) %>% matrix(ncol=1)
+a_r <- runif(par_dim * par_dim) %>% matrix(par_dim, par_dim)
+a_r <- a_r + t(a_r)
+
+x <- torch_tensor(x_r, dtype=torch_float64(), requires_grad=TRUE)
+a <- torch_tensor(a_r, dtype=torch_float64(), requires_grad=FALSE)
+
+y <- 0.5 * torch_einsum("ik,ij,jk", list(x, a, x))
+AssertNearlyZero(as.numeric(y) - 0.5 * t(x_r) %*% a_r %*% x_r, tol=1e-7) # why?
+
+y_grad <- torch::autograd_grad(y, x, retain_graph=TRUE, create_graph=TRUE)
+
+y_hess <- matrix(NA, nrow=par_dim, ncol=par_dim)
+for (d in 1:par_dim) {
+    y_hess[d, ] <- 
+        torch::autograd_grad(y_grad[[1]][d], x, retain_graph=TRUE)[[1]] %>% as.numeric()
+}
+
+AssertNearlyZero(y_hess - a_r)

@@ -148,7 +148,8 @@ GetIVRegressionSEDerivsTorch <- function(
             torch_tensor(
                 as.integer(factor(df$se_group)) %>% matrix(ncol=1),
                 dtype=torch_int64())
-        tv$score_sum <- TorchGroupedAggregate(src_mat=tv$score_mat, inds=tv$se_group)
+        tv$score_sum <- TorchGroupedAggregate(
+          src_mat=tv$score_mat, inds=tv$se_group)
         tv$s_mat <- tv$score_sum - tv$score_sum$mean(dim=1, keepdim=TRUE)
 
         num_groups <- tv$s_mat$shape[1]
@@ -199,8 +200,8 @@ GetIVRegressionSEDerivsTorch <- function(
                   tv$w, retain_graph=TRUE)[[1]] %>% as.numeric()
       }
 
-      return_list$betahat_infl_mat <- betahat_infl_mat,
-      return_list$se_infl_mat <- se_infl_mat
+      return_list$betahat_infl_mat <- betahat_infl_mat
+      return_list$betahat_se_infl_mat <- se_infl_mat
     }
 
     return(return_list)
@@ -293,6 +294,19 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 # automatic differentiation, perhaps in a different programming language.
 
 
+GetKeepInds <- function(coeff_names, keep_pars=NULL) {
+    if (is.null(keep_pars)) {
+      return(1:length(coeff_names))
+    }
+    missing_pars <- setdiff(keep_pars, coeff_names)
+    if (length(missing_pars) > 0) {
+        stop(sprintf("Parameters %s are not present in model", paste(missing_pars, collapse=", ")))
+    }
+    inds <- setNames(1:length(coeff_names), coeff_names)
+    return(inds[keep_pars] %>% unname())
+}
+
+
 #' Compute all influence scores for a regression.
 #' @param lm_result `r docs$lm_result`
 #' @param se_group `r docs$se_group`
@@ -301,7 +315,9 @@ ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
 #'
 #' @export
 ComputeRegressionInfluence <- function(
-    lm_result, se_group=NULL, keep_inds=NULL) {
+    lm_result, se_group=NULL, keep_pars=NULL) {
+
+  keep_inds <- GetKeepInds(names(coefficients(lm_result)), keep_pars)
 
   reg_vars <- GetRegressionVariables(lm_result)
   # reg_grad_list <- GetRegressionSEDerivs(
@@ -319,7 +335,7 @@ ComputeRegressionInfluence <- function(
     return(ModelFit(
       fit_object=ret_list,
       num_obs=reg_vars$num_obs,
-      param=ret_list$betahat,
+      param=ret_list$betahat_se,
       se=ret_list$se,
       parameter_names=reg_vars$parameter_names,
       weights=weights,
@@ -337,6 +353,7 @@ ComputeRegressionInfluence <- function(
 
   # TODO: ModelGrads needs keep_inds
   return(ModelGrads(model_fit=model_fit,
+                    keep_inds=keep_inds,
                     param_grad=reg_grad_list$betahat_infl_mat,
                     se_grad=reg_grad_list$betahat_se_infl_mat,
                     RerunFun=RerunFun))
@@ -352,7 +369,9 @@ ComputeRegressionInfluence <- function(
 #'
 #' @export
 ComputeIVRegressionInfluence <- function(
-      iv_res, se_group=NULL, keep_inds=NULL) {
+      iv_res, se_group=NULL, keep_pars=NULL) {
+
+    keep_inds <- GetKeepInds(names(coefficients(iv_res)), keep_pars)
 
     iv_vars <- GetIVVariables(iv_res)
     # iv_grad_list <- GetIVSEDerivs(
@@ -382,13 +401,14 @@ ComputeIVRegressionInfluence <- function(
       num_obs=iv_vars$num_obs,
       parameter_names=iv_vars$parameter_names,
       param=iv_vars$betahat,
-      se=iv_grad_list$se,
+      se=iv_grad_list$betahat_se,
       weights=iv_vars$w0,
       se_group=se_group)
 
     # Note that the standard errors may not match iv_res when using se_group.
     # TODO: ModelGrads needs keep_inds
     return(ModelGrads(model_fit=model_fit,
+                      keep_inds=keep_inds,
                       param_grad=iv_grad_list$betahat_infl_mat,
                       se_grad=iv_grad_list$betahat_se_infl_mat,
                       RerunFun=RerunFun))
@@ -402,7 +422,7 @@ ComputeIVRegressionInfluence <- function(
 #' @return `r docs$model_grads`
 #'
 #' @export
-ComputeModelInfluence <- function(fit_object, se_group=NULL) {
+ComputeModelInfluence <- function(fit_object, keep_pars=NULL, se_group=NULL) {
   valid_classes <- c("lm", "ivreg")
   model_class <- class(fit_object)
   if (!(model_class %in% valid_classes)) {
@@ -410,9 +430,11 @@ ComputeModelInfluence <- function(fit_object, se_group=NULL) {
                  paste(valid_classes, collapse=", ")))
   }
   if (model_class == "lm") {
-    return(ComputeRegressionInfluence(fit_object, se_group))
+    return(ComputeRegressionInfluence(
+      fit_object, se_group=se_group, keep_pars=keep_pars))
   } else if (model_class == "ivreg") {
-    return(ComputeIVRegressionInfluence(fit_object, se_group))
+    return(ComputeIVRegressionInfluence(
+      fit_object, se_group=se_group, keep_pars=keep_pars))
   } else {
     # Redundant, so sue me.
     stop(sprint("Unknown model class %s", model_class))

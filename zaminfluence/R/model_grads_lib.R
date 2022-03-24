@@ -60,6 +60,7 @@ ModelFit <- function(fit_object, num_obs, param, se,
 
 new_ModelGrads <- function(
     model_fit,
+    keep_inds,
     param_grad,
     se_grad,
     param_infls,
@@ -67,6 +68,7 @@ new_ModelGrads <- function(
     PredictFun) {
   return(structure(
     list(model_fit=model_fit,
+         keep_inds=keep_inds,
 
          param_grad=param_grad,
          se_grad=se_grad,
@@ -87,8 +89,11 @@ validate_ModelGrads <- function(model_grads) {
   CheckGradDim <- function(grad_mat) {
     stopifnot(length(dim(grad_mat)) == 2)
     stopifnot(ncol(grad_mat) == model_fit$num_obs)
-    stopifnot(nrow(grad_mat) == model_fit$parameter_dim)
+    stopifnot(nrow(grad_mat) == length(model_grads$keep_inds))
   }
+
+  stopifnot(max(model_grads$keep_inds) <= model_fit$parameter_dim)
+  stopifnot(min(model_grads$keep_inds) >= 1)
 
   CheckGradDim(model_grads$param_grad)
   CheckGradDim(model_grads$se_grad)
@@ -132,10 +137,15 @@ ModelGrads <- function(
     model_fit,
     param_grad,
     se_grad,
-    RerunFun) {
+    RerunFun,
+    keep_inds=NULL) {
 
+  if (is.null(keep_inds)) {
+    keep_inds <- 1:model_fit$parameter_dim
+  }
   return(validate_ModelGrads(new_ModelGrads(
       model_fit=model_fit,
+      keep_inds=keep_inds,
       param_grad=param_grad,
       se_grad=se_grad,
       RerunFun=RerunFun,
