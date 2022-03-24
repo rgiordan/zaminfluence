@@ -60,7 +60,7 @@ ModelFit <- function(fit_object, num_obs, param, se,
 
 new_ModelGrads <- function(
     model_fit,
-    keep_inds,
+    parameter_names,
     param_grad,
     se_grad,
     param_infls,
@@ -68,8 +68,8 @@ new_ModelGrads <- function(
     PredictFun) {
   return(structure(
     list(model_fit=model_fit,
-         keep_inds=keep_inds,
 
+         parameter_names=parameter_names,
          param_grad=param_grad,
          se_grad=se_grad,
 
@@ -86,19 +86,20 @@ validate_ModelGrads <- function(model_grads) {
   validate_ModelFit(model_grads$model_fit)
   model_fit <- model_grads$model_fit
 
+  grad_pars <- model_grads$parameter_names
+  stopifnot(all(grad_pars %in% model_fit$parameter_names))
+
   CheckGradDim <- function(grad_mat) {
     stopifnot(length(dim(grad_mat)) == 2)
     stopifnot(ncol(grad_mat) == model_fit$num_obs)
-    stopifnot(nrow(grad_mat) == length(model_grads$keep_inds))
+    stopifnot(nrow(grad_mat) == length(grad_pars))
   }
-
-  stopifnot(max(model_grads$keep_inds) <= model_fit$parameter_dim)
-  stopifnot(min(model_grads$keep_inds) >= 1)
 
   CheckGradDim(model_grads$param_grad)
   CheckGradDim(model_grads$se_grad)
 
   stopifnot(class(model_grads$param_infls) == "list")
+  stopifnot(all(names(model_grads$param_infls) %in% grad_pars))
   for (param_infl in model_grads$param_infls) {
     stopifnot(class(param_infl) == "ParameterInferenceInfluence")
   }
@@ -137,15 +138,21 @@ ModelGrads <- function(
     model_fit,
     param_grad,
     se_grad,
-    RerunFun,
-    keep_inds=NULL) {
+    RerunFun) {
 
-  if (is.null(keep_inds)) {
-    keep_inds <- 1:model_fit$parameter_dim
+  parameter_names <- rownames(param_grad)
+  if (any(rownames(se_grad) != parameter_names)) {
+    stop(paste0(
+      "The rownames of se_grad and param_grad must match.",
+      "rownames(param_grad) = (",
+      paste(rownames(param_grad), collapse=","), ")\n",
+      "rownames(se_grad) = (",
+      paste(rownames(se_grad), collapse=","), ")\n",
+    ))
   }
   return(validate_ModelGrads(new_ModelGrads(
       model_fit=model_fit,
-      keep_inds=keep_inds,
+      parameter_names=parameter_names,
       param_grad=param_grad,
       se_grad=se_grad,
       RerunFun=RerunFun,
