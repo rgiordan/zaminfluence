@@ -51,9 +51,15 @@ fit_object <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <-
-    ComputeModelInfluence(fit_object, se_group=df$z) %>%
+    ComputeModelInfluence(fit_object, se_group=df$z, keep_pars="x1") %>%
     AppendTargetRegressorInfluence("x1")
 
+if (FALSE) {
+    # This is really slow because it computes grads for all the fixed effects
+    model_grads <-
+        ComputeModelInfluence(fit_object, se_group=df$z) %>%
+        AppendTargetRegressorInfluence("x1")
+}
 
 
 
