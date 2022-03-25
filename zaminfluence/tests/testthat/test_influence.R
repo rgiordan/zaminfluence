@@ -10,13 +10,7 @@ library(testthat)
 library(tidyverse)
 library(purrr)
 
-#context("zaminfluence")
-
-
-# DELTEME
-library(devtools)
-devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
-
+context("zaminfluence")
 
 GenerateTestInstance <- function(do_iv, do_grouping) {
     x_dim <- 1
@@ -227,8 +221,6 @@ TestInfluence <- function(test_instance) {
   return(invisible(test_instance))
 }
 
-
-#debug(TestPredictions)
 
 test_that("influence_computations_correct", {
   set.seed(42)
