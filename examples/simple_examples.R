@@ -23,7 +23,7 @@ SummarizeReruns <- function(reruns, preds) {
     summary_df <-
         rbind(reruns_df %>% mutate(method="rerun"),
               preds_df %>% mutate(method="prediction")) %>%
-        pivot_wider(-method, names_from=method, values_from=value)
+        pivot_wider(names_from=method, values_from=value)
     return(summary_df)
 }
 
@@ -50,6 +50,7 @@ model_grads <-
 
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
+
 preds <- PredictForSignals(signals, model_grads)
 base_df <- GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls)
 

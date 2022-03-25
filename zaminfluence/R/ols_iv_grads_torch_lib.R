@@ -1,5 +1,6 @@
 ######################################################3
 # Ordinary least squares
+library(torch)
 
 
 ValidateKeepInds <- function(keep_inds, x) {
@@ -91,16 +92,23 @@ TorchGroupedAggregate <- function(src_mat, inds) {
 
 
 DefineTorchVars <- function(iv_vars) {
-    stopifnot(all(c("x", "y", "z", "w0") %in% names(iv_vars)))
+    if (iv_vars$z_equals_x) {
+      stopifnot(all(c("x", "y", "w0") %in% names(iv_vars)))
+    } else {
+      stopifnot(all(c("x", "y", "z", "w0") %in% names(iv_vars)))
+    }
 
     num_obs <- nrow(iv_vars$x)
     num_cols <- ncol(iv_vars$x)
 
     stopifnot(length(iv_vars$y) == num_obs)
     stopifnot(nrow(iv_vars$x) == num_obs)
-    stopifnot(nrow(iv_vars$z) == num_obs)
     stopifnot(ncol(iv_vars$x) == num_cols)
-    stopifnot(ncol(iv_vars$z) == num_cols)
+
+    if (!iv_vars$z_equals_x) {
+      stopifnot(nrow(iv_vars$z) == num_obs)
+      stopifnot(ncol(iv_vars$z) == num_cols)
+    }
 
     x <- torch_tensor(iv_vars$x, requires_grad=FALSE, dtype=torch_double())
     if (iv_vars$z_equals_x) {
@@ -267,7 +275,7 @@ ComputeRegressionResults <- function(lm_result, weights=NULL, se_group=NULL) {
 ComputeIVRegressionResults <- function(iv_res, weights=NULL, se_group=NULL) {
   iv_vars <- GetIVVariables(iv_res)
   if (!is.null(weights)) {
-    reg_vars$w0 <- weights
+    iv_vars$w0 <- weights
   }
 
   reg_grad_list <- GetIVRegressionSEDerivsTorch(
@@ -317,7 +325,11 @@ GetKeepInds <- function(coeff_names, keep_pars=NULL) {
 ComputeRegressionInfluence <- function(
     lm_result, se_group=NULL, keep_pars=NULL) {
 
-  keep_inds <- GetKeepInds(names(coefficients(lm_result)), keep_pars)
+  all_par_names <- names(coefficients(lm_result))
+  if (is.null(keep_pars)) {
+    keep_pars <- all_par_names
+  }
+  keep_inds <- GetKeepInds(all_par_names, keep_pars)
 
   reg_vars <- GetRegressionVariables(lm_result)
   # reg_grad_list <- GetRegressionSEDerivs(
@@ -335,7 +347,7 @@ ComputeRegressionInfluence <- function(
     return(ModelFit(
       fit_object=ret_list,
       num_obs=reg_vars$num_obs,
-      param=ret_list$betahat_se,
+      param=ret_list$betahat,
       se=ret_list$se,
       parameter_names=reg_vars$parameter_names,
       weights=weights,
@@ -347,7 +359,7 @@ ComputeRegressionInfluence <- function(
     num_obs=reg_vars$num_obs,
     parameter_names=reg_vars$parameter_names,
     param=reg_vars$betahat,
-    se=reg_grad_list$se,
+    se=reg_grad_list$betahat_se,
     weights=reg_vars$w0,
     se_group=se_group)
 
@@ -372,7 +384,11 @@ ComputeRegressionInfluence <- function(
 ComputeIVRegressionInfluence <- function(
       iv_res, se_group=NULL, keep_pars=NULL) {
 
-    keep_inds <- GetKeepInds(names(coefficients(iv_res)), keep_pars)
+    all_par_names <- names(coefficients(iv_res))
+    if (is.null(keep_pars)) {
+      keep_pars <- all_par_names
+    }
+    keep_inds <- GetKeepInds(all_par_names, keep_pars)
 
     iv_vars <- GetIVVariables(iv_res)
     # iv_grad_list <- GetIVSEDerivs(

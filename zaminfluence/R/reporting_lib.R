@@ -35,7 +35,7 @@ GetModelFitInferenceDataframe <- function(model_fit, param_infls) {
     for (param_name in names(param_infls)) {
         param_infl <- param_infls[[param_name]]
         # We checked above that each parameter name is found.
-        target_index <- which(model_fit$parameter_names == param_name)
+        target_index <- GetParameterIndex(model_fit, param_name)
         summary_df <-
             GetParameterInferenceDataframe(
                 model_fit=model_fit,
