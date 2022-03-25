@@ -10,6 +10,8 @@ ComputeIVRegressionInfluence(iv_res, se_group = NULL, keep_pars = NULL)
 \item{iv_res}{The iv regression result, i.e, the output of \code{\link[=ivreg]{ivreg()}}.}
 
 \item{se_group}{Optional. The standard error grouping variable.}
+
+\item{keep_pars}{Optional. The names of parameters for which to compute derivatives.}
 }
 \value{
 A list containing the sensitivity of the coefficients and standard errors to data re-weighting.  The list entries are
