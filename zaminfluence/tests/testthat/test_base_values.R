@@ -161,7 +161,6 @@ test_that("derivatives work", {
     num_groups <- if (config$num_groups == -1) NULL else config$num_groups
     TestRegressionConfigurationDerivs(num_groups, weights, keep_pars, config$do_iv)
   }
-
 })
 
 
