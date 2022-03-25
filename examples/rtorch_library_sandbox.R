@@ -4,7 +4,7 @@ library(zaminfluence)
 library(AER)
 
 library(devtools)
-devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+#devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 zam_dir <- "/home/rgiordan/Documents/git_repos/zaminfluence"
 #source(file.path(zam_dir, "zaminfluence/R/ols_iv_grads_lib.R"))
 set.seed(42)
@@ -45,4 +45,8 @@ model_grads <-
     zaminfluence::ComputeModelInfluence(iv_res, se_group=se_group, keep_pars=c("x2", "x1")) %>%
     zaminfluence::AppendTargetRegressorInfluence("x1")
 
+GetParameterIndex(model_grads$model_fit, "x1")
+GetParameterIndex(model_grads, "x1")
+
+rownames(model_grads$param_grad)
 

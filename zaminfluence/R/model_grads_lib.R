@@ -158,3 +158,34 @@ ModelGrads <- function(
       RerunFun=RerunFun,
       param_infls=list())))
 }
+
+
+
+#'@export
+GetParameterIndex <- function(m, par_name) {
+  UseMethod("GetParameterIndex")
+}
+
+
+#'@export
+GetParameterIndex.ModelGrads <- function(model_grads, par_name) {
+  return(GetParameterIndexLocal(
+    model_grads$parameter_names, par_name, object_class="ModelGrads"))
+}
+
+
+#'@export
+GetParameterIndex.ModelFit <- function(model_fit, par_name) {
+  return(GetParameterIndexLocal(
+    model_fit$parameter_names, par_name, object_class="ModelFit"))
+}
+
+
+GetParameterIndexLocal <- function(par_names, par_name, object_class) {
+  if (!(par_name %in% par_names)) {
+    stop(paste0("Parameter name ", par_name, " not found in ",
+                object_class, "."))
+  }
+  target_index <- which(par_names == par_name)
+  return(target_index)
+}

@@ -351,9 +351,10 @@ ComputeRegressionInfluence <- function(
     weights=reg_vars$w0,
     se_group=se_group)
 
-  # TODO: ModelGrads needs keep_inds
+  rownames(reg_grad_list$betahat_infl_mat) <- keep_pars
+  rownames(reg_grad_list$betahat_se_infl_mat) <- keep_pars
+
   return(ModelGrads(model_fit=model_fit,
-                    keep_inds=keep_inds,
                     param_grad=reg_grad_list$betahat_infl_mat,
                     se_grad=reg_grad_list$betahat_se_infl_mat,
                     RerunFun=RerunFun))
@@ -405,10 +406,11 @@ ComputeIVRegressionInfluence <- function(
       weights=iv_vars$w0,
       se_group=se_group)
 
+    rownames(iv_grad_list$betahat_infl_mat) <- keep_pars
+    rownames(iv_grad_list$betahat_se_infl_mat) <- keep_pars
+
     # Note that the standard errors may not match iv_res when using se_group.
-    # TODO: ModelGrads needs keep_inds
     return(ModelGrads(model_fit=model_fit,
-                      keep_inds=keep_inds,
                       param_grad=iv_grad_list$betahat_infl_mat,
                       se_grad=iv_grad_list$betahat_se_infl_mat,
                       RerunFun=RerunFun))
