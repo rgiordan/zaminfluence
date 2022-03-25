@@ -117,15 +117,16 @@ PredictModelFit <- function(model_grads, weights) {
     stopifnot(length(weights) == model_fit$num_obs)
 
     weight_diff <- weights - model_fit$weights
-    param_pred <- model_fit$param + model_grads$param_grad %*% weight_diff
-    se_pred <- model_fit$se + model_grads$se_grad %*% weight_diff
+    kept_indices <- GetParameterIndex(model_fit, model_grads$parameter_names)
+    param_pred <- model_fit$param[kept_indices] + model_grads$param_grad %*% weight_diff
+    se_pred <- model_fit$se[kept_indices] + model_grads$se_grad %*% weight_diff
     pred_fit <-
         ModelFit(
             fit_object="prediction",
             num_obs=model_grads$model_fit$num_obs,
             param=param_pred,
             se=se_pred,
-            parameter_names=model_fit$parameter_names,
+            parameter_names=model_grads$parameter_names,
             weights=weights,
             se_group=model_fit$se_group)
     return(pred_fit)
@@ -168,24 +169,27 @@ GetParameterIndex <- function(m, par_name) {
 
 
 #'@export
-GetParameterIndex.ModelGrads <- function(model_grads, par_name) {
+GetParameterIndex.ModelGrads <- function(model_grads, par_names) {
   return(GetParameterIndexLocal(
-    model_grads$parameter_names, par_name, object_class="ModelGrads"))
+    model_grads$parameter_names, par_names, object_class="ModelGrads"))
 }
 
 
 #'@export
-GetParameterIndex.ModelFit <- function(model_fit, par_name) {
+GetParameterIndex.ModelFit <- function(model_fit, par_names) {
   return(GetParameterIndexLocal(
-    model_fit$parameter_names, par_name, object_class="ModelFit"))
+    model_fit$parameter_names, par_names, object_class="ModelFit"))
 }
 
 
-GetParameterIndexLocal <- function(par_names, par_name, object_class) {
-  if (!(par_name %in% par_names)) {
-    stop(paste0("Parameter name ", par_name, " not found in ",
-                object_class, "."))
+GetParameterIndexLocal <- function(all_par_names, par_names, object_class) {
+  missing_names <- setdiff(par_names, all_par_names)
+  if (length(missing_names) > 0) {
+    stop(paste0(
+      "Parameter names ",
+      paste(missing_names, collapse=", "), " not found in ",
+      object_class, "."))
   }
-  target_index <- which(par_names == par_name)
-  return(target_index)
+  target_indices <- setNames(1:length(all_par_names), all_par_names)[par_names]
+  return(target_indices)
 }

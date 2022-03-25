@@ -44,17 +44,20 @@ fit_object <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <-
-    ComputeModelInfluence(fit_object) %>%
+    ComputeModelInfluence(fit_object, keep_pars=c("x2", "x1")) %>%
     AppendTargetRegressorInfluence("x1") %>%
     AppendTargetRegressorInfluence("x2")
 
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
 
+
+
 preds <- PredictForSignals(signals, model_grads)
 base_df <- GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls)
 
 summary_df <- SummarizeReruns(reruns, preds)
+View(summary_df)
 
 ggplot(summary_df) +
     geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
@@ -103,7 +106,7 @@ fit_object <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <-
-    ComputeModelInfluence(fit_object) %>%
+    ComputeModelInfluence(fit_object, keep_pars=c("x2", "x1")) %>%
     AppendTargetRegressorInfluence("x1")
 
 signals <- GetInferenceSignals(model_grads)
