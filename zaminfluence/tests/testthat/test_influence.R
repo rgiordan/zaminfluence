@@ -10,7 +10,12 @@ library(testthat)
 library(tidyverse)
 library(purrr)
 
-context("zaminfluence")
+#context("zaminfluence")
+
+
+# DELTEME
+library(devtools)
+devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 
 GenerateTestInstance <- function(do_iv, do_grouping) {
@@ -86,7 +91,7 @@ TestPredictions <- function(
       target_parameter=param_infl$target_parameter,
       sig_num_ses=param_infl$sig_num_ses)
     diff_rerun <-
-      unlist(rerun_base_values)[names(base_values)] -
+      unlist(rerun_base_values)[names(base_values)] %>% as.numeric() -
       base_values[names(base_values)]
     names(diff_rerun) <- names(base_values)
 
@@ -222,6 +227,8 @@ TestInfluence <- function(test_instance) {
   return(invisible(test_instance))
 }
 
+
+#debug(TestPredictions)
 
 test_that("influence_computations_correct", {
   set.seed(42)

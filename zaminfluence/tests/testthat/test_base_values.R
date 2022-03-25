@@ -8,12 +8,8 @@ library(sandwich)
 library(testthat)
 library(tidyverse)
 
-#context("zaminfluence")
+context("zaminfluence")
 
-
-# DELTEME
-library(devtools)
-devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Test that ComputeModelInfluence, AppendTargetRegressorInfluence, and
 # RerunFun give the same answers as R on the original data.
