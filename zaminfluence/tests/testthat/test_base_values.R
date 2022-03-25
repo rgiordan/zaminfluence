@@ -8,14 +8,18 @@ library(sandwich)
 library(testthat)
 library(tidyverse)
 
-context("zaminfluence")
+#context("zaminfluence")
 
+
+# DELTEME
+library(devtools)
+devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Test that ComputeModelInfluence, AppendTargetRegressorInfluence, and
 # RerunFun give the same answers as R on the original data.
 TestConfiguration <- function(model_fit, se_group) {
   model_grads <-
-    ComputeModelInfluence(model_fit, se_group)%>%
+    ComputeModelInfluence(model_fit, se_group=se_group) %>%
     AppendTargetRegressorInfluence("x1")
 
   # Test that the coefficient estimates and standard errors in model_grads
@@ -35,7 +39,7 @@ TestConfiguration <- function(model_fit, se_group) {
 
   # Test that the base values in param_infl are correct.
   param_infl <- model_grads$param_infls[["x1"]]
-  target_index <- param_infl$target_index
+  target_index <- GetParameterIndex(model_grads$model_fit, "x1")
   testthat::expect_equivalent(
     "x1", names(coefficients(model_fit))[target_index], info="target index")
   testthat::expect_equivalent(
@@ -66,8 +70,8 @@ TestConfiguration <- function(model_fit, se_group) {
 test_that("regression works", {
   TestRegressionConfiguration <- function(num_groups, weights) {
     df <- GenerateRegressionData(100, 0.5, num_groups=num_groups)
-    lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE, weights=weights)
-    TestConfiguration(lm_result, se_group=df[["se_group"]])
+    model_fit <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE, weights=weights)
+    TestConfiguration(model_fit, se_group=df[["se_group"]])
   }
 
   TestRegressionConfiguration(num_groups=NULL, weights=NULL)
@@ -88,6 +92,39 @@ test_that("regression works", {
   TestIVRegressionConfiguration(num_groups=10, weights=runif(100))
 
 })
+
+##########################
+##########################
+# Debugging
+
+devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+
+weights <- NULL
+num_groups <- 10
+df <- GenerateRegressionData(100, 0.5, num_groups=num_groups)
+model_fit <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE, weights=weights)
+#TestConfiguration(model_fit, se_group=df[["se_group"]])
+
+se_group <- df[["se_group"]]
+
+model_grads <-
+  ComputeModelInfluence(model_fit, se_group=se_group) %>%
+  AppendTargetRegressorInfluence("x1")
+
+# Test that the coefficient estimates and standard errors in model_grads
+# match what we expect from R.
+AssertNearlyEqual(
+  model_grads$model_fit$param, coefficients(model_fit), desc="param equal")
+se_r <- GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt()
+
+cbind(model_grads$model_fit$se, se_r)
+model_grads$model_fit$se / se_r
+AssertNearlyEqual(
+  model_grads$model_fit$se, se_r, desc="std error equal")
+
+# ^^^^^^^^^^^^^^^^^^^^^^^
+##########################
+##########################
 
 
 test_that("se groups can be non-ordered", {

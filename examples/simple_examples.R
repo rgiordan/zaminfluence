@@ -50,14 +50,10 @@ model_grads <-
 
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
-
-
-
 preds <- PredictForSignals(signals, model_grads)
 base_df <- GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls)
 
 summary_df <- SummarizeReruns(reruns, preds)
-View(summary_df)
 
 ggplot(summary_df) +
     geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
@@ -81,44 +77,6 @@ grid.arrange(
         geom_point(aes(x=x1, y=x2, color=drop)),
     ncol=3
 )
-
-
-# Can we structure the signals better?  Yes.
-
-param_name <- "x1"
-this_signals <- GetInferenceSignalsForParameter(model_grads$param_infls[[param_name]])
-names(this_signals)
-
-signals_df <- tibble()
-for (qoi_name in names(this_signals)) {
-    signals_df <- bind_rows(
-        signals_df,
-        tibble(param=param_name, qoi_name=qoi_name) %>%
-            mutate(signal=list(this_signals[[qoi_name]])))
-}
-
-this_signals[["sign"]] %>% pluck("apip") %>% pluck("prop")
-this_signals[["sig"]] %>% pluck("apip") %>% pluck("prop")
-this_signals[["both"]] %>% pluck("apip") %>% pluck("prop")
-
-signals_df %>% rowwise() %>% mutate(apip=pluck(signal, "apip") %>% pluck("prop"))
-signals_df$signal[[1]]$apip$prop
-signals_df$signal[[2]]$apip$prop
-
-
-
-foo <- list(a=1)
-bar <- list(a=2, c=3)
-baz <- list(a=3.5, c=2,8, d=6)
-
-
-tb <- tibble(ind=1:3) %>%
-    mutate(l=list(foo, bar, baz))
-
-
-tb %>% mutate(len=length(l))
-tb %>%  rowwise() %>% mutate(len=length(l))
-tb %>%  rowwise() %>% mutate(myval=pluck(l, "a"))
 
 
 #############################

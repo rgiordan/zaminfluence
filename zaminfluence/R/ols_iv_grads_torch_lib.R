@@ -154,7 +154,8 @@ GetIVRegressionSEDerivsTorch <- function(
         tv$score_mat <- tv$z * tv$eps * tv$w
         tv$se_group <-
             torch_tensor(
-                as.integer(factor(df$se_group)) %>% matrix(ncol=1),
+                as.integer(factor(se_group)) %>%
+                matrix(ncol=1),
                 dtype=torch_int64())
         tv$score_sum <- TorchGroupedAggregate(
           src_mat=tv$score_mat, inds=tv$se_group)
@@ -165,7 +166,7 @@ GetIVRegressionSEDerivsTorch <- function(
 
         tv$zwx_inv_vmat <- linalg_solve(tv$zwx, tv$v_mat)
         tv$se_cov_mat <- linalg_solve(
-          tv$zwx, torch_transpose(tv$zwx_inv_vmat, 1, 2)) * num_groups
+          tv$zwx, torch_transpose(tv$zwx_inv_vmat, 2, 1)) * num_groups
     } else {
         tv$sig2_hat <- torch_sum(
           tv$w * (tv$eps ** 2)) / (tv$num_obs - tv$num_cols)
@@ -190,7 +191,7 @@ GetIVRegressionSEDerivsTorch <- function(
 
     if (compute_derivs) {
       # betahat
-      betahat_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+      betahat_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=tv$num_obs)
       for (di in 1:length(keep_inds)) {
           d <- keep_inds[di]
           betahat_infl_mat[di, ] <-
@@ -199,7 +200,7 @@ GetIVRegressionSEDerivsTorch <- function(
       }
 
       # standard errors
-      se_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=num_obs)
+      se_infl_mat <- matrix(NA, nrow=length(keep_inds), ncol=tv$num_obs)
       for (di in 1:length(keep_inds)) {
           d <- keep_inds[di]
           se_infl_mat[di, ] <-
@@ -440,7 +441,7 @@ ComputeIVRegressionInfluence <- function(
 #' @return `r docs$model_grads`
 #'
 #' @export
-ComputeModelInfluence <- function(fit_object, keep_pars=NULL, se_group=NULL) {
+ComputeModelInfluence <- function(fit_object, se_group=NULL, keep_pars=NULL) {
   valid_classes <- c("lm", "ivreg")
   model_class <- class(fit_object)
   if (!(model_class %in% valid_classes)) {
