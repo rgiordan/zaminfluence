@@ -83,8 +83,42 @@ grid.arrange(
 )
 
 
+# Can we structure the signals better?  Yes.
+
+param_name <- "x1"
+this_signals <- GetInferenceSignalsForParameter(model_grads$param_infls[[param_name]])
+names(this_signals)
+
+signals_df <- tibble()
+for (qoi_name in names(this_signals)) {
+    signals_df <- bind_rows(
+        signals_df,
+        tibble(param=param_name, qoi_name=qoi_name) %>%
+            mutate(signal=list(this_signals[[qoi_name]])))
+}
+
+this_signals[["sign"]] %>% pluck("apip") %>% pluck("prop")
+this_signals[["sig"]] %>% pluck("apip") %>% pluck("prop")
+this_signals[["both"]] %>% pluck("apip") %>% pluck("prop")
+
+signals_df %>% rowwise() %>% mutate(apip=pluck(signal, "apip") %>% pluck("prop"))
+signals_df$signal[[1]]$apip$prop
+signals_df$signal[[2]]$apip$prop
 
 
+
+foo <- list(a=1)
+bar <- list(a=2, c=3)
+baz <- list(a=3.5, c=2,8, d=6)
+
+
+tb <- tibble(ind=1:3) %>%
+    mutate(l=list(foo, bar, baz))
+
+
+tb %>% mutate(len=length(l))
+tb %>%  rowwise() %>% mutate(len=length(l))
+tb %>%  rowwise() %>% mutate(myval=pluck(l, "a"))
 
 
 #############################
