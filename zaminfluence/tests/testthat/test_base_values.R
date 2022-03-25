@@ -9,11 +9,11 @@ library(testthat)
 library(tidyverse)
 library(numDeriv)
 
-#context("zaminfluence")
+context("zaminfluence")
 
 # DELETEME
-library(devtools)
-devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
+#library(devtools)
+#devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Test that ComputeModelInfluence, AppendTargetRegressorInfluence, and
 # RerunFun give the same answers as R on the original data.
@@ -161,7 +161,6 @@ test_that("derivatives work", {
     num_groups <- if (config$num_groups == -1) NULL else config$num_groups
     TestRegressionConfigurationDerivs(num_groups, weights, keep_pars, config$do_iv)
   }
-
 })
 
 

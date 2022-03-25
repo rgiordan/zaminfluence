@@ -4,7 +4,7 @@
 \alias{ComputeModelInfluence}
 \title{Compute the influence functions for all regressors given a model fit.}
 \usage{
-ComputeModelInfluence(fit_object, keep_pars = NULL, se_group = NULL)
+ComputeModelInfluence(fit_object, se_group = NULL, keep_pars = NULL)
 }
 \arguments{
 \item{se_group}{Optional. The standard error grouping variable.}
