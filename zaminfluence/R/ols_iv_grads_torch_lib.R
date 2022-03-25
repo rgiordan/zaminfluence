@@ -319,6 +319,7 @@ GetKeepInds <- function(coeff_names, keep_pars=NULL) {
 #' Compute all influence scores for a regression.
 #' @param lm_result `r docs$lm_result`
 #' @param se_group `r docs$se_group`
+#' @param keep_pars `r docs$keep_pars`
 #'
 #' @return `r docs$grad_return`
 #'
@@ -378,6 +379,7 @@ ComputeRegressionInfluence <- function(
 #' Compute all influence scores for an IV regression.
 #' @param iv_res `r docs$iv_res`
 #' @param se_group `r docs$se_group`
+#' @param keep_pars `r docs$keep_pars`
 #'
 #' @return `r docs$grad_return`
 #'
@@ -437,6 +439,7 @@ ComputeIVRegressionInfluence <- function(
 #' Compute the influence functions for all regressors given a model fit.
 #' @param model_fit `r docs$model_fit`
 #' @param se_group `r docs$se_group`
+#' @param keep_pars `r docs$keep_pars`
 #'
 #' @return `r docs$model_grads`
 #'

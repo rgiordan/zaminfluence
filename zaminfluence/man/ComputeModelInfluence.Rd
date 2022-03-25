@@ -9,6 +9,8 @@ ComputeModelInfluence(fit_object, se_group = NULL, keep_pars = NULL)
 \arguments{
 \item{se_group}{Optional. The standard error grouping variable.}
 
+\item{keep_pars}{Optional. The names of parameters for which to compute derivatives.}
+
 \item{model_fit}{The fit from \code{\link[=lm]{lm()}} or \code{\link[AER:ivreg]{AER::ivreg()}}.}
 }
 \value{
