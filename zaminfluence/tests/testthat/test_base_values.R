@@ -25,16 +25,16 @@ TestConfiguration <- function(fit_object, se_group) {
   # Test that the coefficient estimates and standard errors in model_grads
   # match what we expect from R.
   AssertNearlyEqual(
-    model_grads$model_fit$param, coefficients(model_fit), desc="param equal")
+    model_grads$model_fit$param, coefficients(fit_object), desc="param equal")
   se_r <- GetFitCovariance(fit_object, se_group) %>% diag() %>% sqrt()
   AssertNearlyEqual(
     model_grads$model_fit$se, se_r, desc="std error equal")
   testthat::expect_equivalent(
-    model_grads$model_fit$num_obs, length(model_fit$y), info="num obs")
+    model_grads$model_fit$num_obs, length(fit_object$y), info="num obs")
   # testthat::expect_equivalent(
   #   model_grads$weights, model_fit$weights, info="weights")
   testthat::expect_equivalent(
-    model_grads$model_fit$parameter_names, names(coefficients(model_fit)),
+    model_grads$model_fit$parameter_names, names(coefficients(fit_object)),
     info="column names")
 
   # Test that the base values in param_infl are correct.
@@ -58,7 +58,7 @@ TestConfiguration <- function(fit_object, se_group) {
     info="param_mzse base value")
 
   # Test that if we re-run we get the same answer.
-  rerun <- model_grads$RerunFun(model_fit$weights)
+  rerun <- model_grads$RerunFun(fit_object$weights)
   AssertNearlyEqual(
     rerun$param, coefficients(fit_object), desc="rerun param equal")
   AssertNearlyEqual(
@@ -148,7 +148,7 @@ test_that("derivatives work", {
   
   for (n in 1:nrow(test_configs)) {
     config <- test_configs[n, ]
-    cat("Testing derivatives for config ", paste(as.character(config), collapse=", "), "\n")
+    cat(" Numerically testing derivatives for config ", paste(as.character(config), collapse=", "), "\n")
     weights <- if (config$random_weights) w_rand else w_ones
     keep_pars <-
       if (config$keep_pars == 1) {
