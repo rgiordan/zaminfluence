@@ -1,3 +1,13 @@
+
+if (FALSE) {
+    # To install this branch:
+    library(devtools)
+    devtools::install_github("https://github.com/rgiordan/zaminfluence/",
+                             ref="fix_15",
+                             subdir="zaminfluence",
+                             force=TRUE)
+}
+
 ###################################################################
 #
 # These simple examples illustrate the use of zaminfluence.
@@ -43,6 +53,7 @@ reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
 fit_object <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
+# Derivatives are only computed for keep_pars, which can be in any order.
 model_grads <-
     ComputeModelInfluence(fit_object, keep_pars=c("x2", "x1")) %>%
     AppendTargetRegressorInfluence("x1") %>%
