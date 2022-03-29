@@ -1,14 +1,3 @@
-
-if (FALSE) {
-    # To install this branch:
-    library(devtools)
-    devtools::install_github("https://github.com/rgiordan/zaminfluence/",
-                             ref="fix_15",
-                             subdir="zaminfluence",
-                             force=TRUE)
-}
-
-
 ###################################################################
 #
 # These simple examples illustrate the use of zaminfluence.
