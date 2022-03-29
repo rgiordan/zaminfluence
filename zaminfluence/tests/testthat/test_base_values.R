@@ -7,67 +7,70 @@ library(zaminfluence)
 library(sandwich)
 library(testthat)
 library(tidyverse)
+library(numDeriv)
 
 context("zaminfluence")
 
+# DELETEME
+#library(devtools)
+#devtools::load_all("/home/rgiordan/Documents/git_repos/zaminfluence/zaminfluence")
 
 # Test that ComputeModelInfluence, AppendTargetRegressorInfluence, and
 # RerunFun give the same answers as R on the original data.
-TestConfiguration <- function(model_fit, se_group) {
+TestConfiguration <- function(fit_object, se_group) {
   model_grads <-
-    ComputeModelInfluence(model_fit, se_group)%>%
+    ComputeModelInfluence(fit_object, se_group=se_group) %>%
     AppendTargetRegressorInfluence("x1")
 
   # Test that the coefficient estimates and standard errors in model_grads
   # match what we expect from R.
   AssertNearlyEqual(
-    model_grads$model_fit$param, coefficients(model_fit), desc="param equal")
-  se_r <- GetFitCovariance(model_fit, se_group) %>% diag() %>% sqrt()
+    model_grads$model_fit$param, coefficients(fit_object), desc="param equal")
+  se_r <- GetFitCovariance(fit_object, se_group) %>% diag() %>% sqrt()
   AssertNearlyEqual(
     model_grads$model_fit$se, se_r, desc="std error equal")
   testthat::expect_equivalent(
-    model_grads$model_fit$num_obs, length(model_fit$y), info="num obs")
+    model_grads$model_fit$num_obs, length(fit_object$y), info="num obs")
   # testthat::expect_equivalent(
   #   model_grads$weights, model_fit$weights, info="weights")
   testthat::expect_equivalent(
-    model_grads$model_fit$parameter_names, names(coefficients(model_fit)),
+    model_grads$model_fit$parameter_names, names(coefficients(fit_object)),
     info="column names")
 
   # Test that the base values in param_infl are correct.
   param_infl <- model_grads$param_infls[["x1"]]
-  target_index <- param_infl$target_index
+  target_index <- GetParameterIndex(model_grads$model_fit, "x1")
   testthat::expect_equivalent(
-    "x1", names(coefficients(model_fit))[target_index], info="target index")
+    "x1", names(coefficients(fit_object))[target_index], info="target index")
   testthat::expect_equivalent(
     param_infl$param$base_value,
-    coefficients(model_fit)[target_index],
+    coefficients(fit_object)[target_index],
     info="param base value")
   testthat::expect_equivalent(
     param_infl$param_pzse$base_value,
-    coefficients(model_fit)[target_index] +
+    coefficients(fit_object)[target_index] +
       param_infl$sig_num_ses * se_r[target_index],
     info="param_pzse base value")
   testthat::expect_equivalent(
     param_infl$param_mzse$base_value,
-    coefficients(model_fit)[target_index] -
+    coefficients(fit_object)[target_index] -
       param_infl$sig_num_ses * se_r[target_index],
     info="param_mzse base value")
 
   # Test that if we re-run we get the same answer.
-  rerun <- model_grads$RerunFun(model_fit$weights)
+  rerun <- model_grads$RerunFun(fit_object$weights)
   AssertNearlyEqual(
-    rerun$param, coefficients(model_fit), desc="rerun param equal")
+    rerun$param, coefficients(fit_object), desc="rerun param equal")
   AssertNearlyEqual(
     rerun$se, se_r, desc="rerun std error equal")
 }
 
 
-
 test_that("regression works", {
   TestRegressionConfiguration <- function(num_groups, weights) {
     df <- GenerateRegressionData(100, 0.5, num_groups=num_groups)
-    lm_result <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE, weights=weights)
-    TestConfiguration(lm_result, se_group=df[["se_group"]])
+    fit_object <- lm(y ~ x1 + 1, df, x=TRUE, y=TRUE, weights=weights)
+    TestConfiguration(fit_object, se_group=df[["se_group"]])
   }
 
   TestRegressionConfiguration(num_groups=NULL, weights=NULL)
@@ -90,6 +93,10 @@ test_that("regression works", {
 })
 
 
+##########################################################################
+##########################################################################
+
+
 test_that("se groups can be non-ordered", {
   num_obs <- 100
   df <- GenerateIVRegressionData(num_obs, 0.5, num_groups=10)
@@ -105,9 +112,9 @@ test_that("se groups can be non-ordered", {
     AssertNearlyEqual(iv_zam$betahat, iv_res$coefficients)
 
     AssertNearlyEqual(
-      reg_zam$se_mat, GetFitCovariance(reg_res, se_group=se_group))
+      as.numeric(reg_zam$se_mat), GetFitCovariance(reg_res, se_group=se_group))
     AssertNearlyEqual(
-      iv_zam$se_mat, GetFitCovariance(iv_res, se_group=se_group))
+      as.numeric(iv_zam$se_mat), GetFitCovariance(iv_res, se_group=se_group))
   }
 
   TestSEGroup(NULL)
@@ -137,13 +144,13 @@ test_that("rerun works", {
     iv_fit, weights=df$w, se_group=df$se_group)
   iv_vcov <- GetFitCovariance(iv_fit, se_group=df$se_group)
   AssertNearlyEqual(iv_fit$coefficients, zam_iv_fit$betahat)
-  AssertNearlyEqual(iv_vcov, zam_iv_fit$se_mat)
+  AssertNearlyEqual(iv_vcov, as.numeric(zam_iv_fit$se_mat))
 
   zam_reg_fit <- ComputeRegressionResults(
     reg_fit, weights=df$w, se_group=df$se_group)
   reg_vcov <- GetFitCovariance(reg_fit, se_group=df$se_group)
   AssertNearlyEqual(reg_fit$coefficients, zam_reg_fit$betahat)
-  AssertNearlyEqual(reg_vcov, zam_reg_fit$se_mat)
+  AssertNearlyEqual(reg_vcov, as.numeric(zam_reg_fit$se_mat))
 
   # Test that rerun works with left-out observations.  Generate a weight
   # vector with randomly left-out observations.
@@ -182,7 +189,7 @@ test_that("rerun works", {
       new_vcov <- GetFitCovariance(new_fit, se_group=se_group)
 
       AssertNearlyEqual(new_fit$coefficients, zam_fit$betahat)
-      AssertNearlyEqual(new_vcov, zam_fit$se_mat)
+      AssertNearlyEqual(new_vcov, as.numeric(zam_fit$se_mat))
     }
   }
 })

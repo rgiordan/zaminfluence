@@ -23,7 +23,7 @@ SummarizeReruns <- function(reruns, preds) {
     summary_df <-
         rbind(reruns_df %>% mutate(method="rerun"),
               preds_df %>% mutate(method="prediction")) %>%
-        pivot_wider(-method, names_from=method, values_from=value)
+        pivot_wider(names_from=method, values_from=value)
     return(summary_df)
 }
 
@@ -43,8 +43,9 @@ reg_form <- formula(sprintf("y ~ %s - 1", paste(x_names, collapse=" + ")))
 fit_object <- lm(data = df, formula=reg_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
+# Derivatives are only computed for keep_pars, which can be in any order.
 model_grads <-
-    ComputeModelInfluence(fit_object) %>%
+    ComputeModelInfluence(fit_object, keep_pars=c("x2", "x1")) %>%
     AppendTargetRegressorInfluence("x1") %>%
     AppendTargetRegressorInfluence("x2")
 
@@ -79,10 +80,6 @@ grid.arrange(
 )
 
 
-
-
-
-
 #############################
 # Instrumental variables.
 
@@ -102,7 +99,7 @@ fit_object <- ivreg(data = df, formula = iv_form, x=TRUE, y=TRUE)
 
 # Get influence and reruns.
 model_grads <-
-    ComputeModelInfluence(fit_object) %>%
+    ComputeModelInfluence(fit_object, keep_pars=c("x2", "x1")) %>%
     AppendTargetRegressorInfluence("x1")
 
 signals <- GetInferenceSignals(model_grads)

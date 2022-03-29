@@ -3,11 +3,10 @@ library(purrr)
 
 # Define an ParameterInferenceInfluence S3 object.
 new_ParameterInferenceInfluence <- function(
-    target_index, target_parameter, sig_num_ses,
+    target_parameter, sig_num_ses,
     se_qoi, param_qoi, param_mzse_qoi, param_pzse_qoi) {
   return(structure(
     list(
-        target_index=as.integer(target_index),
         target_parameter=as.character(target_parameter),
         se=se_qoi,
         param=param_qoi,
@@ -35,11 +34,6 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
   stopifnot(length(sig_num_ses) == 1)
   stopifnot(sig_num_ses >= 0)
 
-  target_index <- param_infl$target_index
-  stopifnot(is.numeric(target_index))
-  stopifnot(length(target_index) == 1)
-  stopifnot(target_index > 0)
-
   return(invisible(param_infl))
 }
 
@@ -48,19 +42,13 @@ validate_ParameterInferenceInfluence <- function(param_infl) {
 GetParameterInferenceQOIs <- function(model_fit, target_parameter,
                                       sig_num_ses=qnorm(0.975)) {
   stopifnot(class(model_fit) == "ModelFit")
-  target_index <- which(model_fit$parameter_names == target_parameter)
-  if (length(target_index) != 1) {
-      stop(paste0("Target parameter ",
-         target_parameter, " not found in the parameter names (",
-         paste(model_fit$parameter_names, collapse=", ")
-       ), ")\n")
-  }
+  target_index <- GetParameterIndex(model_fit, target_parameter)
 
   param <- model_fit$param[target_index]
   se <- model_fit$se[target_index]
 
   values <- GetInferenceQOIs(param=param, se=se, sig_num_ses=sig_num_ses)
-  values$target_index <- target_index
+  values$target_parameter <- target_parameter
   return(values)
 }
 
@@ -88,7 +76,6 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     qoi_base_values <- GetParameterInferenceQOIs(
       model_grads$model_fit, target_parameter=target_parameter,
       sig_num_ses=sig_num_ses)
-    target_index <- qoi_base_values$target_index
 
     # se_grad and param_grad are the gradients for a parameter along the path
     # taking a weight
@@ -96,6 +83,7 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
     # effect of removing a datapoint (taking its value from the current weight
     # to zero.) So we multiply the raw weight
     # derivatives by the actual base weights.
+    target_index <- GetParameterIndex(model_grads, target_parameter)
     se_grad <- weights * model_grads$se_grad[target_index,]
     param_grad <- weights * model_grads$param_grad[target_index, ]
     num_obs <- model_grads$model_fit$num_obs
@@ -105,7 +93,6 @@ ParameterInferenceInfluence <- function(model_grads, target_parameter,
       sig_num_ses=sig_num_ses)
 
     param_infl <- new_ParameterInferenceInfluence(
-          target_index=target_index,
           target_parameter=target_parameter,
           sig_num_ses=sig_num_ses,
           se_qoi=QOIInfluence(

@@ -8,7 +8,7 @@ Authors@R:
            email = "rgiordan@mit.edu",
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: Compute an analyze the influence function for Z-estimators.
-Depends: R (>= 3.2.3), reticulate, dplyr, ggplot2, latex2exp, stringr, broom, purrr
+Depends: R (>= 3.2.3), reticulate, dplyr, ggplot2, latex2exp, stringr, broom, purrr, torch
 License: Apache 2.0
 Encoding: UTF-8
 LazyData: true

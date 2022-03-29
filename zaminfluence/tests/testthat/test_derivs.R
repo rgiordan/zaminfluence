@@ -1,282 +1,85 @@
 #!/usr/bin/env Rscript
-#
-# Test the manual derivatives using numerical differentiation.
-# Effectively, this tests GetIVSEDerivs and GetRegressionSEDerivs with
-# both grouped and ungrouped standard errors.
+
+# Numerically test the derivatives.
 
 library(AER)
 library(zaminfluence)
-library(numDeriv)
-library(sandwich)
 library(testthat)
-library(tidyverse)
+library(numDeriv)
 
 context("zaminfluence")
 
+test_that("derivatives work", {
+  TestDerivs <- function(model_grads) {
+    RerunCoeff <- function(w) {
+      rerun_fit <- model_grads$RerunFun(w)
+      return(rerun_fit$param)
+    }
 
-GenerateTestInstance <- function(do_iv, do_grouping) {
-  x_dim <- 3
-  beta_true <- runif(x_dim)
+    RerunSe <- function(w) {
+      rerun_fit <- model_grads$RerunFun(w)
+      return(rerun_fit$se)
+    }
 
-  GenerateFun <- if (do_iv) GenerateIVRegressionData else GenerateRegressionData
-  if (do_grouping) {
-    df <- GenerateFun(20, beta_true, num_groups=5)
-  } else {
-    df <- GenerateFun(20, beta_true)
+    betahat_grad <- numDeriv::jacobian(
+      RerunCoeff, model_grads$model_fit$weights)
+    se_grad <- numDeriv::jacobian(RerunSe, model_grads$model_fit$weights)
+
+    for (par in model_grads$parameter_names) {
+      fit_ind <- GetParameterIndex(model_grads$model_fit, par)
+      grad_ind <- GetParameterIndex(model_grads, par)
+      AssertNearlyEqual(
+        model_grads$param_grad[grad_ind, ], betahat_grad[fit_ind, ])
+      AssertNearlyEqual(model_grads$se_grad[grad_ind, ], se_grad[fit_ind, ])
+    }
   }
 
-  df$weights <- runif(nrow(df)) + 1
-
-  # Fit a model.
-  if (do_iv) {
-      # IV:
-      x_names <- sprintf("x%d", 1:x_dim)
-      z_names <- sprintf("z%d", 1:x_dim)
-      reg_form <- formula(sprintf("y ~ %s - 1 | %s - 1",
-                                 paste(x_names, collapse=" + "),
-                                 paste(z_names, collapse=" + ")))
-      reg_fit <- ivreg(data=df, formula = reg_form,
-                       x=TRUE, y=TRUE, weights=weights)
-  } else {
-      # Regression:
-      x_names <- sprintf("x%d", 1:x_dim)
-      reg_form <- formula(sprintf("y ~ %s - 1",
-                                  paste(x_names, collapse=" + ")))
-      reg_fit <- lm(data=df, formula=reg_form,
-                    x=TRUE, y=TRUE, weights=weights)
+  TestRegressionConfigurationDerivs <- function(
+        num_groups, weights, keep_pars, do_iv) {
+    if (do_iv) {
+      df <- GenerateIVRegressionData(
+        num_obs, c(0.5, -0.5, 0.0), num_groups=num_groups)
+      fit_object <- ivreg(y ~ x1 + x2 + x3 + 1 | z1 + z2 + z3 + 1,
+                      data=df, x=TRUE, y=TRUE, weights=weights)
+    } else {
+      df <- GenerateRegressionData(
+        num_obs, c(0.5, -0.5, 0.0), num_groups=num_groups)
+      fit_object <-
+        lm(y ~ x1 + x2 + x3 + 1, df, x=TRUE, y=TRUE, weights=weights)
+    }
+    model_grads <-
+      ComputeModelInfluence(
+        fit_object, se_group=df[["se_group"]], keep_pars=keep_pars)
+    TestDerivs(model_grads)
   }
 
-  se_group <- if (do_grouping) df$se_group else NULL
-  LocalGetRegressionSEDerivs <- function(w=df$weights,
-                                         beta=reg_fit$coefficients) {
-      if (do_iv) {
-          return(GetIVSEDerivs(
-              x=df[, x_names] %>% as.matrix(),
-              z=df[, z_names] %>% as.matrix(),
-              y=df$y,
-              beta=beta,
-              w0=w,
-              se_group=se_group,
-              testing=TRUE))
+  test_configs <- expand.grid(
+    num_groups=c(10, -1),
+    random_weights=c(TRUE, FALSE),
+    do_iv=c(TRUE, FALSE),
+    keep_pars=c(1, 2, 3)
+  )
+
+  num_obs <- 20
+
+  w_rand <- runif(num_obs) + 1
+  w_ones <- rep(1, num_obs)
+
+  for (n in 1:nrow(test_configs)) {
+    config <- test_configs[n, ]
+    cat(" Numerically testing derivatives for config ",
+        paste(as.character(config), collapse=", "), "\n")
+    weights <- if (config$random_weights) w_rand else w_ones
+    keep_pars <-
+      if (config$keep_pars == 1) {
+        c("x1")
+      } else if (config$keep_pars == 2) {
+        c("x2", "x1")
       } else {
-          return(GetRegressionSEDerivs(
-              x=df[, x_names] %>% as.matrix(),
-              y=df$y,
-              beta=beta,
-              w0=w,
-              se_group=se_group,
-              testing=TRUE))
+        NULL
       }
+    num_groups <- if (config$num_groups == -1) NULL else config$num_groups
+    TestRegressionConfigurationDerivs(
+      num_groups, weights, keep_pars, config$do_iv)
   }
-
-  reg_se_list <- LocalGetRegressionSEDerivs()
-  return(list(
-    reg_se_list=reg_se_list,
-    LocalGetRegressionSEDerivs=LocalGetRegressionSEDerivs,
-    se_group=se_group,
-    df=df,
-    reg_fit=reg_fit,
-    reg_form=reg_form
-  ))
-}
-
-
-TestUngroupedRegressionDerivatives <- function(do_iv) {
-  test_instance <- GenerateTestInstance(do_iv, FALSE)
-
-  reg_se_list <- test_instance$reg_se_list
-  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
-  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
-  df <- test_instance$df
-  reg_fit <- test_instance$reg_fit
-  reg_form <- test_instance$reg_form
-
-  reg_sigma <- if (do_iv) reg_fit$sigma else sigma(reg_fit)
-
-  ########################
-  # Check that the estimates match
-
-  AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-11)
-  AssertNearlyZero(reg_se_list$sig2_hat - reg_sigma^2, tol=1e-11)
-  AssertNearlyZero(
-    reg_se_list$se_mat - GetFitCovariance(reg_fit), tol=1e-11)
-  AssertNearlyZero(reg_se_list$se -
-    GetFitCovariance(reg_fit) %>% diag() %>% sqrt(), tol=1e-11)
-
-  ########################
-  # Test the derivatives
-
-  # Test the partial derivatives
-  w0 <- df$weights
-  beta <- reg_fit$coefficients
-  dsig2_hat_dw_num <-
-      numDeriv::jacobian(function(w) {
-        LocalGetRegressionSEDerivs(w=w)$sig2_hat
-      }, w0) %>%
-      as.numeric()
-  AssertNearlyZero(dsig2_hat_dw_num -
-                   reg_se_list$dsig2_hat_dw_partial, tol=1e-8)
-
-  dsand_mat_diag_dw_num <-
-      numDeriv::jacobian(function(w) {
-          LocalGetRegressionSEDerivs(w=w)$sand_mat %>% diag()
-        }, w0)
-  AssertNearlyZero(dsand_mat_diag_dw_num -
-                   reg_se_list$dsand_mat_diag_dw_partial, tol=1e-6)
-
-  dse_mat_diag_dw_num <-
-      numDeriv::jacobian(function(w) {
-          LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
-        }, w0)
-  AssertNearlyZero(dse_mat_diag_dw_num -
-                   reg_se_list$dse_mat_diag_dw_partial, tol=5e-6)
-
-  dsig2_hat_dbeta_num <-
-      numDeriv::jacobian(function(beta) {
-          LocalGetRegressionSEDerivs(beta=beta)$sig2_hat
-        }, beta)
-  AssertNearlyZero(
-    dsig2_hat_dbeta_num - reg_se_list$dsig2_hat_dbeta, tol=1e-7)
-
-  #############################
-  # Test the full derivatives
-  if (do_iv) {
-    GetRegTestResults <- function(w) {
-        df_test <- df
-        df_test$weights <- w
-        beta_test <- ivreg(data=df_test, formula=reg_form,
-                           x=TRUE, y=TRUE, weights=weights)$coefficients
-        iv_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
-        return(
-            list(beta=iv_se_test_list$betahat,
-                 se=iv_se_test_list$se,
-                 sig2_hat=iv_se_test_list$sig2_hat,
-                 se_mat_diag=diag(iv_se_test_list$se_mat))
-        )
-    }
-  } else {
-    GetRegTestResults <- function(w) {
-        df_test <- df
-        df_test$weights <- w
-        beta_test <- lm(data=df_test, formula=reg_form,
-                           x=TRUE, y=TRUE, weights=weights)$coefficients
-        reg_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
-        return(
-            list(beta=reg_se_test_list$betahat,
-                 se=reg_se_test_list$se,
-                 sig2_hat=reg_se_test_list$sig2_hat,
-                 se_mat_diag=diag(reg_se_test_list$se_mat))
-        )
-    }
-  }
-
-  dbetahat_dw_num <-
-      numDeriv::jacobian(function(w) { GetRegTestResults(w)$beta }, w0)
-  AssertNearlyZero(dbetahat_dw_num - reg_se_list$dbetahat_dw, tol=1e-8)
-
-  dsig2_hat_num <-
-      numDeriv::jacobian(function(w) { GetRegTestResults(w)$sig2_hat }, w0)
-  AssertNearlyZero(dsig2_hat_num - reg_se_list$dsig2_hat_dw, tol=1e-6)
-
-
-  dse_mat_diag_dw_num <-
-      numDeriv::jacobian(function(w) { GetRegTestResults(w)$se_mat_diag }, w0)
-
-  # Check the relative error for this one
-  AssertNearlyZero((dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw) /
-                       (reg_se_list$dse_mat_diag_dw + 1e-3), tol=1e-6)
-
-  dse_dw_num <- numDeriv::jacobian(function(w) {
-    GetRegTestResults(w)$se }, w0)
-  # Check the relative error for this one
-  AssertNearlyZero((dse_dw_num - reg_se_list$dse_dw) /
-                   (reg_se_list$dse_dw + 1e-3), tol=1e-6)
-
-}
-
-
-
-TestGroupedRegressionDerivatives <- function(do_iv) {
-  test_instance <- GenerateTestInstance(do_iv, TRUE)
-
-  reg_se_list <- test_instance$reg_se_list
-  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
-  LocalGetRegressionSEDerivs <- test_instance$LocalGetRegressionSEDerivs
-  df <- test_instance$df
-  reg_fit <- test_instance$reg_fit
-
-  w0 <- df$weights
-  beta <- reg_fit$coefficients
-
-  ########################
-  # Check that the estimates match
-
-  AssertNearlyZero(reg_se_list$betahat - reg_fit$coefficients, tol=1e-9)
-  AssertNearlyZero(colMeans(reg_se_list$s_mat), tol=1e-9)
-  num_groups <- max(df$se_group) + 1
-  AssertNearlyZero(cov(reg_se_list$s_mat) * (num_groups - 1) / num_groups -
-                   reg_se_list$v_mat, tol=1e-9)
-
-  vcov_se_cov <- GetFitCovariance(reg_fit, df$se_group)
-  AssertNearlyZero(vcov_se_cov - reg_se_list$se_mat, tol=1e-9)
-  AssertNearlyZero(sqrt(diag(vcov_se_cov)) - reg_se_list$se, tol=1e-9)
-
-  ########################
-  # Test the derivatives
-
-  ddiag_semat_dw_partial_num <-
-      numDeriv::jacobian(function(w) {
-          LocalGetRegressionSEDerivs(w=w)$se_mat %>% diag()
-      }, w0)
-  AssertNearlyZero(ddiag_semat_dw_partial_num -
-                   reg_se_list$ddiag_semat_dw_partial, tol=1e-9)
-
-  ddiag_semat_dbeta_partial_num <-
-      numDeriv::jacobian(function(beta) {
-          LocalGetRegressionSEDerivs(beta=beta)$se_mat %>% diag()
-      }, beta)
-  AssertNearlyZero(ddiag_semat_dbeta_partial_num -
-                   reg_se_list$ddiag_semat_dbeta_partial, tol=1e-9)
-
-  #######################
-  # Full derivatives
-  GetRegTestResults <- function(w) {
-      df_test <- df
-      df_test$weights <- w
-      beta_test <- LocalGetRegressionSEDerivs(w=w)$betahat
-      reg_se_test_list <- LocalGetRegressionSEDerivs(beta=beta_test, w=w)
-      return(
-          list(beta=reg_se_test_list$betahat,
-               se=reg_se_test_list$se,
-               se_mat_diag=diag(reg_se_test_list$se_mat))
-      )
-  }
-
-  dbetahat_dw_num <-
-      numDeriv::jacobian(function(w) { GetRegTestResults(w)$beta }, w0)
-  AssertNearlyZero(dbetahat_dw_num - reg_se_list$dbetahat_dw, tol=1e-9)
-
-  dse_mat_diag_dw_num <-
-      numDeriv::jacobian(function(w) { GetRegTestResults(w)$se_mat_diag }, w0)
-  AssertNearlyZero(dse_mat_diag_dw_num - reg_se_list$dse_mat_diag_dw, tol=1e-9)
-
-  dse_dw_num <-
-      numDeriv::jacobian(function(w) { GetRegTestResults(w)$se }, w0)
-  AssertNearlyZero(dse_dw_num - reg_se_list$dse_dw, tol=1e-9)
-}
-
-
-test_that("ungrouped_derivs_correct", {
-  set.seed(12611)
-  TestUngroupedRegressionDerivatives(do_iv=TRUE)
-  set.seed(12611)
-  TestUngroupedRegressionDerivatives(do_iv=FALSE)
-})
-
-
-test_that("grouped_derivs_correct", {
-  set.seed(12611)
-  TestGroupedRegressionDerivatives(do_iv=TRUE)
-  set.seed(12611)
-  TestGroupedRegressionDerivatives(do_iv=FALSE)
 })

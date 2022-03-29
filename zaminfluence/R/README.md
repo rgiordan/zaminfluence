@@ -78,8 +78,13 @@ standard errors.
 A `ModelFit` together with gradients of the parameter and standard errors
 with respect to the data weights.
 - `model_fit`:  A `ModelFit` at the original weights.
-- `param_grad`:  A matrix (`num_obs` x `D`) of gradients of the point estimates
-- `se_grad`:    A matrix (`num_obs` x `D`) of gradients of the standard errors
+- `parameter_names`:  The names of parameters for which gradients are computed.
+- `param_grad`:  A matrix (`D` x `num_obs`) of gradients of the point estimates.
+If `keep_pars` was set, the dimension is not `D` but the length and order of
+`keep_pars`.
+- `se_grad`:    A matrix (`D` x `num_obs`) of gradients of the standard errors
+If `keep_pars` was set, the dimension is not `D` but the length and order of
+`keep_pars`.
 - `param_infls`:  An (optional) list of `ParameterInferenceInfluence` objects.
 - `RerunFun`:  A function taking new weights and returning a new `ModelFit`
 object evaluated at the new weights.
@@ -90,7 +95,6 @@ A Parameter Influence object contains influence scores for inference concerning
 a single parameter form a Model Gradients object.  They are
 created with `AppendTargetRegressorInfluence` and are typically stored in
 the `param_infls` field of a `ModelGrads` object.
-- `target_index`:   The index into param for this parameter
 - `target_parameter`:   The  parameter name (as in `ModelFit$parameter_names`)
 - `sig_num_ses`:    The number of ses that form a confidence interval
 - `se`: A `QOIInfluence` object for the standard error
@@ -142,4 +146,4 @@ provide your own instances of the `ModelFit` and `ModelGrads` classes,
 as instantiated by the corresponding S3 functions `ModelGrads` and `ModelFit`.
 We recommend using automatic differentiation in Python together with a
 wrapper in `reticulate` that translates your results into valid
-`ModelGrads` and `ModelFit` objects.  
+`ModelGrads` and `ModelFit` objects.

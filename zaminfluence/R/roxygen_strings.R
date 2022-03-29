@@ -23,6 +23,7 @@ drop_inds="The indices to drop (in the order of the original data)",
   lm_result="The regression result, i.e, the output of [lm()].",
   iv_res="The iv regression result, i.e, the output of [ivreg()].",
   se_group="Optional. The standard error grouping variable.",
+  keep_pars="Optional. The names of parameters for which to compute derivatives.",
   rerun_return=paste0(
     "A list containing the new regression estimate, standard error ",
     "covariance (`se_mat`), and standard errors (`se`).  The standard errors ",

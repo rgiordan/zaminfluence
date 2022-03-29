@@ -12,7 +12,6 @@ library(purrr)
 
 context("zaminfluence")
 
-
 GenerateTestInstance <- function(do_iv, do_grouping) {
     x_dim <- 1
     param_true <- 0.1
@@ -86,7 +85,7 @@ TestPredictions <- function(
       target_parameter=param_infl$target_parameter,
       sig_num_ses=param_infl$sig_num_ses)
     diff_rerun <-
-      unlist(rerun_base_values)[names(base_values)] -
+      unlist(rerun_base_values)[names(base_values)] %>% as.numeric() -
       base_values[names(base_values)]
     names(diff_rerun) <- names(base_values)
 
