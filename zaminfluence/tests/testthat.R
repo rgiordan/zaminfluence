@@ -10,3 +10,6 @@ library(zaminfluence)
 test_file("testthat/test_base_values.R")
 test_file("testthat/test_influence.R")
 test_file("testthat/test_catchall.R")
+
+# This is a little slow
+test_file("testthat/test_derivs.R")

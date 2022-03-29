@@ -8,6 +8,7 @@ if (FALSE) {
                              force=TRUE)
 }
 
+
 ###################################################################
 #
 # These simple examples illustrate the use of zaminfluence.
