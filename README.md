@@ -46,12 +46,13 @@ sets for a linear regression problem.  It is taken from
 
 ```
 library(tidyverse)
-library(GridExtra)
+library(gridExtra)
 library(zaminfluence)
 
 #############################
 # Generate data.
 set.seed(42)
+num_obs <- 1000
 x_dim <- 3
 param_true <- 0.1 * runif(x_dim)
 df <- GenerateRegressionData(num_obs, param_true, num_groups=NULL)
@@ -85,7 +86,7 @@ preds_df <- GetSignalsAndRerunsDataframe(signals, preds, model_grads)
 summary_df <-
     rbind(reruns_df %>% mutate(method="rerun"),
           preds_df %>% mutate(method="prediction")) %>%
-    pivot_wider(-method, names_from=method, values_from=value)
+    pivot_wider(names_from=method, values_from=value)
 
 ggplot(summary_df) +
     geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
