@@ -1,7 +1,8 @@
 # ZAM influence
 
-This repo contains code to perform analyses described in our paper, "Automatic
-Finite-Sample Robustness Metrics," for the case of ordinary least squares and
+This repo contains code to perform analyses described in our paper, 
+["An Automatic Finite-Sample Robustness Metric: When Can Dropping a Little Data Make a Big Difference?" ](https://arxiv.org/abs/2011.14999)
+for the case of ordinary least squares and
 instrumental variable regressions. The repo name comes from "Z-estimator
 approximate maximal influence".
 
