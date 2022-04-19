@@ -2,7 +2,12 @@
 #
 # These simple examples illustrate the use of zaminfluence.
 # https://github.com/rgiordan/zaminfluence
+#
 # See the README.md file for installation instructions.
+#
+# These examples show only how to run zaminfluence in different configurations.
+# For more examples of how to interpret and analyze the output, see
+# the script interpreting_output.R in this directory.
 
 library(tidyverse)
 library(gridExtra)
@@ -15,17 +20,6 @@ check_equivalent  <- function(x, y) { stopifnot(compare(x, y) < 1e-8) }
 num_obs <- 10000
 
 set.seed(42)
-
-SummarizeReruns <- function(reruns, preds) {
-    reruns_df <- GetSignalsAndRerunsDataframe(signals, reruns, model_grads)
-    preds_df <- GetSignalsAndRerunsDataframe(signals, preds, model_grads)
-    
-    summary_df <-
-        rbind(reruns_df %>% mutate(method="rerun"),
-              preds_df %>% mutate(method="prediction")) %>%
-        pivot_wider(names_from=method, values_from=value)
-    return(summary_df)
-}
 
 
 #############################
@@ -52,32 +46,7 @@ model_grads <-
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
 preds <- PredictForSignals(signals, model_grads)
-base_df <- GetModelFitInferenceDataframe(model_grads$model_fit, model_grads$param_infls)
 
-summary_df <- SummarizeReruns(reruns, preds)
-
-ggplot(summary_df) +
-    geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
-    geom_abline(aes(slope=1, intercept=0))
-
-PlotSignal(model_grads, signals, "x1", "sign",
-          reruns=reruns, apip_max=0.03)
-
-
-# Visualize which points are being dropped
-signal <- signals[["x1"]][["both"]] 
-df$drop <- GetWeightVector(signal$apip$inds, nrow(df), bool=TRUE, invert=TRUE)
-df$infl <- signal$qoi$infl
-
-grid.arrange(
-    ggplot(df) +
-        geom_point(aes(x=x1, y=infl, color=drop)),
-    ggplot(df) +
-        geom_point(aes(x=x1, y=y, color=drop)),
-    ggplot(df) +
-        geom_point(aes(x=x1, y=x2, color=drop)),
-    ncol=3
-)
 
 
 #############################
@@ -105,14 +74,6 @@ model_grads <-
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
 preds <- PredictForSignals(signals, model_grads)
-
-summary_df <- SummarizeReruns(reruns, preds)
-ggplot(summary_df) +
-    geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
-    geom_abline(aes(slope=1, intercept=0))
-
-PlotSignal(model_grads, signals, "x1", "sign",
-           reruns=reruns, apip_max=0.03)
 
 
 #############################
@@ -151,25 +112,6 @@ cat("vcovCL se:\t\t",
 signals <- GetInferenceSignals(model_grads)
 reruns <- RerunForSignals(signals, model_grads)
 preds <- PredictForSignals(signals, model_grads)
-summary_df <- SummarizeReruns(reruns, preds)
-
-ggplot(summary_df) +
-    geom_point(aes(x=prediction, y=rerun, color=param_name, shape=metric)) +
-    geom_abline(aes(slope=1, intercept=0))
-
-# Summaries comparing reruns and predictions for each signal.
-plots <-
-    map(c("sign", "sig", "both"),
-        ~ PlotSignal(model_grads, signals, "x1", ., reruns=reruns, apip_max=0.03))
-do.call(function(...) { grid.arrange(..., ncol=1) }, plots)
-
-
-#############################
-# Pairing
-
-# In the current version of zaminfluence, pairing is not yet supported.  If you're particularly
-# interested in paried analysis, please reach out to the package authors.
-
 
 
 ################################################
