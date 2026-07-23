@@ -7,7 +7,7 @@
 ComputeIVRegressionInfluence(iv_res, se_group = NULL, keep_pars = NULL)
 }
 \arguments{
-\item{iv_res}{The iv regression result, i.e, the output of \code{\link[=ivreg]{ivreg()}}.}
+\item{iv_res}{The iv regression result, i.e, the output of \code{\link[AER:ivreg]{ivreg()}}.}
 
 \item{se_group}{Optional. The standard error grouping variable.}
 

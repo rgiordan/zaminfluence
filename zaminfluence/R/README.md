@@ -110,8 +110,8 @@ QOI objects contain a processed influence vector for a particular scalar-valued
 quantity of interest.
 - `base_value`:     The original value of the quantity of interest
 - `infl`: The unsorted influence scores (in the same order as the original data)
-- `neg`, `pos`:       Sorted influence scores for the negative and positive
-influence scores, where sorted influence scores have:
+- `neg`, `pos`, `zero`:       Sorted influence scores for the negative, positive.
+and zero influence scores, where sorted influence scores have:
   - `infl_inds`:      Indices into the original data that sort the influence
 scores of the corresponding sign.  For example, `infl_inds[1]`
 for the `neg` entry is the index in the order of the original
