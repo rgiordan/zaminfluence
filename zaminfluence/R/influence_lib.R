@@ -5,11 +5,15 @@ new_QOIInfluence <- function(
     name,
     infl, base_value, num_obs,
     ordered_inds_neg, infl_cumsum_neg,
-    ordered_inds_pos, infl_cumsum_pos) {
+    ordered_inds_pos, infl_cumsum_pos,
+    inds_zero) {
 
     return(structure(
       list(
         name=name,
+        zero=list(infl_inds=inds_zero,
+                  infl_cumsum=rep(0, length(inds_zero)),
+                  num_obs=num_obs),
         neg=list(infl_inds=ordered_inds_neg,
                  infl_cumsum=infl_cumsum_neg,
                  num_obs=num_obs),
@@ -40,6 +44,12 @@ validate_QOIInfluence <- function(qoi) {
     CheckSortedInfluence(qoi$pos, 1)
     CheckSortedInfluence(qoi$neg, -1)
     stopifnot(qoi$neg$num_obs == qoi$pos$num_obs)
+    stopifnot(qoi$neg$num_obs == qoi$zero$num_obs)
+
+    # Check the zero influence points
+    zero_infl <- qoi$zero
+    stopifnot(all(qoi$infl[zero_infl$infl_inds] == 0))
+    stopifnot(all(zero_infl$infl_cumsum == 0))
 }
 
 
@@ -56,9 +66,11 @@ QOIInfluence <- function(infl, base_value, name, num_obs=NULL) {
     }
     infl_pos <- infl > 0
     infl_neg <- infl < 0
+    infl_zero <- infl == 0
 
     inds_pos <- (1:length(infl))[infl_pos]
     inds_neg <- (1:length(infl))[infl_neg]
+    inds_zero <- (1:length(infl))[infl_zero]
 
     ordered_inds_pos <- inds_pos[order(-1 * infl[infl_pos])]
     ordered_inds_neg <- inds_neg[order(infl[infl_neg])]
@@ -73,7 +85,8 @@ QOIInfluence <- function(infl, base_value, name, num_obs=NULL) {
       name=name,
       infl=infl, base_value=base_value, num_obs=num_obs,
       ordered_inds_neg=ordered_inds_neg, infl_cumsum_neg=infl_cumsum_neg,
-      ordered_inds_pos=ordered_inds_pos, infl_cumsum_pos=infl_cumsum_pos))
+      ordered_inds_pos=ordered_inds_pos, infl_cumsum_pos=infl_cumsum_pos,
+      inds_zero=inds_zero))
 }
 
 
