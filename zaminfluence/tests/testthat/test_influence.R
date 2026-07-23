@@ -12,7 +12,7 @@ library(purrr)
 
 context("zaminfluence")
 
-GenerateTestInstance <- function(do_iv, do_grouping) {
+GenerateTestInstance <- function(do_iv, do_grouping, zero_weight_inds=c()) {
     x_dim <- 1
     param_true <- 0.1
     num_obs <- 500
@@ -26,6 +26,9 @@ GenerateTestInstance <- function(do_iv, do_grouping) {
     }
 
     df$weights <- runif(nrow(df)) + 1
+    if (length(zero_weight_inds) > 0) {
+        df$weights[zero_weight_inds] <- 0
+    }
 
     # Fit a model.
     if (do_iv) {
@@ -186,8 +189,13 @@ TestInfluence <- function(test_instance) {
 
   # Check the validity of the influence scores.
   qoi_names <- c("param", "param_mzse", "param_pzse")
+  # Zero weights are the only reliable way to produce exact zero influence
+  # scores, since the influence gradients are scaled by the weights
+  # (see ParameterInferenceInfluence).
+  expected_zero_inds <- which(model_grads$model_fit$weights == 0)
   for (qoi_name in qoi_names) {
       validate_QOIInfluence(param_infl[[qoi_name]])
+      expect_equal(param_infl[[qoi_name]]$zero$infl_inds, expected_zero_inds)
       for (sign in c("pos", "neg")) {
           # TestAPIP(param_infl[[qoi_name]], sign)
           TestPredictions(model_grads, param_infl, qoi_name, sign)
@@ -233,4 +241,12 @@ test_that("influence_computations_correct", {
         TestInfluence()
     }
   }
+})
+
+
+test_that("zero_influence_tracked", {
+  set.seed(42)
+  GenerateTestInstance(
+      do_iv=FALSE, do_grouping=FALSE, zero_weight_inds=c(3, 17, 100)) %>%
+    TestInfluence()
 })
